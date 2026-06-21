@@ -61,6 +61,10 @@ export default function RollBar() {
     return getSkillBonus(p, roll.skill);
   };
 
+  const hasRolled = () => rollResult() !== null;
+  const total = () => hasRolled() ? rollResult() + bonus() : null;
+  const modStr = () => { const m = bonus(); return m >= 0 ? `+${m}` : `${m}`; };
+
   function doRoll() {
     const d20 = Math.floor(Math.random() * 20) + 1;
     setRollResult(d20);
@@ -71,9 +75,9 @@ export default function RollBar() {
     const d20 = rollResult();
     if (!roll || d20 === null) return;
     const mod = bonus();
-    const total = d20 + mod;
-    const modStr = mod >= 0 ? `+${mod}` : `${mod}`;
-    const msg = `${roll.pcName} rolled ${total} for ${roll.skill} (d20: ${d20} ${modStr}) — DC ${roll.dc}`;
+    const t = d20 + mod;
+    const ms = mod >= 0 ? `+${mod}` : `${mod}`;
+    const msg = `${roll.pcName} rolled ${t} for ${roll.skill} (d20: ${d20} ${ms}) — DC ${roll.dc}`;
 
     setStore('campaign', 'narrative', [...store.campaign.narrative, {
       role: 'user', content: msg, ts: Date.now(),
@@ -83,41 +87,29 @@ export default function RollBar() {
 
   return (
     <Show when={pendingRoll()}>
-      {(roll) => {
-        const r = roll();
-        const d20 = rollResult();
-        const mod = bonus();
-        const total = d20 !== null ? d20 + mod : null;
-        const modStr = mod >= 0 ? `+${mod}` : `${mod}`;
-        const nat20 = d20 === 20;
-        const nat1 = d20 === 1;
-
-        return (
-          <div class="roll-bar">
-            <div class="roll-info">
-              <span class="roll-skill">{r.skill}</span>
-              <span class="roll-pc">{r.pcName}</span>
-              <span class="roll-dc">DC {r.dc}</span>
-            </div>
-            <Show when={d20 === null}>
-              <button class="btn-roll" onClick={doRoll}>Roll d20</button>
-            </Show>
-            <Show when={d20 !== null}>
-              <div class="roll-result">
-                <span class={`roll-d20 ${nat20 ? 'nat-20' : ''} ${nat1 ? 'nat-1' : ''}`}>
-                  {d20}
-                </span>
-                <span class="roll-mod">{modStr}</span>
-                <span class="roll-eq">=</span>
-                <span class={`roll-total ${total >= r.dc ? 'roll-pass' : 'roll-fail'}`}>
-                  {total}
-                </span>
-              </div>
-              <button class="btn-roll btn-roll-submit" onClick={submitRoll}>Send</button>
-            </Show>
+      <div class="roll-bar">
+        <div class="roll-info">
+          <span class="roll-skill">{pendingRoll()?.skill}</span>
+          <span class="roll-pc">{pendingRoll()?.pcName}</span>
+          <span class="roll-dc">DC {pendingRoll()?.dc}</span>
+        </div>
+        <Show when={!hasRolled()}>
+          <button class="btn-roll" onClick={doRoll}>Roll d20</button>
+        </Show>
+        <Show when={hasRolled()}>
+          <div class="roll-result-display">
+            <span class={`roll-d20 ${rollResult() === 20 ? 'nat-20' : ''} ${rollResult() === 1 ? 'nat-1' : ''}`}>
+              {rollResult()}
+            </span>
+            <span class="roll-mod">{modStr()}</span>
+            <span class="roll-eq">=</span>
+            <span class={`roll-total ${total() >= pendingRoll()?.dc ? 'roll-pass' : 'roll-fail'}`}>
+              {total()}
+            </span>
           </div>
-        );
-      }}
+          <button class="btn-roll btn-roll-submit" onClick={submitRoll}>Send</button>
+        </Show>
+      </div>
     </Show>
   );
 }
