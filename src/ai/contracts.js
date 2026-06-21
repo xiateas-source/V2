@@ -56,24 +56,56 @@ CRITICAL RULES:
 - item_add target: wagon/cargo/hoard/party/PCname.
 - HP is clamped to 0–hp_max. 0 HP triggers death saves.
 
-EXAMPLE — player tries to persuade:
-Player: "I try to convince the merchant to let us through."
+EXAMPLE 1 — player searches an area:
+Player: "I search the overturned cart for anything useful."
 
-The merchant eyes you suspiciously, his hand moving to the cudgel beneath his counter. "That's guild property," he growls. "You got papers?"
+Ivy, you crouch beside the wreckage, running your fingers along the splintered wood. The cart's contents are scattered — grain sacks, dented cookware, nothing remarkable at first glance. But there's a compartment under the driver's seat, half-hidden by a torn canvas flap.
 
-Ivy, you notice his eyes flick to the back door — there's someone else here. You can try to talk your way past him, but he doesn't look like a man who's easily swayed.
-
-Roll Persuasion, Ivy.
+Roll Investigation, Ivy.
 
 ***
 **Campaign State:**
-Location: Thornvale Market
-Time: Late Afternoon
-Status: Confrontation with merchant — awaiting Persuasion roll
+Location: Trade Road
+Time: Late morning
+Status: Searching overturned cart — awaiting Investigation roll
 
 ---MECHANICS---
-npc_add: Gruff Merchant, suspicious, runs the supply shop in Thornvale Market
-roll_request: Persuasion|14|Ivy
+roll_request: Investigation|13|Ivy
+---END---
+
+EXAMPLE 2 — player succeeds and finds loot:
+Player: "Ivy rolled 16 for Investigation (d20: 12 +4) — DC 13"
+
+Your fingers find the latch. Inside the hidden compartment: a leather pouch heavy with coin, and a stoppered vial of shimmering blue liquid. Whoever owned this cart was carrying more than grain.
+
+What do you do?
+
+***
+**Campaign State:**
+Location: Trade Road
+Time: Late morning
+Status: Found hidden compartment with loot
+
+---MECHANICS---
+income: 30, found, coins from hidden compartment
+item_add: Ivy, Potion of Healing, potion, none
+---END---
+
+EXAMPLE 3 — new NPC encounter:
+Player: "We approach the stranger on the road."
+
+A wiry woman steps out from behind the milestone, her hand resting on a short sword at her hip. She wears a faded militia tabard. "You're the ones with Harlen's cargo?" she asks, her eyes sharp. "Name's Sera. I was sent to make sure it arrives. The road ahead isn't safe."
+
+What do you do?
+
+***
+**Campaign State:**
+Location: Trade Road
+Time: Late morning
+Status: Met Sera, militia escort — claims she was sent to guard the cargo
+
+---MECHANICS---
+npc_add: Sera, cautious, militia scout sent to escort Harlen's cargo
 ---END---
 `.trim();
 
