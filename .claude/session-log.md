@@ -1,63 +1,62 @@
 # Session Log — Handoff Note
 
-## Session 34 · 2026-06-21
+## Session 35 · 2026-06-21
 
 ### Shipped
-- **QuickActions** (`QuickActions.jsx`) — 22 presets across 5 categories, context-aware pill-bar, swipe-up drawer, full customization, instant/prefill modes, localStorage persistence
-- **DevTools extraction** (`DevTools.jsx`) — moved ~160 lines of test infra out of InputBar, added 5 new test batches (temp_hp, hit_dice_use, inspiration, death_save, round_advance), lazy-loaded with Suspense
-- **Combat end button** (`Combat.jsx`) — manual "End" button fires `combat_end` mechanic
-- **Scene transition confirmation** (`ContextBanner.jsx` + `mechanics.js`) — `pendingLocation` gate: AI location changes require player Go/Stay confirmation (Law 2)
-- **Previously On** (`PreviouslyOn.jsx`) — session recap when returning after >1hr idle, shows location/party/quests/consequences
-- **Nav badges** (`App.jsx`) — dot indicators on Cargo/Journal when state changes while on Play tab
-- **Unmentioned PC detection** (`drift.js` + `engine.js`) — drift warning when AI narrates actions for a PC the player didn't mention (Law 2, Gate 5)
-- **CharSheet manual override** (`CharSheet.jsx`) — tap HP to edit inline (clamped to 0–hpMax), tap conditions to remove, + button to add new conditions
-- **NPC name linking** (`Chat.jsx`) — NPC names in chat auto-link to NPC tracker, tap for details popup
-- **Glossary term linking** (`Chat.jsx`) — D&D terms auto-link from IndexedDB glossary, tap for definition popup
-- **Tooltip popup system** (`Chat.jsx` + CSS) — tap-to-dismiss overlay for NPC/term detail (Law 4: tap-to-source)
-- **Ask DM interception** (`engine.js`) — inventory/gold/spells/HP/location queries answered instantly from local state without API call (Law 5: zero cost)
-- **Level-up glow** (`CharTiles.jsx`) — tiles pulse green when XP >= next level threshold (character IS the notification)
-- **SituationBar enhanced** (`SituationBar.jsx`) — chips tappable with detail popups, consequences sorted by urgency, deadlined ones pulse
-- **Firebase auth fix** — 5s timeout prevents app hanging when offline
+- **Setup Mode wizard** — Full 3-step onboarding (API key → character → campaign)
+  - `KeyGate.jsx` — API key validation with Gemini test call
+  - `CharCreate.jsx` — Three equal paths: AI chat builder, JSON paste import, Quick Pick (class/race/level)
+  - `CampaignConfig.jsx` — Three paths: Fresh Campaign (name/setting/style + AI brainstorm), Load Adventure (5e.tools JSON), Upload Book (PDF/epub with AI structuring)
+  - `PlayerOnboard.jsx` — Wizard shell with step dots, navigation, "Start Adventure" button
+  - `adventureParser.js` — 5e.tools adventure JSON parser (extracts chapters, NPCs, locations, sets module contract)
+  - `fileParser.js` — PDF/epub text extraction (pdf.js CDN + fflate for epub zip)
+  - `chunkSplitter.js` — Chapter boundary detection for book parsing
+  - `quickBuild.js` — Auto-populate character from class/race/level (standard array, class-optimal abilities)
+  - `normalizer.js` — Rewritten with format detection (native/generic-ai/dndbeyond/minimal/fuzzy), field aliasing, merge with defaults
+  - `setupPrompts.js` — AI system prompts for char builder, campaign brainstorm, content structuring
+  - App.jsx now shows `<PlayerOnboard />` when no campaign ID exists
+  - Discovery gating: imported chapters have `discovered: false`, only first chapter active
+- **Gate 1: Roll confirmation** — Flags AI resolving PC rolls in prose without roll_request
+- **Gate 2: Combat turn enforcement** — Flags wrong-turn actions and multi-action violations, auto-advances turn
+- **Gate 6: Spell validation** — Flags unknown spells and missing slot levels
+- **Gate 7: Skill check requirement** — Flags action resolutions without player rolls (10 action-to-skill mappings)
+- **Gate 8: XP audit** — Flags missing XP after quest_done/combat_end/chapter_add
+- **Gate 9: Income/loot reconciliation** — Flags treasure items without gold value mechanic
+- **Multi-player toggle** — ContextBanner mode switch (solo/multi), triggers Previously On handoff recap
+- **Player-aware Gate 5** — In multi-player, only flags PCs belonging to current player
+- **Conditional auto-scroll** — Chat no longer yanks scrolled-up readers; "N new messages" floating pill indicator
 
-### Decisions Made (Session 34)
-- QuickActions uses two-state pattern: collapsed pill-bar (always visible) + expanded drawer (swipe up)
-- "Say It" mode toggle: instant-fire vs pre-fill input bar for editing
-- Scene transition uses pending pattern — AI sets `pendingLocation`, UI confirms
-- Ask DM interception returns instant answers for factual state queries, passes complex questions through to AI
-- CharSheet HP edit is clamped (can't go below 0 or above hpMax) — prevents accidental invalid state
-- NPC/term linking uses delegated event handlers on chat container (no per-message listeners)
-- Glossary terms filtered to >3 chars to avoid false-positive linking on short words
-- Level-up detection uses inlined XP thresholds (small array, avoids async IndexedDB call)
+### Decisions Made (Session 35)
+- Setup wizard uses three equal path cards (no assumed preference) for both character creation and campaign config
+- PDF/epub parsing uses CDN-loaded libraries (pdf.js, fflate) with `@vite-ignore` dynamic imports
+- Adventure import sets module contract automatically: "Follow the published adventure structure"
+- Discovery gating is code-enforced: only `discovered: true` content enters prompts
+- Multi-player toggle lives in ContextBanner (always visible, one tap)
+- Gate flags render as colored pills on DM messages (red for gates 1/6/7, orange for gate 2/8/9)
+- All gates are advisory (flags, not blocks) — player sees the flag and can accept or dismiss
 
 ### Known Issues
 - No push notifications
-- ElevenLabs TTS not integrated (free tier only for now)
-- Setup mode (SessionZero, CharCreate) still unbuilt
-- No multi-player mode toggle (single player only currently)
-- Gate 1 (Roll confirmation) not built
-- Gate 2 (Combat turn enforcement) not built
-- Gate 6 (Spell validation) not built
-- Gate 7 (Skill check requirement) not built
-- Gate 8 (XP audit) not built
-- Gate 9 (Income/loot reconciliation) not built
+- ElevenLabs TTS not integrated
 - Citation linking (PHB page references) not built
-- Term glossary linking may false-positive on creative NPC dialogue
-- No scroll-position-aware auto-scroll or "new messages" indicator yet
+- `saveKeys()` in KeyGate now passes explicit args (fixed from session 34)
+- file-upload-btn CSS may need fine-tuning for different themes
+- Gate 7 only catches first matching skill action (breaks after first flag to avoid noise)
 
 ### In Progress
 - Nothing mid-task — clean stopping point
 
 ### Next Up
-1. **Enforcement gates** — Gate 1 (roll confirmation) and Gate 2 (combat turns) are highest priority for play quality
-2. **Multi-player toggle** — mode switch + Previously On handoff trigger
-3. **Setup mode** — SessionZero wizard for new campaigns
-4. **Push notifications** — Web Push for multi-player awareness
-5. **Scroll behavior** — conditional auto-scroll + "N new messages" indicator
-6. **Citation linking** — auto-link PHB references to compendium
+1. **Play-test the setup wizard** — fresh app load end-to-end
+2. **Citation linking** — auto-link PHB references in AI responses
+3. **Push notifications** — Web Push for multi-player awareness
+4. **Checkpoint/rewind** — state snapshots at key moments
+5. **Rest buttons on CharSheet** — short/long rest as system operations
+6. **Level-up wizard** — triggered from XP threshold glow
 
 ### Branch State
 - Branch: `claude/session-start-protocol-o8jf7j`
-- Last commit: 4877685
+- Last commit: 7367038
 - All code committed and pushed
 - Not merged to main
-- 4 commits this session (on top of 3 from earlier this session + previous sessions)
+- 6 commits this session
