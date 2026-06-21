@@ -46,8 +46,9 @@ Free APIs, free hosting, free sync. Never depend on a single provider. The syste
 3. Read `.claude/architecture.md` — five pieces, module map, data tiers, engine pipeline
 4. Read `.claude/decisions.md` — design choices already made (don't re-litigate)
 5. **Vision check** — flag any tension with the Five Laws. State it once, briefly.
-6. `git branch` + `git log --oneline -5` — confirm branch and recent commits
-7. Greet user with one-line summary from session log
+6. **Staleness spot-check** — while reading architecture.md, verify 3 things still match the workboard: (a) bottom nav items, (b) file map names, (c) chat tab count. If any mismatch, fix architecture.md before proceeding.
+7. `git branch` + `git log --oneline -5` — confirm branch and recent commits
+8. Greet user with one-line summary from session log
 
 Deep reference (read on demand, not every session):
 - `.claude/prime-directive.md` — full vision, V1 lessons, cross-law alignment
@@ -63,7 +64,12 @@ Deep reference (read on demand, not every session):
 3. If user says "go live": merge to main and push
 4. **Update `.claude/workboard.md`** — mark completed items, add new items
 5. **Update `.claude/decisions.md`** — if design choices were made this session
-6. **Write `.claude/session-log.md`** — overwrite with fresh handoff:
+6. **Cross-file consistency sweep** — check if this session's changes invalidate info in other `.claude/` files:
+   - `architecture.md` — does it still match the workboard module map, nav items, chat tabs, file names, state ownership?
+   - `ui-specs-v2.md` — do field lists still match workboard data shapes?
+   - `chat-system-spec-v2.md` — do message types, tab behavior, or overlay rules still match decisions?
+   - If anything drifted: fix it now, don't leave it for next session to discover.
+7. **Write `.claude/session-log.md`** — overwrite with fresh handoff:
    - Session date and number (increment from last)
    - Shipped — what was built
    - Decisions made — design choices, user preferences
@@ -71,9 +77,9 @@ Deep reference (read on demand, not every session):
    - In progress — unfinished work (include file + line context)
    - Next up — user's stated priorities or logical next steps
    - Branch state — branch name, last commit hash
-7. Commit and push doc updates
-8. Merge docs to main: `git checkout main && git merge <branch> && git push origin main && git checkout <branch>`
-9. Start a new chat for next session
+8. Commit and push doc updates
+9. Merge docs to main: `git checkout main && git merge <branch> && git push origin main && git checkout <branch>`
+10. Start a new chat for next session
 
 ---
 
