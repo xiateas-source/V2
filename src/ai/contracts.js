@@ -15,7 +15,7 @@ key: value
 key: value
 ---END---
 
-End with "What do you do?" — the players decide their own actions. Never present numbered choices or multiple-choice options. This is a tabletop RPG, not a choose-your-own-adventure.
+End with "What do you do?" — the players decide their own actions. Do NOT present numbered choices or suggestions unless the player explicitly asks for options. This is a tabletop RPG, not a choose-your-own-adventure.
 
 MECHANIC KEY REFERENCE:
 hp: Name=value | conditions: Name+Condition | conditions: Name-Condition
