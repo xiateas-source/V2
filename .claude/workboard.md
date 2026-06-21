@@ -1043,8 +1043,9 @@ v1 Quick Actions was a FAB with common play actions. Carried forward but needs r
 - **Spellcasting stats** — Three boxes at top: Spell Save DC (8+prof+ability), Spell Attack bonus (prof+ability, tappable roll), Spellcasting Ability (ability + modifier). Always visible.
 - **Concentration pinned spell** — When concentrating, the active spell pins to top with glowing border and "End" button. Reminds player they'll lose concentration if they cast another concentration spell. Same spell also shows as condition in Vitals.
 - **Spell slots** — Rows per level. Pip display (filled = available). Tap to use/restore.
-- **Cantrips** — Level badge "C", spell name, school + casting time + range.
-- **Known spells** — Grouped by level. Level badge, spell name, meta. Tap for full description (from compendium/IndexedDB).
+- **Spell card layout** — Collapsed: level badge, spell name, school tag, expand arrow. Expanded: three lines — (1) casting time · range · duration, (2) **V, S, M component badges** (prominent purple pills, each component separate — player-requested), (3) description text. Browse Compendium button under spellcasting notes.
+- **Cantrips** — Level badge "C", green tag. Same expand/collapse as leveled spells.
+- **Known spells** — Grouped by level. Same expand/collapse. Tap for full description (from compendium/IndexedDB).
 
 #### Features tab
 - **Class features** — Cards with name, source (class + level), description. Sorted by acquisition level.
@@ -1055,8 +1056,8 @@ v1 Quick Actions was a FAB with common play actions. Carried forward but needs r
 
 #### Equipment tab
 - **Encumbrance bar** — Current weight / capacity (STR x 15). Warning color when over 2/3.
-- **Equipped** — Weapons, armor, shield, focus. Shows stats inline.
-- **Carried** — Personal items. Tap for detail. Quantity badges.
+- **Items** — Each item shows: name, color-coded type tag (WEAPON/TOOL/SUPPLY/HERB/COMPONENT/ITEM/TREASURE), acquisition metadata ("+4 Day 18, 06:00 AM — Mere of Dead Men"). Tappable for detail.
+- **Party currency** — Bottom footer: CP/SP/GP/PP displayed inline. "Tap for full Treasury" link.
 - **Footer** — "Wagon & Hoard in Cargo tab" link.
 
 #### Bio tab
