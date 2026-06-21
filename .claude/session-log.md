@@ -40,6 +40,26 @@
 - Setup mode (SessionZero, CharCreate) still unbuilt
 - Nav badges for state changes in other modes not built
 
+### Technical Debt / Refactor Notes
+- **Test page is undocumented and lives in InputBar.jsx** — SCENARIOS array (8 scenarios) and DIRECT_TESTS array (9 batches) are hardcoded in the input component. Should be extracted to its own `DevTools.jsx` or `src/ui/manage/DevTools.jsx` and documented. Currently tests don't cover: `temp_hp`, `hit_dice_use`, `inspiration`, `death_save`, `round_advance` — all new mechanics from this session.
+- **InputBar.jsx is overloaded** — contains ~160 lines of test infrastructure (scenarios, direct tests, export) plus the actual input bar. Split into InputBar + DevPanel.
+- **CSS is one giant file** (`style.css`) — 786 lines added this session alone. No component scoping. Works but will get unwieldy.
+- **sync.js watches specific fields** — if new state fields are added (e.g. familiar, reputation), sync watchers need manual updating. Consider a more generic approach later.
+- **Rewind only undoes the last message** — doesn't support multi-step undo. Fine for now but players may want deeper history.
+- **Drift detector is regex-based** — catches obvious cases but can false-positive on creative narration. May need tuning after real gameplay.
+- **Combat.jsx has no end-combat UI** — relies on AI emitting `combat_end` mechanic. Player should have a manual "end combat" button.
+- **CharSheet is read-only** — no Manual Override / editing yet (specced in workboard as future work)
+
+### Architecture Notes for Next Session
+- All new mechanics follow the pattern in `mechanics.js`: handler in `HANDLERS` map → validates → mutates store → returns applied flag
+- Drift detector (`drift.js`) exports `detectDrift(narrative, mechanics)` → returns array of `{type, text}` warnings
+- TTS (`browserTTS.js`) exports signals: `speaking()`, `autoRead()`, and functions: `speak(text)`, `stop()`, `toggleAutoRead()`
+- Firebase sync (`sync.js`) exports: `initSync()` (called in main.jsx), `forceSyncNow()`, `loadCampaignFromCloud()`
+- Combat overlay visibility is purely reactive: `<Show when={store.campaign.combatState.active}>`
+- CharSheet opens via CharTiles tap → sets a signal → renders sheet-panel overlay
+- Compendium reads from IndexedDB stores: 'spells', 'glossary', 'compendium' (seeded by content pipeline)
+- Memory pruning (`memory.js`): 12K token threshold → prune to 8K → keep min 4 messages → local summary replaces old messages
+
 ### In Progress
 - Nothing mid-task — clean stopping point
 
@@ -47,12 +67,14 @@
 1. **QuickActions** — short rest / long rest buttons in play UI (most impactful next)
 2. **Scene transition confirmation** — Law 2 gate: AI location change requires player OK
 3. **Previously On** — session recap when resuming play
-4. **Setup mode** — SessionZero wizard, CharCreate flow
-5. **Nav badges** — show state changes happened in other modes
+4. **Extract DevTools** — move test page out of InputBar, add missing mechanic tests
+5. **Setup mode** — SessionZero wizard, CharCreate flow
+6. **Nav badges** — show state changes happened in other modes
+7. **Combat end button** — manual override for ending combat without AI mechanic
 
 ### Branch State
 - Branch: `claude/session-start-protocol-o8jf7j`
-- Last commit: 436033c
+- Last commit: ab6f70a
 - All code committed and pushed
 - Not merged to main
-- 10 commits on branch total (5 from this session)
+- 11 commits on branch total (6 from this session)
