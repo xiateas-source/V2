@@ -634,6 +634,13 @@ body {
   font-weight: 600;
 }
 
+.btn-test-export {
+  background: var(--color-surface);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
 .input-field {
   flex: 1;
   background: var(--color-input-bg);

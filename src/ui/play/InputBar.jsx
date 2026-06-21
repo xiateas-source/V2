@@ -62,6 +62,38 @@ function runAllTests() {
   }
 }
 
+function exportResults() {
+  const c = store.campaign;
+  const out = {
+    characters: c.characters.map(pc => ({
+      name: pc.name, hp: pc.hp, hpMax: pc.hpMax, ac: pc.ac,
+      conditions: pc.conditions, concentration: pc.concentration,
+      inventory: pc.inventory,
+    })),
+    treasury: c.treasury,
+    wagon: c.wagon,
+    location: c.location, time: c.time, weather: c.weather,
+    quests: c.quests,
+    npcs: c.npcs,
+    consequences: c.consequences,
+    places: c.places,
+    chapters: c.chapters,
+    primaryMission: c.primaryMission,
+  };
+  const text = JSON.stringify(out, null, 2);
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => alert('Copied to clipboard'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    alert('Copied to clipboard');
+  }
+}
+
 export default function InputBar(props) {
   const [text, setText] = createSignal('');
   const [showTest, setShowTest] = createSignal(false);
@@ -110,6 +142,7 @@ export default function InputBar(props) {
               <button class="btn-test" onClick={() => runTestBatch(b)}>{b.label}</button>
             ))}
             <button class="btn-test btn-test-all" onClick={runAllTests}>All</button>
+            <button class="btn-test btn-test-export" onClick={exportResults}>Export</button>
           </div>
         )}
       </div>
