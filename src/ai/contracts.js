@@ -34,9 +34,10 @@ chapter_add: Title|Content | location_add: Name|Type|Description
 location_visit: Name | town_rep: town, status, notes
 combat_start: desc | combat_end: summary | zone_add_enemy: Name|HP|AC|Zone|Init
 zone_move: Name|Zone | zone_remove: Name | roll_request: Skill|DC|PCname|modifier
-death_save: Name|success/failure | short_rest: Name
+death_save: Name|success/failure/nat20/nat1 | short_rest: Name (or "party") | long_rest: Name (or "party")
 spell_add: PC|Name|Level|CastTime|Range|Duration|Components|Desc
 familiar_hp: Name|HP | animal_hp: Name=HP
+round_advance: (increment combat round)
 
 ROLL PROCEDURE:
 - Emit roll_request when a PC attempts something with uncertain outcome and meaningful stakes.

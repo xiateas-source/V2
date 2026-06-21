@@ -120,6 +120,25 @@ const DIRECT_TESTS = [
       { key: 'zone_add_enemy', value: 'Bandit Archer|11|12|back|12', target: '', applied: false },
     ]
   },
+  {
+    label: 'Rest',
+    mechanics: [
+      { key: 'short_rest', value: 'party', target: '', applied: false },
+    ]
+  },
+  {
+    label: 'LongRest',
+    mechanics: [
+      { key: 'long_rest', value: 'party', target: '', applied: false },
+    ]
+  },
+  {
+    label: 'ConSave',
+    mechanics: [
+      { key: 'concentration', value: 'Thorn=Faerie Fire', target: '', applied: false },
+      { key: 'hp', value: 'Thorn=20', target: '', applied: false },
+    ]
+  },
 ];
 
 function runTestBatch(batch) {

@@ -12,6 +12,12 @@ const SKILL_ABILITY = {
   slightofhand: 'dex', sleightofhand: 'dex',
 };
 
+const ABILITY_ABBREV = {
+  strength: 'str', dexterity: 'dex', constitution: 'con',
+  intelligence: 'int', wisdom: 'wis', charisma: 'cha',
+  str: 'str', dex: 'dex', con: 'con', int: 'int', wis: 'wis', cha: 'cha',
+};
+
 function getModifier(score) {
   return Math.floor((score - 10) / 2);
 }
@@ -23,6 +29,21 @@ function getSkillBonus(pc, skillName) {
 
   if (pc.skills[camel] !== undefined) return pc.skills[camel];
   if (pc.skills[lower] !== undefined) return pc.skills[lower];
+
+  // Check if it's an ability/saving throw name
+  const abilityKey = ABILITY_ABBREV[lower] || ABILITY_ABBREV[skillName.toLowerCase()];
+  if (abilityKey && pc.abilityScores[abilityKey] !== undefined) {
+    const mod = getModifier(pc.abilityScores[abilityKey]);
+    const profBonus = Math.floor((pc.level - 1) / 4) + 2;
+    const isProficient = pc.savingThrows?.includes(abilityKey);
+    return mod + (isProficient ? profBonus : 0);
+  }
+
+  // Check if it's "Attack Roll" — use the relevant attack bonus
+  if (lower === 'attackroll' || lower === 'attack') {
+    if (pc.attacks?.length > 0) return pc.attacks[0].bonus || 0;
+    return 0;
+  }
 
   const ability = SKILL_ABILITY[lower] || SKILL_ABILITY[skillName.toLowerCase()];
   if (ability && pc.abilityScores[ability] !== undefined) {

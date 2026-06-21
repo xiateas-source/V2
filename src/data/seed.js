@@ -1,6 +1,6 @@
 import { isSeeded, markSeeded, putAll, getSeedVersion, setSeedVersion } from './local.js';
 
-const CURRENT_SEED_VERSION = 2;
+const CURRENT_SEED_VERSION = 3;
 
 export async function runSeed() {
   const seeded = await isSeeded();
@@ -44,7 +44,7 @@ async function seedAll() {
 }
 
 async function runMigrations(fromVersion) {
-  if (fromVersion < 2) {
+  if (fromVersion < 3) {
     const rules = await import('../../data/rules.json').then(m => m.default);
     await putAll('compendium', rules);
   }

@@ -187,5 +187,54 @@
     "source": "PHB p.183",
     "context": ["exploration", "combat"],
     "content": "Bright light: normal vision. Dim light: lightly obscured, disadvantage on Perception checks relying on sight. Darkness: heavily obscured, effectively blinded. Darkvision: treat darkness as dim light (within range), can't discern color. Torch: 20ft bright, 20ft dim. Lantern: 30ft bright, 30ft dim."
+  },
+  {
+    "name": "Initiative",
+    "type": "combat",
+    "source": "PHB p.189",
+    "context": ["combat"],
+    "content": "At combat start, each participant rolls d20 + DEX modifier. Act in order from highest to lowest. Ties: DM decides between NPCs; player decides among their PCs. Initiative doesn't change during combat unless a feature says otherwise."
+  },
+  {
+    "name": "Two-Weapon Fighting",
+    "type": "combat",
+    "source": "PHB p.195",
+    "context": ["combat"],
+    "content": "When you take the Attack action with a light melee weapon in one hand, you can use a bonus action to attack with a different light melee weapon in the other hand. Don't add ability modifier to the damage of the bonus attack (unless modifier is negative). Fighting Style: Two-Weapon Fighting lets you add the modifier."
+  },
+  {
+    "name": "Reactions",
+    "type": "combat",
+    "source": "PHB p.190",
+    "context": ["combat"],
+    "content": "One reaction per round (resets at start of your turn). Triggered by a specific event. Common reactions: opportunity attacks, Shield spell, Counterspell, Uncanny Dodge, Cutting Words. A reaction interrupts the triggering event unless specified otherwise."
+  },
+  {
+    "name": "Sneak Attack",
+    "type": "combat",
+    "source": "PHB p.96",
+    "context": ["combat"],
+    "content": "Once per turn, add extra damage (scales with Rogue level) when hitting with a finesse or ranged weapon AND you have advantage on the attack roll, OR another enemy of the target is within 5ft of it and you don't have disadvantage. Works with opportunity attacks (once per turn, not once per round)."
+  },
+  {
+    "name": "Bardic Inspiration",
+    "type": "spellcasting",
+    "source": "PHB p.53",
+    "context": ["combat", "social"],
+    "content": "Bonus action, choose one creature within 60ft. Creature gains one Bardic Inspiration die (d6 at Bard 1-4, d8 at 5-9, d10 at 10-14, d12 at 15+). Within 10 minutes, creature can add the die to one ability check, attack roll, or saving throw. Uses equal to CHA modifier (min 1), regain on long rest (or short rest with Font of Inspiration at Bard 5)."
+  },
+  {
+    "name": "Healing Potions",
+    "type": "rest",
+    "source": "PHB/DMG",
+    "context": ["combat", "rest"],
+    "content": "Potion of Healing: 2d4+2 HP. Greater: 4d4+4. Superior: 8d4+8. Supreme: 10d4+20. Drinking a potion: action in combat. Administering to another: action. No action economy needed out of combat."
+  },
+  {
+    "name": "Spellcasting in Combat",
+    "type": "spellcasting",
+    "source": "PHB p.202",
+    "context": ["combat", "spellcasting"],
+    "content": "Most spells require an action to cast. Bonus action spells: if you cast a spell as a bonus action, you can't cast another spell during the same turn except a cantrip with a casting time of 1 action. Reaction spells (Shield, Counterspell) can be cast on any turn. Components: V (verbal — must speak), S (somatic — free hand needed), M (material — component pouch or focus)."
   }
 ]

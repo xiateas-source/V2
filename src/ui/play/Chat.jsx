@@ -115,8 +115,13 @@ function formatPill(key, value) {
     case 'expense': return `-${value.split(',')[0]} GP`;
     case 'xp': return `XP: ${value}`;
     case 'conditions': return value;
+    case 'concentration': {
+      const [name, spell] = value.split('=');
+      return spell?.toLowerCase() === 'none' ? `${name.trim()} ended conc.` : `${name.trim()} → ${spell}`;
+    }
     case 'quest_add': return `Quest: ${value.slice(0, 40)}`;
     case 'quest_done': return `Quest done: ${value.slice(0, 30)}`;
+    case 'quest_fail': return `Quest failed: ${value.slice(0, 30)}`;
     case 'npc_add': return `Met: ${value.split(',')[0]}`;
     case 'npc_mood': return `${value}`;
     case 'item_add': { const p = value.split(','); return `+${p[1] || p[0]}`; }
@@ -124,10 +129,24 @@ function formatPill(key, value) {
     case 'combat_start': return 'Combat!';
     case 'combat_end': return 'Combat ended';
     case 'slot_use': return `Slot: ${value}`;
+    case 'slot_restore': return `Slot restored: ${value}`;
+    case 'resource_use': return `Used: ${value.split(',')[1] || value}`;
     case 'consequence_add': return `Consequence: ${value.split('|')[0].slice(0, 30)}`;
+    case 'consequence_resolve': return `Resolved: ${value.slice(0, 30)}`;
     case 'roll_request': return `Roll: ${value.split('|')[0]}`;
+    case 'short_rest': return `Short rest: ${value}`;
+    case 'long_rest': return `Long rest: ${value}`;
+    case 'death_save': return `Death save: ${value}`;
+    case 'zone_add_enemy': return `Enemy: ${value.split('|')[0]}`;
+    case 'zone_remove': return `Defeated: ${value}`;
+    case 'spell_add': { const p = value.split('|'); return `Learned: ${p[1] || p[0]}`; }
+    case 'chapter_add': return `Chapter: ${value.split('|')[0]}`;
+    case 'town_rep': return `Rep: ${value.split(',').slice(0, 2).join(' ')}`;
+    case 'familiar_hp': return `Familiar HP: ${value}`;
+    case 'animal_hp': return `Animal: ${value}`;
     case 'location': case 'time': case 'weather': case 'loc_desc':
-    case 'primary_mission': case 'none':
+    case 'primary_mission': case 'none': case 'round_advance':
+    case 'location_add': case 'location_visit':
       return null;
     default: return `${key}: ${value.slice(0, 30)}`;
   }

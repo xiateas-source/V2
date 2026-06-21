@@ -19,12 +19,12 @@ const KNOWN_KEYS = new Set([
   'wagon_hp', 'ox_hp', 'ox_condition', 'familiar_hp', 'animal_hp', 'animal_condition',
   'income', 'expense', 'xp', 'quest_add', 'quest_done', 'quest_fail', 'quest_update',
   'primary_mission', 'npc_add', 'npc_mood', 'pc_update', 'pc_add', 'pc_delete',
-  'module_episode', 'short_rest', 'town_rep', 'save_game', 'save', 'spell_add',
+  'module_episode', 'short_rest', 'long_rest', 'town_rep', 'save_game', 'save', 'spell_add',
   'sp_charge', 'consequence_add', 'consequence_resolve', 'chapter_add',
   'chapter_update', 'location_add', 'location_visit', 'location_history',
   'location_investment', 'roll_request', 'zone_move', 'zone_add_enemy', 'zone_remove',
   'zone_effect', 'zone_label', 'combat_start', 'combat_end', 'zone_fog',
-  'death_save', 'none',
+  'death_save', 'none', 'round_advance',
 ]);
 
 function findPC(name) {
@@ -143,6 +143,36 @@ function checkRejection(mech) {
   if (mech.key === 'hp_max') {
     mech._warning = 'hp_max should be set by level-up wizard, not AI';
   }
+  if (mech.key === 'expense') {
+    const amount = parseInt(mech.value.split(',')[0], 10) || 0;
+    if (amount > store.campaign.gold.gp) {
+      mech._warning = `Expense ${amount}gp exceeds treasury (${store.campaign.gold.gp}gp)`;
+    }
+  }
+  if (mech.key === 'item_add') {
+    const parts = mech.value.split(',').map(s => s.trim());
+    const attunement = parts[3] || parts[2] || '';
+    if (attunement.toLowerCase() === 'attuned') {
+      const pcName = parts[0];
+      const pcIdx = findPCIndex(pcName);
+      if (pcIdx >= 0) {
+        const pcId = store.campaign.characters[pcIdx].id;
+        const carried = store.campaign.inventory.carried[pcId] || [];
+        const attuned = carried.filter(i => i.attunement === 'attuned').length;
+        if (attuned >= 3) {
+          mech._warning = `${pcName} already has 3 attuned items (max)`;
+        }
+      }
+    }
+  }
+  if (mech.key === 'slot_use') {
+    const [name, levelStr] = mech.value.split('=').map(s => s.trim());
+    const idx = findPCIndex(name);
+    if (idx >= 0) {
+      const current = store.campaign.characters[idx].currentSlots[levelStr] || 0;
+      if (current <= 0) return `${name} has no level ${levelStr} slots remaining`;
+    }
+  }
   return null;
 }
 
@@ -180,7 +210,20 @@ const DISPATCH = {
   hp(value) {
     for (const { name, value: hp } of parseHpEntries(value)) {
       const idx = findPCIndex(name);
-      if (idx === -1) continue;
+      if (idx === -1) {
+        // Might be an NPC in combat
+        if (store.campaign.combatState.active) {
+          const initIdx = store.campaign.combatState.initiative.findIndex(
+            c => c.name.toLowerCase() === name.toLowerCase().trim()
+          );
+          if (initIdx >= 0) {
+            const c = store.campaign.combatState.initiative[initIdx];
+            const clamped = Math.max(0, Math.min(hp, c.hpMax));
+            setStore('campaign', 'combatState', 'initiative', initIdx, 'hp', clamped);
+          }
+        }
+        continue;
+      }
       const pc = store.campaign.characters[idx];
       const clamped = Math.max(0, Math.min(hp, pc.hpMax));
       const damage = pc.hp - clamped;
@@ -188,6 +231,15 @@ const DISPATCH = {
       if (damage > 0 && pc.concentration) {
         const dc = Math.max(10, Math.floor(damage / 2));
         pendingConcentrationSaves.push({ pc: pc.name, spell: pc.concentration.spell, dc });
+      }
+      // Sync to combat initiative if active
+      if (store.campaign.combatState.active) {
+        const initIdx = store.campaign.combatState.initiative.findIndex(
+          c => c.name.toLowerCase() === pc.name.toLowerCase()
+        );
+        if (initIdx >= 0) {
+          setStore('campaign', 'combatState', 'initiative', initIdx, 'hp', clamped);
+        }
       }
     }
   },
@@ -592,8 +644,16 @@ const DISPATCH = {
   },
 
   combat_start(value) {
+    const pcEntries = store.campaign.characters.map(pc => {
+      const dexMod = Math.floor((pc.abilityScores.dex - 10) / 2);
+      const roll = Math.floor(Math.random() * 20) + 1 + dexMod;
+      return {
+        name: pc.name, roll, type: 'pc',
+        hp: pc.hp, hpMax: pc.hpMax, ac: pc.ac, zone: 'front',
+      };
+    });
     setStore('campaign', 'combatState', {
-      active: true, round: 1, initiative: [], currentTurn: 0,
+      active: true, round: 1, initiative: pcEntries, currentTurn: 0,
       actionsUsed: { action: false, bonus: false, reaction: false, movement: false },
       zones: { front: { label: 'Frontline' }, back: { label: 'Backline' }, left: { label: 'Left Flank' }, right: { label: 'Right Flank' }, air: { label: 'Air' }, rear: { label: 'Rear Guard' } },
     });
@@ -601,7 +661,16 @@ const DISPATCH = {
 
   combat_end(value) {
     if (store.campaign.location) {
-      DISPATCH.location_history(`${store.campaign.location}|Combat ended: ${value}`);
+      DISPATCH.location_history(`${store.campaign.location}|Combat ended (round ${store.campaign.combatState.round}): ${value}`);
+    }
+    // Sync final PC HP from initiative back to characters
+    for (const entry of store.campaign.combatState.initiative) {
+      if (entry.type === 'pc') {
+        const idx = findPCIndex(entry.name);
+        if (idx >= 0 && store.campaign.characters[idx].hp !== entry.hp) {
+          setStore('campaign', 'characters', idx, 'hp', entry.hp);
+        }
+      }
     }
     setStore('campaign', 'combatState', {
       active: false, round: 0, initiative: [], currentTurn: 0,
@@ -661,12 +730,27 @@ const DISPATCH = {
     const idx = findPCIndex(name);
     if (idx === -1) return;
     const saves = { ...store.campaign.characters[idx].deathSaves };
-    if (result === 'success') saves.successes = Math.min(3, saves.successes + 1);
-    else saves.failures = Math.min(3, saves.failures + 1);
-    setStore('campaign', 'characters', idx, 'deathSaves', saves);
-    if (saves.successes >= 3) {
+    const lower = result.toLowerCase();
+    if (lower === 'nat20' || lower === 'natural20') {
       setStore('campaign', 'characters', idx, 'hp', 1);
       setStore('campaign', 'characters', idx, 'deathSaves', { successes: 0, failures: 0 });
+      return;
+    } else if (lower === 'nat1' || lower === 'natural1') {
+      saves.failures = Math.min(3, saves.failures + 2);
+    } else if (lower === 'success') {
+      saves.successes = Math.min(3, saves.successes + 1);
+    } else {
+      saves.failures = Math.min(3, saves.failures + 1);
+    }
+    setStore('campaign', 'characters', idx, 'deathSaves', saves);
+    if (saves.successes >= 3) {
+      setStore('campaign', 'characters', idx, 'deathSaves', { successes: 0, failures: 0 });
+      // Stabilized — still at 0 HP but no longer dying
+    }
+    if (saves.failures >= 3) {
+      setStore('campaign', 'characters', idx, 'deathSaves', { successes: 0, failures: 0 });
+      const conditions = [...store.campaign.characters[idx].conditions, { name: 'Dead', duration: null }];
+      setStore('campaign', 'characters', idx, 'conditions', conditions);
     }
   },
 
@@ -683,15 +767,48 @@ const DISPATCH = {
 
   short_rest(value) {
     const name = value.trim();
+    if (name.toLowerCase() === 'party' || name.toLowerCase() === 'all') {
+      store.campaign.characters.forEach((pc, idx) => {
+        const resources = pc.resources.map(r =>
+          (r.restoresOn === 'short' || r.restoresOn === 'short_rest') ? { ...r, current: r.max } : r
+        );
+        setStore('campaign', 'characters', idx, 'resources', resources);
+      });
+      return;
+    }
     const idx = findPCIndex(name);
     if (idx === -1) return;
     const pc = store.campaign.characters[idx];
-    for (const res of pc.resources) {
-      if (res.restoresOn === 'short' || res.restoresOn === 'short_rest') {
-        const resIdx = pc.resources.indexOf(res);
-        setStore('campaign', 'characters', idx, 'resources', resIdx, 'current', res.max);
-      }
+    const resources = pc.resources.map(r =>
+      (r.restoresOn === 'short' || r.restoresOn === 'short_rest') ? { ...r, current: r.max } : r
+    );
+    setStore('campaign', 'characters', idx, 'resources', resources);
+  },
+
+  long_rest(value) {
+    const name = value.trim();
+    const targets = (name.toLowerCase() === 'party' || name.toLowerCase() === 'all')
+      ? store.campaign.characters.map((_, i) => i)
+      : [findPCIndex(name)].filter(i => i !== -1);
+
+    for (const idx of targets) {
+      const pc = store.campaign.characters[idx];
+      setStore('campaign', 'characters', idx, 'hp', pc.hpMax);
+      setStore('campaign', 'characters', idx, 'currentSlots', { ...pc.spellSlots });
+      const resources = pc.resources.map(r => ({ ...r, current: r.max }));
+      setStore('campaign', 'characters', idx, 'resources', resources);
+      const hdRestore = Math.max(1, Math.floor(pc.hitDice.total / 2));
+      const newUsed = Math.max(0, pc.hitDice.used - hdRestore);
+      setStore('campaign', 'characters', idx, 'hitDice', { ...pc.hitDice, used: newUsed });
+      setStore('campaign', 'characters', idx, 'exhaustion', Math.max(0, pc.exhaustion - 1));
+      setStore('campaign', 'characters', idx, 'deathSaves', { successes: 0, failures: 0 });
+      setStore('campaign', 'characters', idx, 'concentration', null);
     }
+  },
+
+  round_advance() {
+    if (!store.campaign.combatState.active) return;
+    setStore('campaign', 'combatState', 'round', store.campaign.combatState.round + 1);
   },
 
   save_game() {},
