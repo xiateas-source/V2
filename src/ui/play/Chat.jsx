@@ -1,6 +1,7 @@
-import { createSignal, createEffect, For, Show } from 'solid-js';
+import { createSignal, createEffect, createMemo, For, Show, onMount } from 'solid-js';
 import { store } from '../../state/index.js';
 import { isSending } from '../../ai/engine.js';
+import { getAll } from '../../data/local.js';
 import InputBar from './InputBar.jsx';
 import RollBar from './RollBar.jsx';
 import CharTiles from './CharTiles.jsx';
@@ -12,10 +13,24 @@ import Rewind from './Rewind.jsx';
 import TTS from './TTS.jsx';
 import { autoRead, speak } from '../../audio/browserTTS.js';
 
+const [glossaryTerms, setGlossaryTerms] = createSignal([]);
+const [tooltip, setTooltip] = createSignal(null);
+
 export default function Chat() {
   const [tab, setTab] = createSignal('narrative');
   let chatEnd;
   let messagesDiv;
+
+  onMount(async () => {
+    try {
+      const terms = await getAll('glossary');
+      setGlossaryTerms(terms);
+    } catch (_) {}
+  });
+
+  const npcNames = createMemo(() =>
+    store.campaign.npcs.filter(n => n.name && n.name.length > 2).map(n => n.name)
+  );
 
   const messages = () => {
     const key = tab();
@@ -29,6 +44,19 @@ export default function Chat() {
     }
     return '';
   };
+
+  function handleChatClick(e) {
+    const target = e.target;
+    if (target.classList.contains('npc-link')) {
+      const name = target.dataset.npc;
+      const npc = store.campaign.npcs.find(n => n.name === name);
+      if (npc) setTooltip({ title: npc.name, body: `${npc.disposition}${npc.details ? ' — ' + npc.details : ''}${npc.lastSeen ? '\nLast seen: ' + npc.lastSeen : ''}` });
+    } else if (target.classList.contains('term-link')) {
+      const term = target.dataset.term;
+      const entry = glossaryTerms().find(g => g.term.toLowerCase() === term.toLowerCase());
+      if (entry) setTooltip({ title: entry.term, body: entry.definition });
+    }
+  }
 
   let wasSending = false;
 
@@ -75,14 +103,23 @@ export default function Chat() {
         <TTS text={lastAssistantMsg()} />
       </div>
 
-      <div class="chat-messages" ref={messagesDiv}>
+      <Show when={tooltip()}>
+        <div class="tooltip-overlay" onClick={() => setTooltip(null)}>
+          <div class="tooltip-popup" onClick={(e) => e.stopPropagation()}>
+            <div class="tooltip-title">{tooltip().title}</div>
+            <div class="tooltip-body">{tooltip().body}</div>
+          </div>
+        </div>
+      </Show>
+
+      <div class="chat-messages" ref={messagesDiv} onClick={handleChatClick}>
         <For each={messages()}>
           {(msg) => (
             <div class={`msg msg-${msg.role}`}>
               <Show when={msg.isSummary}>
                 <div class="msg-summary-badge">Prior context</div>
               </Show>
-              <div class="msg-content" innerHTML={formatMsg(msg.content)} />
+              <div class="msg-content" innerHTML={formatMsg(msg.content, npcNames())} />
               <Show when={msg.driftWarnings?.length > 0}>
                 <div class="drift-warnings">
                   <For each={msg.driftWarnings}>
@@ -192,7 +229,7 @@ function formatPill(key, value) {
   }
 }
 
-function formatMsg(text) {
+function formatMsg(text, npcNames = []) {
   if (!text) return '';
   let html = text
     .replace(/&/g, '&amp;')
@@ -205,6 +242,27 @@ function formatMsg(text) {
   html = html.replace(/\*\*\*\n?/g, '<hr class="campaign-break">');
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+  for (const name of npcNames) {
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    html = html.replace(new RegExp(`\\b(${escaped})\\b`, 'g'),
+      `<span class="npc-link" data-npc="${name}">$1</span>`);
+  }
+
+  const terms = glossaryTerms();
+  if (terms.length > 0) {
+    const termPattern = terms
+      .filter(t => t.term.length > 3)
+      .map(t => t.term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .join('|');
+    if (termPattern) {
+      html = html.replace(new RegExp(`\\b(${termPattern})\\b`, 'gi'), (match) => {
+        if (match.startsWith('<') || match.includes('data-')) return match;
+        return `<span class="term-link" data-term="${match}">${match}</span>`;
+      });
+    }
+  }
+
   html = html.replace(/\n{3,}/g, '\n\n');
   html = html.replace(/\n/g, '<br>');
 

@@ -100,9 +100,62 @@ export async function sendMsg(text, options = {}) {
   }
 }
 
+function interceptAskDm(text) {
+  const lower = text.toLowerCase();
+  const inv = /\b(inventory|items?|carrying|backpack|what('?s| do i have))\b/;
+  const gold = /\b(gold|money|coins?|gp|how much)\b/;
+  const spells = /\b(spells?|cantrips?|what.*(spells?|can i cast))\b/;
+  const hp = /\b(h\.?p|hit points?|health|how (hurt|injured))\b/;
+  const loc = /\b(where am i|location|where are we)\b/;
+
+  if (inv.test(lower) && !/\b(can|should|would|if)\b/.test(lower)) {
+    const carried = store.campaign.inventory?.carried || {};
+    const all = Object.values(carried).flat();
+    if (all.length === 0) return 'Your inventory is empty. Check the Cargo tab for details.';
+    const list = all.slice(0, 10).map(i => `${i.name}${i.qty > 1 ? ' x' + i.qty : ''}`).join(', ');
+    return `You're carrying: ${list}${all.length > 10 ? ` (+${all.length - 10} more)` : ''}. Open Cargo for the full list.`;
+  }
+  if (gold.test(lower) && !/\b(can|should|worth|sell)\b/.test(lower)) {
+    const g = store.campaign.gold;
+    const parts = [];
+    if (g.pp) parts.push(`${g.pp} PP`);
+    if (g.gp) parts.push(`${g.gp} GP`);
+    if (g.ep) parts.push(`${g.ep} EP`);
+    if (g.sp) parts.push(`${g.sp} SP`);
+    if (g.cp) parts.push(`${g.cp} CP`);
+    return parts.length ? `Party treasury: ${parts.join(', ')}.` : 'Party treasury is empty.';
+  }
+  if (spells.test(lower) && /\b(what|list|know)\b/.test(lower)) {
+    const chars = store.campaign.characters;
+    const lines = chars.filter(c => c.knownSpells?.length || c.cantrips?.length).map(c => {
+      const all = [...(c.cantrips || []), ...(c.knownSpells || [])];
+      return `${c.name}: ${all.join(', ')}`;
+    });
+    return lines.length ? lines.join('\n') : 'No spellcasters in the party.';
+  }
+  if (hp.test(lower) && /\b(how|what|check)\b/.test(lower)) {
+    const lines = store.campaign.characters.map(c => `${c.name}: ${c.hp}/${c.hpMax} HP${c.conditions.length ? ' [' + c.conditions.map(x => x.name || x).join(', ') + ']' : ''}`);
+    return lines.join('\n');
+  }
+  if (loc.test(lower)) {
+    const l = store.campaign.location;
+    const t = store.campaign.time;
+    const w = store.campaign.weather;
+    return `${l || 'Unknown location'}${t ? ' — ' + t : ''}${w ? ', ' + w : ''}`;
+  }
+  return null;
+}
+
 async function sendOOC(text, onChunk) {
   const userMsg = { role: 'user', content: text, ts: Date.now() };
   setStore('campaign', 'ooc', [...store.campaign.ooc, userMsg]);
+
+  const intercepted = interceptAskDm(text);
+  if (intercepted) {
+    const reply = { role: 'assistant', content: intercepted, ts: Date.now() };
+    setStore('campaign', 'ooc', [...store.campaign.ooc, reply]);
+    return intercepted;
+  }
 
   const systemPrompt = ASK_DM_SYSTEM;
   const askPrompt = buildAskDmPrompt(text);
