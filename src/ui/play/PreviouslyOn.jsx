@@ -1,8 +1,15 @@
-import { createSignal, Show } from 'solid-js';
+import { createSignal, Show, onMount, onCleanup } from 'solid-js';
 import { store } from '../../state/index.js';
 
 export default function PreviouslyOn() {
   const [dismissed, setDismissed] = createSignal(false);
+  const [handoff, setHandoff] = createSignal(false);
+
+  onMount(() => {
+    const handler = () => { setDismissed(false); setHandoff(true); };
+    window.addEventListener('player-handoff', handler);
+    onCleanup(() => window.removeEventListener('player-handoff', handler));
+  });
 
   const recap = () => {
     if (dismissed()) return null;
@@ -12,7 +19,7 @@ export default function PreviouslyOn() {
     const last = narrative[narrative.length - 1];
     if (!last) return null;
     const age = Date.now() - (last.ts || 0);
-    if (age < 60 * 60 * 1000) return null;
+    if (age < 60 * 60 * 1000 && !handoff()) return null;
 
     const loc = store.campaign.location || '';
     const time = store.campaign.time || '';

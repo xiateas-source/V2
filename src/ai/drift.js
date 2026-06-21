@@ -4,6 +4,8 @@ const NPC_INTRO_PATTERNS = /\b(introduces?\s+(herself|himself|themselves)|"[^"]*
 const HP_NARRATION = /\b(takes?\s+\d+\s+(points?\s+of\s+)?damage|loses?\s+\d+\s+h(it\s*)?p(oints?)?|heals?\s+\d+)/i;
 const ROLL_IN_PROSE = /\b(rolls?\s+(a\s+)?\d+|rolled\s+(a\s+)?\d+|rolls?\s+a\s+natural|nat(ural)?\s+(20|1)|the\s+d(ice|20)\s+(shows?|lands?|comes?\s+up))/i;
 
+import { store } from '../state/index.js';
+
 export function detectDrift(narrative, mechanics, opts = {}) {
   const warnings = [];
   if (!narrative) return warnings;
@@ -19,8 +21,14 @@ export function detectDrift(narrative, mechanics, opts = {}) {
     if (mentioned.size > 0) {
       const narrativeLower = narrative.toLowerCase();
       const ACTION_VERBS = /\b(attacks?|casts?|swings?|fires?|shoots?|runs?|dashes?|moves?|sneaks?|picks?\s*up|grabs?|throws?|drinks?|uses?)\b/;
+
+      const identity = store.system.playerIdentity;
+      const isMulti = identity.mode === 'multi';
+      const selectedPCs = identity.selectedPCs || [];
+
       for (const pc of opts.characters) {
         if (mentioned.has(pc.name)) continue;
+        if (isMulti && selectedPCs.length > 0 && !selectedPCs.includes(pc.id) && !selectedPCs.includes('all')) continue;
         const nameIdx = narrativeLower.indexOf(pc.name.toLowerCase());
         if (nameIdx === -1) continue;
         const vicinity = narrative.slice(nameIdx, nameIdx + 80);
