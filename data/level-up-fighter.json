@@ -1,0 +1,11 @@
+[
+  { "class": "Fighter", "level": 2, "hitDie": "d10", "features": [{ "name": "Action Surge", "desc": "One additional action on your turn. 1/Short Rest." }], "choices": [] },
+  { "class": "Fighter", "level": 3, "hitDie": "d10", "features": [], "choices": [{ "type": "subclass", "options": ["Champion", "Battle Master", "Eldritch Knight"] }] },
+  { "class": "Fighter", "level": 4, "hitDie": "d10", "features": [], "choices": [{ "type": "asi" }] },
+  { "class": "Fighter", "level": 5, "hitDie": "d10", "features": [{ "name": "Extra Attack", "desc": "2 attacks per Attack action." }], "choices": [] },
+  { "class": "Fighter", "level": 6, "hitDie": "d10", "features": [], "choices": [{ "type": "asi" }] },
+  { "class": "Fighter", "level": 7, "hitDie": "d10", "features": [{ "name": "Subclass Feature", "desc": "Battle Master: 5 maneuvers, 5 superiority dice (d8). Champion: Remarkable Athlete." }], "choices": [] },
+  { "class": "Fighter", "level": 8, "hitDie": "d10", "features": [], "choices": [{ "type": "asi" }] },
+  { "class": "Fighter", "level": 9, "hitDie": "d10", "features": [{ "name": "Indomitable", "desc": "Reroll a failed saving throw. 1/Long Rest." }], "choices": [] },
+  { "class": "Fighter", "level": 10, "hitDie": "d10", "features": [{ "name": "Subclass Feature", "desc": "Battle Master: 7 maneuvers, +1 die. Champion: Additional Fighting Style." }], "choices": [] }
+]

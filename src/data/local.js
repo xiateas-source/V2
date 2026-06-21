@@ -1,1 +1,119 @@
-export default {};
+const DB_NAME = 'tinklepebble-v2';
+const DB_VERSION = 1;
+
+let dbInstance = null;
+
+const STORES = {
+  spells:        { keyPath: 'id', autoIncrement: true, indexes: ['name', 'level', 'school', 'class'] },
+  feats:         { keyPath: 'id', autoIncrement: true, indexes: ['name', 'prerequisite'] },
+  glossary:      { keyPath: 'id', autoIncrement: true, indexes: ['term'] },
+  classData:     { keyPath: 'id', autoIncrement: true, indexes: ['class', 'level'] },
+  maneuvers:     { keyPath: 'id', autoIncrement: true, indexes: ['name'] },
+  xpThresholds:  { keyPath: 'level', autoIncrement: false, indexes: [] },
+  compendium:    { keyPath: 'id', autoIncrement: true, indexes: ['name', 'type', 'source'] },
+  meta:          { keyPath: 'key', autoIncrement: false, indexes: [] },
+};
+
+function openDB() {
+  if (dbInstance) return Promise.resolve(dbInstance);
+
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      for (const [name, config] of Object.entries(STORES)) {
+        if (!db.objectStoreNames.contains(name)) {
+          const store = db.createObjectStore(name, {
+            keyPath: config.keyPath,
+            autoIncrement: config.autoIncrement,
+          });
+          for (const idx of config.indexes) {
+            store.createIndex(idx, idx, { unique: false });
+          }
+        }
+      }
+    };
+
+    request.onsuccess = () => {
+      dbInstance = request.result;
+      resolve(dbInstance);
+    };
+
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function initLocal() {
+  await openDB();
+}
+
+export async function isSeeded() {
+  const db = await openDB();
+  return new Promise((resolve) => {
+    const tx = db.transaction('meta', 'readonly');
+    const req = tx.objectStore('meta').get('_seeded');
+    req.onsuccess = () => resolve(!!req.result);
+    req.onerror = () => resolve(false);
+  });
+}
+
+export async function markSeeded() {
+  const db = await openDB();
+  const tx = db.transaction('meta', 'readwrite');
+  tx.objectStore('meta').put({ key: '_seeded', value: true, ts: Date.now() });
+}
+
+export async function putAll(storeName, records) {
+  const db = await openDB();
+  const tx = db.transaction(storeName, 'readwrite');
+  const store = tx.objectStore(storeName);
+  for (const record of records) {
+    store.put(record);
+  }
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+export async function getAll(storeName) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readonly');
+    const req = tx.objectStore(storeName).getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function getByIndex(storeName, indexName, value) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readonly');
+    const idx = tx.objectStore(storeName).index(indexName);
+    const req = idx.getAll(value);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function getByKey(storeName, key) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readonly');
+    const req = tx.objectStore(storeName).get(key);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function countStore(storeName) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readonly');
+    const req = tx.objectStore(storeName).count();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}

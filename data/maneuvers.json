@@ -1,0 +1,18 @@
+[
+  { "name": "Commander's Strike", "desc": "Forgo one attack. Ally uses reaction to attack + superiority die damage." },
+  { "name": "Disarming Attack", "desc": "+superiority die damage. Target makes STR save or drops one held item." },
+  { "name": "Distracting Strike", "desc": "+superiority die damage. Next attack by another attacker has advantage." },
+  { "name": "Evasive Footwork", "desc": "+superiority die to AC while moving." },
+  { "name": "Feinting Attack", "desc": "Bonus action. Advantage on next attack this turn + superiority die damage." },
+  { "name": "Goading Attack", "desc": "+superiority die damage. Target makes WIS save or has disadvantage on attacks vs others." },
+  { "name": "Lunging Attack", "desc": "+5 ft reach + superiority die damage." },
+  { "name": "Maneuvering Attack", "desc": "+superiority die damage. Ally can move half speed without provoking opportunity attacks." },
+  { "name": "Menacing Attack", "desc": "+superiority die damage. Target makes WIS save or is frightened." },
+  { "name": "Parry", "desc": "Reaction: reduce melee damage by superiority die + DEX mod." },
+  { "name": "Precision Attack", "desc": "Add superiority die to attack roll (before or after rolling)." },
+  { "name": "Pushing Attack", "desc": "+superiority die damage. Large or smaller target makes STR save or is pushed 15 ft." },
+  { "name": "Rally", "desc": "Bonus action: ally gains temp HP equal to superiority die + CHA mod." },
+  { "name": "Riposte", "desc": "Reaction on miss: melee attack + superiority die damage." },
+  { "name": "Sweeping Attack", "desc": "On hit: another creature within 5 ft takes superiority die damage if original roll would hit." },
+  { "name": "Trip Attack", "desc": "+superiority die damage. Large or smaller target makes STR save or falls prone." }
+]

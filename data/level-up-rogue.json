@@ -1,0 +1,11 @@
+[
+  { "class": "Rogue", "level": 2, "hitDie": "d8", "features": [{ "name": "Cunning Action", "desc": "Dash, Disengage, or Hide as a Bonus Action." }], "choices": [] },
+  { "class": "Rogue", "level": 3, "hitDie": "d8", "features": [{ "name": "Sneak Attack", "desc": "Sneak Attack increases to 2d6." }], "choices": [{ "type": "subclass", "options": ["Arcane Trickster", "Assassin", "Thief", "Mastermind", "Swashbuckler"] }] },
+  { "class": "Rogue", "level": 4, "hitDie": "d8", "features": [], "choices": [{ "type": "asi" }] },
+  { "class": "Rogue", "level": 5, "hitDie": "d8", "features": [{ "name": "Uncanny Dodge", "desc": "Reaction: halve damage from a visible attacker." }, { "name": "Sneak Attack", "desc": "Sneak Attack increases to 3d6." }], "choices": [] },
+  { "class": "Rogue", "level": 6, "hitDie": "d8", "features": [{ "name": "Expertise", "desc": "Choose 2 more skills for expertise (double proficiency bonus)." }], "choices": [] },
+  { "class": "Rogue", "level": 7, "hitDie": "d8", "features": [{ "name": "Evasion", "desc": "DEX save success: no damage. Failure: half damage." }, { "name": "Sneak Attack", "desc": "Sneak Attack increases to 4d6." }], "choices": [] },
+  { "class": "Rogue", "level": 8, "hitDie": "d8", "features": [], "choices": [{ "type": "asi" }] },
+  { "class": "Rogue", "level": 9, "hitDie": "d8", "features": [{ "name": "Sneak Attack", "desc": "Sneak Attack increases to 5d6." }], "choices": [{ "type": "spell", "desc": "Arcane Trickster: 1 spell up to 2nd level." }] },
+  { "class": "Rogue", "level": 10, "hitDie": "d8", "features": [], "choices": [{ "type": "asi" }] }
+]
