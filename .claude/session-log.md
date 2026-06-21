@@ -1,113 +1,66 @@
 # Session Log — Handoff Note
 
-## Session 30 · 2026-06-20
+## Session 31 · 2026-06-21
 
 ### Shipped
-- **prime-directive-v2.md** — Five Laws, content portability, v1 lessons, cross-law alignment, open questions
-- **ai-failures.md** — Extracted from directive. Mechanical (20), information (5), narrative (6) failures categorized. Includes consequence timer enforcement, combat turn enforcement, OOC/Rules channel failures, system operation gaps
-- **architecture-v2.md** — Five pieces (UI/Engine/State/Data/Content), engine pipeline, module map, data tiers, mode transitions, information gating, tap-to-source principle. Treasury.jsx added as dedicated reference screen
-- **decisions-v2.md** — Every design choice from planning sessions in table format with rationale. Features carried forward (11) and cut (6) from v1. System operations section added from OOC review
-- **CLAUDE-v2.md** — Auto-loaded instructions: Five Laws inline, architecture summary, session protocol, key constraints, developer working style
-- **gameplay-reference-v2.md** — Patterns from actual v1 play logs: AI response structure, choice presentation, roll request flow, XP delivery issues, full contract compliance analysis (15 followed / 12 ignored)
-- **v1-contract-reference.md** — Complete v1 AI contract preserved for reference
-- **enforcement-spec-v2.md** — 9-gate mechanics pipeline spec: roll confirmation, combat turns, drift detectors, scene transitions, unmentioned PCs, spell validation, skill checks, XP audit, income reconciliation. Priority-ordered for implementation
-- **v1-engine-reference.md** — buildPrompt() assembly order (13 sections), genLedger() compact + full formats, parseMechanics() all 65 keys with format reference, detection strategy, built-in validation, post-parse actions
-- **v1-seed-data.md** — XP thresholds (L1–20), level-up data (Fighter/Rogue/Bard L2–10), Bard spell list, spell compendium (94 spells), 16 Battle Master maneuvers, 44 feats (PHB + TCoE), 97-term D&D glossary
-- **v2-mockup.html** — Interactive play screen mockup with Soft Autumn palette (palette will change in v2)
+- **All 12 planning docs transferred** from xiateas-source/tinklepebble to V2 repo, `-v2` suffixes stripped
+- **CLAUDE.md** installed at root — auto-loaded instructions, Five Laws, architecture summary, session protocol
+- **workboard.md** — Master build plan with 8 phases, detailed specs for autonomous building:
+  - Phase 0: Foundation (scaffold, state store, Firebase, seed data, color palette)
+  - Phase 1: Core Loop MVP (providers, prompt builder, mechanics pipeline, engine, chat UI, contracts, memory)
+  - Phase 2: 9 Enforcement Gates
+  - Phase 3: Play Mode UI (full feature list with specs)
+  - Phase 4: Reference Mode
+  - Phase 5: Setup Mode
+  - Phase 6: Manage Mode
+  - Phase 7: Content Pipeline
+  - Phase 8: Multi-Player & Polish
+- **V2 AI Contract Spec** — Narrative contract + Ask DM contract with prompt assembly details
+- **Full Chat System Spec** — Two tabs (Narrative + OOC), message types, streaming, persistence/sync with 7-step merge algorithm, chat export, player identity & onboarding, single/multi player toggle, scroll behavior, Gate 5 multi-player awareness, input field during streaming, push notification scope, Previously On as handoff tool
+- **State store field ownership map** — AI-owned, player-owned, system-owned fields listed
+- **Scaffold file structure spec** — Full module map with file names per directory
 
-### Decisions Made
-- Four modes: setup, play, reference, manage
-- Three data tiers: Firebase (synced game state), IndexedDB (local reference), Shared Bundles (on import)
-- Field ownership: AI / Player / System — no cross-writes
-- Situation bar replaces quest bar — main quest pinned, consequences priority placement, player quests scrollable
-- Tap-to-source — all displayed info is tappable, navigates to source. No dead text
-- Bottom nav: Cargo / Treasury / Journal / Settings. Combat and level-up are event-driven overlays
-- Child-friendly view as separate URL entry point (AppSimple.jsx), same state/engine
-- Combat evolution: phase 1 zone grid → phase 2 visual tile map (mobile VTT inspired)
-- Consequence timer enforcement via buildPrompt injection
-- New color palette TBD — Soft Autumn not carrying forward
-- Shared bundles reusable (not one-time) — supports mid-game player joins
-- Town reputation carried forward (Journal, AI-owned, needs proper v2 implementation)
-- Secrets consolidated to one home (v1 had multiple places — Law 4 fix)
-- Three color modes (default/light/night) — new palette TBD
-- Scenes/snippets cut (replaced by content pipeline)
-- Plugin system noted as icebox (accidental v1 feature, could support game-system plugins)
-- AI-generated items → Firebase, compendium items → IndexedDB
-- Campaign map images → IndexedDB
-- Device-local "which PC am I" — no formal identity system
-- Relationships array dropped (redundant with NPC tracker)
-- No suggestion chips, no // command system in v2
-- Mechanic pills, glossary, Previously On, Quick Actions, checkpoint/rewind all carried forward
-- v1 stays live while v2 is built
-- Session start protocol reads 4 files — will tune after a few sessions
-- All rolls must be player-confirmed — engine rejects AI-generated rolls
-- Scene transitions require player confirmation — no auto-advancing
-- AI cannot act for PCs the player didn't mention — no autopiloting
-- 9-gate enforcement pipeline spec written — replaces 12 contract clauses AI ignored
-- System operations (HP reset, stat corrections) need dedicated UI, not AI chat
-- Level-up wizard needs re-entry / edit mode for missed choices
-- OOC/Rules channels serve different purposes — app issues shouldn't go through AI
-- Treasury is its own reference screen, not part of Cargo
+### Decisions Made (Session 31)
+- Two tabs: Narrative + OOC. Rules tab eliminated
+- Ask DM gets situation from both Narrative AND OOC history
+- No visible echo — silent OOC context injection into buildPrompt()
+- Ask DM interception layer for app issues (pattern-match before hitting AI)
+- Ask DM data injection from IndexedDB (ground AI in app data)
+- Citation linking in AI responses (same tech as term glossary)
+- Travel calculator in Journal
+- Stop generation button (keep text, discard partial mechanics)
+- Fresh start — no v1 data migration
+- Narrative DM = epic narrator + rules lawyer (players loved both)
+- Narration style field in Session Zero (player-configurable, e.g., "Brandon Sanderson")
+- Race/species reference data in CharSheet Bio tab
+- Push notifications from day one (Web Push API + FCM, all OOC messages)
+- Overlays vs persisted system messages (ephemeral vs stored)
+- Ask DM button: two buttons side by side in OOC input (Send for table talk, Ask DM for advisory AI)
+- Both timestamps always displayed (wall clock `ts` + in-game `gameTs`)
+- Single/multi player toggle: fluid mid-session handoff via Quick Actions
+- Gate 5 active in single player (checks all PCs against solo player, not disabled)
+- OOC tab available in single player for Ask DM (Send button hidden)
+- Scroll behavior: conditional auto-scroll, "new messages" indicator when scrolled up
+- Input field stays editable during AI streaming
+- OOC tab works independently during Narrative streaming
 
 ### Known Issues
-- Cannot push to xiateas-source/V2 repo from this session (auth proxy locked to tinklepebble)
-- All v2 planning docs live on tinklepebble repo, need to be transferred to V2 repo
-- Workboard not yet written — first task in v2 repo
+- None — planning phase, no code yet
 
 ### In Progress
-- Nothing code-wise in progress — this was a planning session
+- Nothing code-wise in progress — planning complete, ready to build
 
 ### Next Up
-1. **Transfer docs to V2 repo** — start new session on xiateas-source/V2, pull docs from tinklepebble via GitHub MCP tools
-2. **Write workboard.md** — feature specs detailed enough for autonomous building. This is where episode tracking, Quick Actions redesign, OOC/Rules context, and all workboard-flagged items get specced
-3. **Choose new color palette** — design session with UI visible
-4. **Resolve open questions** — OOC/Rules channel context, child-friendly view target age
-5. **Start building** — scaffold v2 project structure per architecture module map
+1. **Phase 0: Foundation** — Vite + SolidJS scaffold matching module map
+2. **State store** with field ownership enforcement (SolidJS signals)
+3. **Firebase connection** — new project, new API keys
+4. **IndexedDB setup** for local reference data
+5. **Seed data** loaded (XP thresholds, glossary, spell DB from v1-seed-data.md)
+6. **Color palette** decision + CSS variables + three color modes
+7. Then Phase 1: Core Loop MVP
 
 ### Branch State
-- Branch: `claude/xiateas-source-v2-0obeyj` on xiateas-source/tinklepebble
-- Last commit: 4193245
+- Branch: `claude/transfer-v2-planning-docs-hlibvu` on xiateas-source/V2
+- Last commit: 1d6b4b9
 - All planning docs committed and pushed
-- Not merged to main (v1 CLAUDE.md still active on main for v1 sessions)
-
-### Files to Transfer to V2 Repo
-When starting a new session on xiateas-source/V2:
-- `.claude/CLAUDE-v2.md` → rename to `CLAUDE.md` (root)
-- `.claude/prime-directive-v2.md` → `.claude/prime-directive.md`
-- `.claude/architecture-v2.md` → `.claude/architecture.md`
-- `.claude/decisions-v2.md` → `.claude/decisions.md`
-- `.claude/ai-failures.md` → `.claude/ai-failures.md`
-- `.claude/gameplay-reference-v2.md` → `.claude/gameplay-reference.md`
-- `.claude/v1-contract-reference.md` → `.claude/v1-contract-reference.md`
-- `.claude/enforcement-spec-v2.md` → `.claude/enforcement-spec.md`
-- `.claude/v1-engine-reference.md` → `.claude/v1-engine-reference.md`
-- `.claude/v1-seed-data.md` → `.claude/v1-seed-data.md`
-- `.claude/session-log-v2.md` → `.claude/session-log.md`
-- `v2-mockup.html` → `mockup.html` (reference)
-
-### Prompt for V2 Session
-Paste this in the first message of a new session on xiateas-source/V2:
-
-```
-Transfer all v2 planning docs from xiateas-source/tinklepebble to this repo.
-
-Source: branch `claude/xiateas-source-v2-0obeyj` on `xiateas-source/tinklepebble`
-
-File manifest (source → destination):
-- .claude/CLAUDE-v2.md → CLAUDE.md (root)
-- .claude/prime-directive-v2.md → .claude/prime-directive.md
-- .claude/architecture-v2.md → .claude/architecture.md
-- .claude/decisions-v2.md → .claude/decisions.md
-- .claude/ai-failures.md → .claude/ai-failures.md
-- .claude/gameplay-reference-v2.md → .claude/gameplay-reference.md
-- .claude/v1-contract-reference.md → .claude/v1-contract-reference.md
-- .claude/enforcement-spec-v2.md → .claude/enforcement-spec.md
-- .claude/v1-engine-reference.md → .claude/v1-engine-reference.md
-- .claude/v1-seed-data.md → .claude/v1-seed-data.md
-- .claude/session-log-v2.md → .claude/session-log.md
-- v2-mockup.html → mockup.html
-
-Use GitHub MCP tools to read each file from tinklepebble and write it to this repo. Strip the "-v2" suffixes from filenames. CLAUDE-v2.md goes to root as CLAUDE.md, everything else goes to .claude/. Commit all files in one commit.
-
-After transfer, the first real task is writing workboard.md — feature specs detailed enough for autonomous building.
-```
+- Not merged to main
