@@ -129,11 +129,9 @@ export default function RollBar() {
     if (lines.length === 0) return;
     const msg = lines.join('\n');
 
-    setStore('campaign', 'narrative', [...store.campaign.narrative, {
-      role: 'user', content: msg, ts: Date.now(),
-    }]);
     setRollResults({});
     setSubmitted(new Set());
+    sendMsg(msg, { tab: 'narrative' });
   }
 
   function markSubmitted(rollId) {
