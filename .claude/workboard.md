@@ -360,7 +360,7 @@ v1 Quick Actions was a FAB with common play actions. Carried forward but needs r
 | Child-friendly view target age | 7-16 is wide. What simplification scope? | Phase 8 |
 | Episode/module tracking triggers | Location-based? Quest-based? AI-detected? | Phase 7 |
 | Quick Actions action list | What actions, system vs AI directed, FAB ergonomics | Phase 3 |
-| V1 data migration | Bring HotDQ campaign into V2? See spec below. | Not blocking (V2 can start fresh) |
+| ~~V1 data migration~~ | **Decided: fresh start.** V1 stays live for reference. V2 launches with a new campaign. No migration code needed. | Resolved |
 
 ### OOC & Rules channels — design needed
 
@@ -378,21 +378,9 @@ v1 Quick Actions was a FAB with common play actions. Carried forward but needs r
 - **OOC tab** — Plain text, no AI. Player-to-player messages synced via Firebase. Minimal UI.
 - **App issues** — Not a chat channel. System operations UI in manage mode + Quick Actions for common fixes.
 
-### V1 data migration — decision needed
+### V1 data migration — DECIDED
 
-**The question:** The current HotDQ campaign has ~25 days of play data in v1 Firebase. Does it come to V2?
-
-**Options:**
-1. **Fresh start** — V2 launches with a new campaign. V1 stays live for reference/nostalgia. Simplest. No migration code.
-2. **State snapshot import** — Export v1 state as JSON, import into v2 state structure. Requires a field mapping (v1 shape → v2 shape). One-time migration script, not a maintained feature.
-3. **Continue campaign** — Full migration of characters, world state, chat history, quests, NPCs, treasury, combat state. Most work. Chat history format likely differs.
-
-**Factors:**
-- V2 has a different state structure (field ownership, campaign/system split)
-- V2 has different mechanic keys (might be the same 65 from v1, but validation is stricter)
-- The party is mid-campaign — starting over means replaying or fast-forwarding
-- V1 stays live regardless — no migration pressure
-- If migration is option 2, it could be a manage mode tool: "Import V1 Campaign" → paste JSON → map fields → review → apply
+**Fresh start.** V1 stays live for reference. V2 launches with a new campaign. No migration code needed.
 
 ---
 
