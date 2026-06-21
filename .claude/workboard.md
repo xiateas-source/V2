@@ -34,8 +34,8 @@ V2/
 ├── vite.config.js
 ├── package.json
 ├── src/
-│   ├── main.js
-│   ├── style.css
+│   ├── main.js                  ← mounts App, initializes data layer
+│   ├── style.css                ← CSS custom properties (palette, spacing, typography)
 │   ├── ai/
 │   │   ├── providers.js
 │   │   ├── prompt.js
@@ -52,15 +52,16 @@ V2/
 │   │   ├── normalizer.js
 │   │   └── index.js
 │   ├── data/
-│   │   ├── firebase.js
-│   │   ├── local.js
+│   │   ├── firebase.js          ← init, auth, read/write, offline fallback
+│   │   ├── local.js             ← IndexedDB wrapper (compendium, seed data)
 │   │   ├── bundles.js
 │   │   ├── migrate.js
+│   │   ├── seed.js              ← first-launch seeding from static JSON
 │   │   └── index.js
 │   ├── state/
-│   │   ├── store.js
-│   │   ├── campaign.js
-│   │   ├── system.js
+│   │   ├── store.js             ← SolidJS signals + ownership enforcement
+│   │   ├── campaign.js          ← campaign data shape + resetCampaign()
+│   │   ├── system.js            ← system data shape (survives campaign swap)
 │   │   └── index.js
 │   ├── ui/
 │   │   ├── play/
@@ -99,42 +100,387 @@ V2/
 │   │   │   ├── Modal.jsx
 │   │   │   ├── Nav.jsx
 │   │   │   └── LevelUp.jsx
-│   │   ├── App.jsx
-│   │   └── AppSimple.jsx
+│   │   ├── App.jsx              ← mode router + bottom nav
+│   │   └── AppSimple.jsx        ← child-friendly entry point
 │   └── audio/
 │       ├── browserTTS.js
 │       └── elevenlabs.js
+├── data/                        ← static JSON seed files (bundled, not IndexedDB)
+│   ├── xp-thresholds.json
+│   ├── level-up-fighter.json
+│   ├── level-up-rogue.json
+│   ├── level-up-bard.json
+│   ├── spells.json
+│   ├── maneuvers.json
+│   ├── feats.json
+│   └── glossary.json
 ├── CLAUDE.md
 ├── mockup.html
 └── .claude/
 ```
 
+**What scaffold files contain at Phase 0:**
+- `main.js` — imports App, mounts to `#app`, calls `initData()` (Firebase + IndexedDB + seed check)
+- `App.jsx` — mode router: checks if campaign exists → setup mode or play mode. Bottom nav placeholder (Cargo / Journal / Settings). Renders current mode's screen.
+- `style.css` — CSS custom properties only: `--color-bg`, `--color-surface`, `--color-text`, `--color-accent`, etc. Placeholder values. Three `[data-theme]` blocks (default/light/night). Mobile viewport, touch-action, font stack.
+- `index.html` — `<meta viewport>` for mobile, `<div id="app">`, Vite script tag
+- `vite.config.js` — SolidJS plugin, dev server config
+- `package.json` — solid-js, vite, vite-plugin-solid, firebase
+- All other `.js`/`.jsx` files — empty exports. Just enough so imports don't break. Example: `export default function Chat() { return null; }`
+
+**Phase 0 does NOT create:** any working UI beyond the mode router. No chat, no character sheet, no forms. Just the skeleton that Phase 1 plugs into.
+
 ### State store spec
 
-**Field ownership map** (enforced by store.js setters):
+#### Field ownership
+
+Every field in the store has exactly one owner. The store enforces this — attempting to write a field from the wrong owner throws an error.
 
 ```
 AI-owned (via mechanics pipeline only):
-  hp, conditions, gold, quests, npcs, location, weather, time,
-  townReputation, secrets, consequences, combatState
+  characters[].hp, characters[].conditions, characters[].concentration
+  gold (pp/gp/ep/sp/cp), incomeLog[], expenseLog[]
+  quests[], npcs[], location, weather, time, locDesc
+  townReputation[], secrets[], consequences[], combatState
+  chapters[], travelLog[], moduleProgress
 
 Player-owned (via UI editors only):
-  name, backstory, appearance, personality, notes
+  characters[].name, characters[].backstory, characters[].appearance,
+  characters[].personality, characters[].notes
+  playerIdentity (name, selectedPCs, mode)
 
 System-owned (via wizards only):
-  level, hpMax, class, subclass, features, spells, knownSpells,
-  cantrips, spellSlots, currentSlots, resources, proficiencies,
-  savingThrows, skills, abilityScores
+  characters[].level, characters[].hpMax, characters[].class,
+  characters[].subclass, characters[].features[], characters[].spells[],
+  characters[].knownSpells[], characters[].cantrips[],
+  characters[].spellSlots{}, characters[].currentSlots{},
+  characters[].resources[], characters[].proficiencies[],
+  characters[].savingThrows[], characters[].skills{},
+  characters[].abilityScores{}, characters[].race, characters[].ac,
+  characters[].hitDice, characters[].speed, characters[].xp
 ```
 
-Setter pattern:
+#### Setter pattern
+
 ```js
+const OWNERSHIP = {
+  'characters.$.hp': 'ai',
+  'characters.$.name': 'player',
+  'characters.$.level': 'system',
+  // ... every field registered
+};
+
 function setField(path, value, owner) {
-  const fieldOwner = getOwner(path);
-  if (fieldOwner !== owner) throw new OwnershipError(path, fieldOwner, owner);
-  setState(path, value);
+  const fieldOwner = getOwner(path);  // resolves 'characters.0.hp' → 'characters.$.hp' → 'ai'
+  if (fieldOwner !== owner) {
+    throw new OwnershipError(
+      `${owner} tried to write ${path} (owned by ${fieldOwner})`
+    );
+  }
+  setStore(...parsePath(path), value);
+}
+
+// Convenience wrappers
+function aiSet(path, value)     { setField(path, value, 'ai'); }
+function playerSet(path, value) { setField(path, value, 'player'); }
+function systemSet(path, value) { setField(path, value, 'system'); }
+```
+
+#### Campaign data shape
+
+Campaign data resets when swapping campaigns. This is the full shape with defaults:
+
+```js
+const DEFAULT_CAMPAIGN = {
+  // --- Campaign identity ---
+  id: '',                     // generated on creation
+  name: '',                   // "Hoard of the Dragon Queen"
+  setting: '',                // "Forgotten Realms"
+  narrationStyle: '',         // "Brandon Sanderson" — freeform, injected into contract
+  premise: '',                // locked facts the AI cannot contradict
+
+  // --- Characters (array of PCs) ---
+  characters: [
+    // Each PC:
+    {
+      id: '',
+      // Player-owned
+      name: '',               // "Valenns Vogelsang"
+      backstory: '',
+      appearance: '',
+      personality: '',
+      notes: '',
+
+      // System-owned (wizards only)
+      race: '',               // "Half-Elf"
+      class: '',              // "Wizard"
+      subclass: '',           // "Illusionist"
+      level: 1,
+      xp: 0,
+      hpMax: 0,
+      ac: 10,
+      speed: 30,
+      hitDice: { die: 'd8', total: 1, used: 0 },
+      abilityScores: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
+      savingThrows: [],       // ['int', 'wis'] — proficient saves
+      skills: {},             // { arcana: { proficient: true, expertise: false }, ... }
+      proficiencies: [],      // ['light armor', 'simple weapons', ...]
+      features: [],           // [{ name: 'Arcane Recovery', source: 'Wizard 1', desc: '...' }]
+      cantrips: [],           // ['Prestidigitation', 'Fire Bolt']
+      knownSpells: [],        // ['Shield', 'Magic Missile', ...]
+      spellSlots: {},         // { 1: 4, 2: 3, 3: 2 }  — max per level
+      currentSlots: {},       // { 1: 3, 2: 1, 3: 2 }  — remaining
+      resources: [],          // [{ name: 'Superiority Dice', max: 4, current: 4, die: 'd8' }]
+
+      // AI-owned (via mechanics pipeline)
+      hp: 0,
+      conditions: [],         // ['poisoned', 'frightened']
+      concentration: null,    // 'Shield' or null
+      deathSaves: { successes: 0, failures: 0 },
+
+      // Familiar/mount (if any)
+      familiar: null,         // { name, hp, hpMax, ac, type }
+    }
+  ],
+
+  // --- World state (AI-owned) ---
+  location: '',               // "Hunting Lodge Ruins"
+  locDesc: '',                // AI-written location description
+  time: '',                   // "Day 26, 01:15 AM"
+  weather: '',                // "Clear"
+  travelLog: [],              // [{ from, to, note, gameTs }]
+
+  // --- Economy (AI-owned) ---
+  gold: { pp: 0, gp: 0, ep: 0, sp: 0, cp: 0 },
+  incomeLog: [],              // [{ amount, category, desc, gameTs }]
+  expenseLog: [],             // [{ amount, desc, gameTs }]
+
+  // --- Inventory (AI-owned via item_add/item_remove) ---
+  inventory: {
+    carried: {},              // { 'pc-id': [{ name, qty, type, weight }] }
+    wagon: [],                // [{ name, qty, type, weight }]
+    hoard: [],                // [{ name, qty, type, weight }]
+  },
+  wagonState: {
+    animals: [],              // [{ name, type, hp, hpMax, ac, condition, feed }]
+    maxWeight: 0,
+  },
+
+  // --- Story tracking (AI-owned) ---
+  quests: [],                 // [{ title, desc, status: 'active'|'done'|'failed', gameTs }]
+  primaryMission: '',         // main quest text
+  npcs: [],                   // [{ name, disposition, details, hp, alive: true }]
+  chapters: [],               // [{ title, content, gameTs }]
+  consequences: [],           // [{ text, type, resolved: false, gameTs }]
+  townReputation: [],         // [{ town, status, notes }]
+  secrets: [],                // [{ text, playerKnown: false, aiOnly: true }]
+  moduleProgress: {},         // { moduleName, episodes: [{ num, status }] }
+
+  // --- Combat (AI-owned, ephemeral during combat) ---
+  combatState: {
+    active: false,
+    round: 0,
+    initiative: [],           // [{ name, roll, type: 'pc'|'npc', hp, hpMax, ac, zone }]
+    currentTurn: 0,
+    actionsUsed: { action: false, bonus: false, reaction: false, movement: false },
+    zones: {},                // { front: { label, effect, fog }, back: {}, ... }
+  },
+
+  // --- Chat (synced to Firebase) ---
+  narrative: [],              // BaseMessage[] — see chat spec
+  ooc: [],                    // BaseMessage[] — see chat spec
+
+  // --- Session management ---
+  sessionArchive: [],         // [{ summary, startTs, endTs }]
+  checkpoints: [],            // [{ ts, state snapshot }]
+
+  // --- AI contracts (editable in manage mode) ---
+  contracts: {
+    persona: '',              // DM persona contract text
+    never: '',                // prohibitions
+    actions: '',              // pacing, roll procedure
+    continuity: '',           // state verification
+    multi: '',                // multi-player addressing
+    module: '',               // module fidelity (if loaded)
+    dmSecrets: '',            // AI-only information
+  },
+};
+```
+
+#### System data shape
+
+System data survives campaign swap. Stored locally + Firebase:
+
+```js
+const DEFAULT_SYSTEM = {
+  // --- Player identity (device-local) ---
+  playerIdentity: {
+    name: '',                 // "Mom" / "Jessica"
+    selectedPCs: [],          // ['pc-id-1'] or ['all']
+    mode: 'single',           // 'single' | 'multi'
+  },
+
+  // --- App settings ---
+  settings: {
+    theme: 'default',         // 'default' | 'light' | 'night'
+    ttsEnabled: false,
+    ttsVoice: null,           // browser voice URI or ElevenLabs voice ID
+    pushEnabled: false,
+    pushSubscription: null,   // Web Push subscription object
+  },
+
+  // --- Provider config ---
+  providers: {
+    primary: 'gemini',        // 'gemini' | 'openrouter'
+    geminiKey: '',
+    openrouterKey: '',
+    lastProvider: '',         // which one was used last
+    health: {},               // { gemini: { failures: 0, lastFail: null }, ... }
+  },
+
+  // --- Active campaign pointer ---
+  activeCampaignId: '',       // points to which campaign is loaded
+};
+```
+
+### Firebase schema
+
+Firebase paths — what syncs between devices:
+
+```
+v2/
+├── campaigns/
+│   └── {campaignId}/
+│       ├── meta/              ← name, setting, narrationStyle, premise
+│       ├── characters/
+│       │   └── {charId}/      ← full character object (all owners' fields)
+│       ├── world/             ← location, time, weather, locDesc
+│       ├── economy/           ← gold, incomeLog, expenseLog
+│       ├── inventory/         ← carried, wagon, hoard, wagonState
+│       ├── story/             ← quests, primaryMission, npcs, chapters,
+│       │                        consequences, townReputation, secrets, moduleProgress
+│       ├── combat/            ← combatState (ephemeral — cleared when combat ends)
+│       ├── narrative/         ← chat message array
+│       ├── ooc/               ← OOC message array
+│       ├── contracts/         ← AI contract text per key
+│       ├── sessions/          ← sessionArchive array
+│       └── checkpoints/       ← checkpoint snapshots
+└── players/
+    └── {deviceId}/
+        ├── identity/          ← name, selectedPCs, mode
+        └── settings/          ← theme, tts, push preferences
+```
+
+**Sync rules:**
+- All campaign data syncs in realtime (both devices see same game state)
+- Player identity is device-local in state, but also pushed to `players/{deviceId}` so the other device knows who's connected
+- Provider API keys are local-only (never synced to Firebase — security)
+- The 3-second dirty-edit guard from the chat spec applies to all Firebase writes, not just chat
+
+**Offline fallback:** If Firebase is unreachable, state writes go to localStorage. On reconnect, merge using the same clock-independent strategy as chat (ID-based dedup, local wins on conflict).
+
+### IndexedDB schema
+
+IndexedDB stores reference content that doesn't change during play. Populated by seed data on first launch, later by the content pipeline.
+
+**Database name:** `tinklepebble-v2`
+
+**Object stores:**
+
+| Store | Key | Indexes | Example record |
+|-------|-----|---------|---------------|
+| `spells` | `id` (auto) | `name`, `level`, `school`, `class` | `{ name: 'Shield', level: 1, school: 'Abjuration', castTime: '1 reaction', range: 'Self', duration: '1 round', components: 'V, S', desc: '...', classes: ['Wizard', 'Sorcerer'], source: 'seed' }` |
+| `feats` | `id` (auto) | `name`, `prerequisite` | `{ name: 'Alert', prerequisite: 'None', desc: '...', source: 'seed' }` |
+| `glossary` | `id` (auto) | `term` | `{ term: 'Advantage', definition: '...', source: 'seed' }` |
+| `classData` | `id` (auto) | `class`, `level` | `{ class: 'Fighter', level: 3, hitDie: 'd10', features: [...], choices: [...], spellSlots: null }` |
+| `maneuvers` | `id` (auto) | `name` | `{ name: 'Disarming Attack', desc: '...', source: 'seed' }` |
+| `xpThresholds` | `level` | — | `{ level: 5, xp: 6500 }` |
+| `compendium` | `id` (auto) | `name`, `type`, `source` | Future: items, monsters, races from content pipeline |
+
+**Seed data flow:**
+1. `main.js` calls `initData()` on app start
+2. `initData()` checks IndexedDB for a `_seeded` flag
+3. If not seeded: imports static JSON files from `data/` directory, writes to IndexedDB stores, sets `_seeded = true`
+4. Seeding runs once. After that, content pipeline (Phase 7) adds to these same stores.
+
+**Static JSON files** (in `data/` directory, bundled with the app):
+- Converted from `v1-seed-data.md` tables into JSON arrays
+- Each file is one array of records matching the IndexedDB store schema above
+- Example: `data/spells.json` = `[{ name: 'Shield', level: 1, ... }, ...]`
+
+### Color palette spec
+
+**Status:** Design task, not code task. Blocks visual polish, not functionality.
+
+**What Phase 0 creates:** CSS custom properties with placeholder values. Gray-scale placeholders that make the UI usable but ugly — motivates choosing a real palette.
+
+```css
+:root, [data-theme="default"] {
+  --color-bg: #1a1a2e;
+  --color-surface: #16213e;
+  --color-surface-alt: #0f3460;
+  --color-text: #e0e0e0;
+  --color-text-muted: #888;
+  --color-accent: #e94560;
+  --color-accent-dim: #c73e54;
+  --color-success: #4ecca3;
+  --color-warning: #f0a500;
+  --color-danger: #e94560;
+  --color-border: #333;
+  --color-input-bg: #0f0f1a;
+  --color-dm-bubble: #1e1e3a;
+  --color-player-bubble: #2a2a4a;
+
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', monospace;
+  --font-size-sm: 0.85rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.25rem;
+
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+
+  --touch-target: 44px;       /* minimum tap target per Apple HIG */
+  --nav-height: 56px;
+  --input-height: 48px;
+}
+
+[data-theme="light"] {
+  --color-bg: #f5f5f5;
+  --color-surface: #ffffff;
+  --color-text: #1a1a1a;
+  --color-text-muted: #666;
+  /* ... override dark values ... */
+}
+
+[data-theme="night"] {
+  --color-bg: #0a0a0a;
+  --color-surface: #111;
+  --color-text: #c0c0c0;
+  --color-accent: #cc3344;
+  /* ... dimmer, redder for dark rooms ... */
 }
 ```
+
+**These are placeholders.** The real palette comes from a design session where you can see the colors on screen. The values above are functional (dark mode default, readable contrast) but not the final brand.
+
+### Phase 0 acceptance test
+
+When Phase 0 is done, the app should:
+1. `npm run dev` starts without errors
+2. Browser shows the app shell — a mode router that says "No campaign found" and would route to setup mode
+3. Bottom nav renders (Cargo / Journal / Settings) — tapping does nothing yet, just shows placeholder text
+4. State store exists with campaign + system shapes, ownership enforcement works (test: calling `aiSet('characters.0.name', 'x')` throws OwnershipError)
+5. Firebase connects (anonymous auth), reads/writes to a test path succeed
+6. IndexedDB opens, seed data loads on first visit (97 glossary terms, 94 spells, 44 feats, XP thresholds, 3 classes of level-up data, 16 maneuvers)
+7. Theme toggle works — `data-theme` attribute changes, colors swap
+8. All import paths resolve (no broken imports from the empty barrel files)
 
 ---
 
