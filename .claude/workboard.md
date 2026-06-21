@@ -23,7 +23,8 @@
 - [ ] **Project scaffold** — Vite + SolidJS, create the full module map directory structure from architecture.md. Empty index.js barrels in each folder. `main.js` entry point. `style.css` with CSS custom properties for palette (placeholder values until palette chosen).
 - [ ] **State store** — `src/state/store.js`. SolidJS `createStore` with field ownership enforcement. Every field tagged `ai | player | system`. Setter functions that check ownership before writing. `campaign.js` for campaign data shape + `resetCampaign()`. `system.js` for system data shape.
 - [ ] **Firebase setup** — New Firebase project (separate from v1). `src/data/firebase.js` with init, auth (anonymous), realtime DB read/write. Offline fallback to localStorage. `src/data/local.js` with IndexedDB wrapper for compendium storage.
-- [?] **Color palette** — Design session needed. Three modes: default, light, night. v1 Soft Autumn not carrying forward. CSS custom properties ready, values TBD.
+- [ ] **Seed data loading** — On first launch (empty IndexedDB), populate from bundled JSON files derived from `v1-seed-data.md`: XP thresholds (L1–20), level-up data (Fighter/Rogue/Bard L2–10), Bard spell list, spell compendium (94 spells), 16 Battle Master maneuvers, 44 feats (PHB + TCoE), 97-term glossary. These are the v1 constants (SPELL_DB, LEVEL_UP_DATA, FEATS_DB, GLOSSARY) converted to IndexedDB records. Seeding runs before content pipeline exists — it's a one-time load from static JSON, not a parser.
+- [?] **Color palette** — Design session needed with UI visible. Three modes: default, light, night. v1 Soft Autumn not carrying forward. CSS custom properties ready in Phase 0 scaffold, placeholder values until palette chosen. **Blocks all UI phases (3–6)** — build with placeholders, swap values when palette is decided. This is a design task, not a code task.
 
 ### Scaffold spec
 
@@ -148,6 +149,48 @@ function setField(path, value, owner) {
 - [ ] **Chat UI** — `src/ui/play/Chat.jsx`. Message list (player + AI). Markdown rendering in AI responses. Mechanics block parsed into mechanic pills (tappable, but tap targets come later). Auto-scroll. `src/ui/play/InputBar.jsx` — text input + send button.
 - [ ] **App shell** — `src/ui/App.jsx`. Mode routing (setup/play/reference/manage). Bottom nav stub (Cargo / Journal / Settings). Play mode as default after campaign exists.
 - [ ] **Contracts loader** — `src/ai/contracts.js`. Load contracts from state. Inject into buildPrompt. v1 contract format preserved (see v1-contract-reference.md). Default contracts seeded from v1.
+- [ ] **V2 AI contract text** — The actual system prompt content that `buildPrompt()` injects. Not code — this is a writing task. See spec below.
+- [ ] **Memory management** — `src/ai/memory.js`. `summarizeAndPrune(chatHistory, tokenBudget)` compresses old messages into summaries. Session archive on manual trigger or auto-threshold. Context injection: recent messages verbatim + older messages as summary. `sendMsg()` calls this before `buildPrompt()` to keep prompt within free-tier token limits. Critical for any session longer than ~20 messages.
+
+### V2 AI contract spec
+
+The contract is the system prompt text — what the AI reads every turn. It has two halves:
+
+**Prompt-enforced clauses** (the 15 things the AI already follows reliably — from gameplay-reference.md):
+- DM persona: epic fantasy narrator, addresses each PC by name, sensory prose
+- Output format: narrative → `***` → Campaign State block → choices
+- Campaign State block format: Location, Time, Status, mechanics lines
+- Roll request format: `Roll Request: Skill (PC) | DC X | Context`
+- Choice presentation: 2–3 bold options with "How do you proceed?"
+- Quest mechanics format: `quest_add`, `quest_done`, `primary_mission`
+- NPC mechanics format: `npc_add` on first appearance
+- Item mechanics format: `item_add`, `item_remove` with properties
+- Consequence mechanics: `consequence_add`, `consequence_resolve` with timers
+- Chapter tracking: `chapter_add` at milestones
+- Information gating: don't reveal undiscovered module content
+- Dungeon secrets: don't reveal what hasn't been found
+- Continuity self-check: verify state consistency at start of each response
+- Advantage/disadvantage: state reasoning when granting
+- Death save procedure format
+
+**Removed from contract** (now code-enforced via gates):
+- Roll before resolve → Gate 1
+- Wait for player input → Gate 4
+- Don't act for unmentioned PCs → Gate 5
+- Spell verification → Gate 6
+- Action economy tracking → Gate 2
+- Income on every transaction → Gate 9
+- Turn order → Gate 2
+- Skill check requirements → Gate 7
+
+**Also needed in prompt:**
+- Ledger (compact state summary from `genLedger()`)
+- Active consequences with timers
+- Discovered module content (from episode tracking, when built)
+- Session summary (from memory.js pruning)
+- Active contracts (editable by player in manage mode)
+
+**Acceptance test:** Write the contract text, load it into `buildPrompt()`, run a 5-message exchange. AI responds in correct format with mechanics blocks. Contract text lives in state (editable via Contracts.jsx in manage mode) with a default version seeded on first launch.
 
 ### Core loop acceptance test
 
@@ -186,7 +229,7 @@ Full specs for each gate: `.claude/enforcement-spec.md`
 - [ ] **Term glossary links** — Auto-link D&D terms in AI messages. Tap → definition popup. Data from `v1-seed-data.md` glossary (97 terms).
 - [ ] **Checkpoint/rewind** — `Rewind.jsx`. State snapshots at: long rest, level-up, PC at 0 HP, periodic auto. Rewind stack. One-tap restore. Accessible mid-session in play mode, not buried in manage.
 - [ ] **TTS toggle** — `TTS.jsx`. Browser speech synthesis. Toggle on/off per message or continuous. Not automatic. ElevenLabs free tier as upgrade path.
-- [ ] **Previously On** — AI-powered session recap. Surfaces when returning from AFK (detect idle time). Summarizes what happened since last active. Tracker audit — what changed.
+- [ ] **Previously On / Catch Up** — AI-powered session recap. Depends on memory.js (Phase 1) for session summaries and state diff. Surfaces when returning from AFK (detect idle time > threshold). Two parts: (1) narrative recap from memory.js summary, (2) tracker audit — state changes since last active (HP, quests, inventory, location diffs). The recap is an AI call; the audit is a pure state diff. UI: dismissable card at top of chat on return.
 - [?] **Quick Actions** — `QuickActions.jsx`. Floating action button. Needs redesign from v1. See spec below.
 - [ ] **Combat overlay** — `Combat.jsx`. Phase 1: zone grid (Frontline/Backline/Flanks). Initiative strip. Token chips per PC/NPC. Appears when `combat.active = true`, disappears when combat ends.
 - [ ] **Nav badges** — Dot badges on bottom nav when state changes in other modes. In-chat alerts for important state changes.
@@ -291,7 +334,6 @@ v1 Quick Actions was a FAB with common play actions. Carried forward but needs r
 - [ ] **Three color modes** — Default, light, night. CSS custom property swap. Palette TBD.
 - [?] **Child-friendly view** — `AppSimple.jsx`. Same state/engine, simplified UI. Separate URL entry point. See spec below.
 - [ ] **Data migration** — `migrate.js`. State version tracking. Automatic migration on load when schema changes.
-- [ ] **Memory management** — `memory.js`. `summarizeAndPrune()` for chat history. Session archive. Context injection for AI continuity. Prompt budget management as world grows.
 
 ### Child-friendly view — design needed
 
@@ -314,11 +356,43 @@ v1 Quick Actions was a FAB with common play actions. Carried forward but needs r
 
 | Question | Context | Blocking |
 |----------|---------|----------|
-| Color palette | Three modes needed. Soft Autumn cut. Design session with UI visible. | Phase 0 (CSS values only) |
-| OOC & Rules channel context | Do they share narrative AI context? Does Rules build its own prompt? Does OOC need AI at all? v1 Rules chat was used for both rules questions AND app bug reports. | Phase 3 (chat tabs) |
+| Color palette | Three modes needed. Soft Autumn cut. Design session with UI visible. Blocks all UI work (placeholders until decided). | Phase 3–6 (visual only) |
 | Child-friendly view target age | 7-16 is wide. What simplification scope? | Phase 8 |
 | Episode/module tracking triggers | Location-based? Quest-based? AI-detected? | Phase 7 |
 | Quick Actions action list | What actions, system vs AI directed, FAB ergonomics | Phase 3 |
+| V1 data migration | Bring HotDQ campaign into V2? See spec below. | Not blocking (V2 can start fresh) |
+
+### OOC & Rules channels — design needed
+
+**The problem from v1:** Three chat modes existed — Narrative (AI, in-character), Rules (AI, mechanical questions), OOC (player-to-player). But players used Rules chat for two different things: actual rules questions ("can I use Sneak Attack here?") AND app bug reports ("I can't edit my spells"). The AI can't help with app issues.
+
+**Questions to resolve:**
+1. **Does Rules share narrative context?** If a player asks "can Slasher use Mend?" the AI needs to know Slasher's class/level/cantrip list. That's game state, not narrative history. Rules probably needs the ledger but not the full chat history.
+2. **Does OOC need AI at all?** In a 2-player family game, OOC is just "hey, are you ready?" — no AI needed. With more players it could be useful. For now: OOC is a plain text channel, no AI, no prompt cost.
+3. **How do app issues get handled?** Smart routing (detect "I can't..." / "the app..." → system help panel) or a dedicated non-AI help path. The answer is probably: system operations UI (Phase 6) handles what players were trying to do through Rules chat.
+4. **Are these tabs within the chat canvas, or separate screens?** Architecture says tabs within chat (shared canvas, separate contexts). That means the chat component manages multiple message streams.
+
+**Proposed design (pending confirmation):**
+- **Narrative tab** — Full AI context (ledger + chat history + contracts + module content). The main play experience.
+- **Rules tab** — AI with ledger + character data + rules contracts only. No narrative history. Cheaper prompt, focused answers. System prompt says "answer D&D rules questions using the character and campaign data provided."
+- **OOC tab** — Plain text, no AI. Player-to-player messages synced via Firebase. Minimal UI.
+- **App issues** — Not a chat channel. System operations UI in manage mode + Quick Actions for common fixes.
+
+### V1 data migration — decision needed
+
+**The question:** The current HotDQ campaign has ~25 days of play data in v1 Firebase. Does it come to V2?
+
+**Options:**
+1. **Fresh start** — V2 launches with a new campaign. V1 stays live for reference/nostalgia. Simplest. No migration code.
+2. **State snapshot import** — Export v1 state as JSON, import into v2 state structure. Requires a field mapping (v1 shape → v2 shape). One-time migration script, not a maintained feature.
+3. **Continue campaign** — Full migration of characters, world state, chat history, quests, NPCs, treasury, combat state. Most work. Chat history format likely differs.
+
+**Factors:**
+- V2 has a different state structure (field ownership, campaign/system split)
+- V2 has different mechanic keys (might be the same 65 from v1, but validation is stricter)
+- The party is mid-campaign — starting over means replaying or fast-forwarding
+- V1 stays live regardless — no migration pressure
+- If migration is option 2, it could be a manage mode tool: "Import V1 Campaign" → paste JSON → map fields → review → apply
 
 ---
 
@@ -336,8 +410,8 @@ v1 Quick Actions was a FAB with common play actions. Carried forward but needs r
 
 Phases are roughly sequential but overlap where practical:
 
-1. **Phase 0** → scaffold + state + Firebase (foundation)
-2. **Phase 1** → core loop MVP (can play a session, no enforcement)
+1. **Phase 0** → scaffold + state + Firebase + seed data (foundation)
+2. **Phase 1** → core loop MVP including AI contract text + memory management (can play a session, no enforcement)
 3. **Phase 2** → enforcement gates (build one at a time, test in play)
 4. **Phase 3** → play mode UI (make it feel like an app, not a terminal)
 5. **Phase 4** → reference mode (mid-session orientation)
@@ -346,6 +420,12 @@ Phases are roughly sequential but overlap where practical:
 8. **Phase 7** → content pipeline (replace hardcoded data)
 9. **Phase 8** → multi-player + polish (second player joins)
 
-Gates (phase 2) can interleave with play UI (phase 3) — build a gate, build a UI piece, test in play, repeat. The enforcement spec has its own priority order.
-
-Content pipeline (phase 7) can start earlier if the team wants to import content before the full UI exists — the normalizer and IndexedDB layer are independent of UI.
+**Key dependencies:**
+- AI contract text (Phase 1) is a writing task — can start during Phase 0 scaffolding
+- Memory management (Phase 1) is needed before any session longer than ~20 messages
+- Color palette (open question) blocks visual polish but not functionality — build with placeholders
+- Seed data (Phase 0) is the bridge: v1 constants in IndexedDB before content pipeline exists
+- Previously On (Phase 3) depends on memory.js from Phase 1
+- Gates (Phase 2) can interleave with play UI (Phase 3) — build a gate, build a UI piece, test in play, repeat
+- Content pipeline (Phase 7) can start earlier — normalizer and IndexedDB layer are independent of UI
+- V1 data migration (if chosen) is a one-time manage mode tool, not a prerequisite for anything
