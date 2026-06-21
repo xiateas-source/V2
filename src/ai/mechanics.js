@@ -24,7 +24,7 @@ const KNOWN_KEYS = new Set([
   'chapter_update', 'location_add', 'location_visit', 'location_history',
   'location_investment', 'roll_request', 'zone_move', 'zone_add_enemy', 'zone_remove',
   'zone_effect', 'zone_label', 'combat_start', 'combat_end', 'zone_fog',
-  'death_save', 'none', 'round_advance', 'hit_dice_use', 'inspiration',
+  'death_save', 'none', 'round_advance', 'hit_dice_use', 'inspiration', 'temp_hp',
 ]);
 
 function findPC(name) {
@@ -211,7 +211,6 @@ const DISPATCH = {
     for (const { name, value: hp } of parseHpEntries(value)) {
       const idx = findPCIndex(name);
       if (idx === -1) {
-        // Might be an NPC in combat
         if (store.campaign.combatState.active) {
           const initIdx = store.campaign.combatState.initiative.findIndex(
             c => c.name.toLowerCase() === name.toLowerCase().trim()
@@ -225,20 +224,34 @@ const DISPATCH = {
         continue;
       }
       const pc = store.campaign.characters[idx];
-      const clamped = Math.max(0, Math.min(hp, pc.hpMax));
-      const damage = pc.hp - clamped;
-      setStore('campaign', 'characters', idx, 'hp', clamped);
-      if (damage > 0 && pc.concentration) {
-        const dc = Math.max(10, Math.floor(damage / 2));
-        pendingConcentrationSaves.push({ pc: pc.name, spell: pc.concentration.spell, dc });
+      const rawDamage = pc.hp - hp;
+
+      if (rawDamage > 0 && pc.hpTemp > 0) {
+        const tempAbsorb = Math.min(pc.hpTemp, rawDamage);
+        const remainingDamage = rawDamage - tempAbsorb;
+        setStore('campaign', 'characters', idx, 'hpTemp', pc.hpTemp - tempAbsorb);
+        const newHp = Math.max(0, pc.hp - remainingDamage);
+        setStore('campaign', 'characters', idx, 'hp', newHp);
+        if (remainingDamage > 0 && pc.concentration) {
+          const dc = Math.max(10, Math.floor(rawDamage / 2));
+          pendingConcentrationSaves.push({ pc: pc.name, spell: pc.concentration.spell, dc });
+        }
+      } else {
+        const clamped = Math.max(0, Math.min(hp, pc.hpMax));
+        setStore('campaign', 'characters', idx, 'hp', clamped);
+        if (rawDamage > 0 && pc.concentration) {
+          const dc = Math.max(10, Math.floor(rawDamage / 2));
+          pendingConcentrationSaves.push({ pc: pc.name, spell: pc.concentration.spell, dc });
+        }
       }
-      // Sync to combat initiative if active
+
+      const finalHp = store.campaign.characters[idx].hp;
       if (store.campaign.combatState.active) {
         const initIdx = store.campaign.combatState.initiative.findIndex(
           c => c.name.toLowerCase() === pc.name.toLowerCase()
         );
         if (initIdx >= 0) {
-          setStore('campaign', 'combatState', 'initiative', initIdx, 'hp', clamped);
+          setStore('campaign', 'combatState', 'initiative', initIdx, 'hp', finalHp);
         }
       }
     }
@@ -789,6 +802,7 @@ const DISPATCH = {
     for (const idx of targets) {
       const pc = store.campaign.characters[idx];
       setStore('campaign', 'characters', idx, 'hp', pc.hpMax);
+      setStore('campaign', 'characters', idx, 'hpTemp', 0);
       setStore('campaign', 'characters', idx, 'currentSlots', { ...pc.spellSlots });
       const resources = pc.resources.map(r => ({ ...r, current: r.max }));
       setStore('campaign', 'characters', idx, 'resources', resources);
@@ -829,7 +843,6 @@ const DISPATCH = {
   },
 
   inspiration(value) {
-    // Format: Name=true/false or Name+/Name-
     const match = value.match(/^(.+?)([=+-])(.*)$/);
     if (!match) return;
     const [, name, op, val] = match.map(s => s?.trim());
@@ -840,6 +853,16 @@ const DISPATCH = {
     } else {
       setStore('campaign', 'characters', idx, 'inspiration', true);
     }
+  },
+
+  temp_hp(value) {
+    // Format: Name=amount (temp HP doesn't stack — take higher)
+    const [name, amtStr] = value.split('=').map(s => s.trim());
+    const amount = parseInt(amtStr, 10) || 0;
+    const idx = findPCIndex(name);
+    if (idx === -1) return;
+    const current = store.campaign.characters[idx].hpTemp || 0;
+    setStore('campaign', 'characters', idx, 'hpTemp', Math.max(current, amount));
   },
 
   save_game() {},

@@ -181,6 +181,7 @@ function formatPill(key, value) {
     case 'animal_hp': return `Animal: ${value}`;
     case 'hit_dice_use': return `HD: ${value}`;
     case 'inspiration': return `Inspiration: ${value.split(/[=+]/)[0]}`;
+    case 'temp_hp': return `TempHP: ${value}`;
     case 'location': case 'time': case 'weather': case 'loc_desc':
     case 'primary_mission': case 'none': case 'round_advance':
     case 'location_add': case 'location_visit':

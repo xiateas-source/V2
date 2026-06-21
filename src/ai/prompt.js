@@ -15,7 +15,7 @@ export function genLedger(mode = 'compact') {
     for (const pc of c.characters) {
       const profBonus = Math.floor((pc.level - 1) / 4) + 2;
       const parts = [`${pc.name} (${pc.race} ${pc.class}${pc.subclass ? ` (${pc.subclass})` : ''} Lv${pc.level} Prof+${profBonus})`];
-      parts.push(`HP ${pc.hp}/${pc.hpMax}`);
+      parts.push(`HP ${pc.hp}/${pc.hpMax}${pc.hpTemp ? ` +${pc.hpTemp}tmp` : ''}`);
       parts.push(`AC ${pc.ac}`);
 
       if (pc.conditions.length > 0) {

@@ -42,7 +42,7 @@ export default function CharTiles() {
                     <div class="tile-hp-fill" style={{ width: `${hpPct()}%`, background: hpColor() }} />
                   </div>
                   <div class="tile-stats">
-                    <span class="tile-hp">{pc.hp}/{pc.hpMax}</span>
+                    <span class="tile-hp">{pc.hp}/{pc.hpMax}{pc.hpTemp > 0 ? <span class="tile-temp">+{pc.hpTemp}</span> : ''}</span>
                     <span class="tile-ac">AC {pc.ac}</span>
                     <Show when={pc.conditions.length > 0}>
                       <span class="tile-conditions">

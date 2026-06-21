@@ -1,7 +1,8 @@
-import { createSignal } from 'solid-js';
+import { createSignal, Show } from 'solid-js';
 import { sendMsg, isSending, stopGeneration } from '../../ai/engine.js';
 import { validateMechanics, applyMechanics } from '../../ai/mechanics.js';
 import { store, setStore } from '../../state/index.js';
+import DiceRoller from './DiceRoller.jsx';
 
 const SCENARIOS = [
   {
@@ -202,6 +203,7 @@ function exportResults() {
 export default function InputBar(props) {
   const [text, setText] = createSignal('');
   const [showTest, setShowTest] = createSignal(false);
+  const [showDice, setShowDice] = createSignal(false);
   const [testMode, setTestMode] = createSignal('scenarios');
   const [sentPrompts, setSentPrompts] = createSignal(new Set());
   let inputRef;
@@ -255,7 +257,13 @@ export default function InputBar(props) {
           <button class="btn-send" onClick={handleSend} disabled={!text().trim()}>Send</button>
         )}
       </div>
+      <Show when={showDice()}>
+        <DiceRoller />
+      </Show>
       <div class="test-controls">
+        <button class="btn-test-toggle" onClick={() => setShowDice(!showDice())}>
+          {showDice() ? '▾ Dice' : '▸ Dice'}
+        </button>
         <button class="btn-test-toggle" onClick={() => setShowTest(!showTest())}>
           {showTest() ? '▾ Test' : '▸ Test'}
         </button>
