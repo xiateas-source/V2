@@ -240,7 +240,7 @@ export default function InputBar(props) {
         <button class="btn-test-toggle" onClick={() => setShowTest(!showTest())}>
           {showTest() ? '▾ Test' : '▸ Test'}
         </button>
-        <button class="btn-test-export" onClick={exportResults}>Export</button>
+        <button class="btn-test-export" onClick={exportResults} disabled={isSending()}>Export</button>
         {showTest() && (
           <div class="test-panel">
             <div class="test-mode-tabs">

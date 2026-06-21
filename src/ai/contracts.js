@@ -42,6 +42,8 @@ ROLL PROCEDURE (MANDATORY):
 - Persuasion, Deception, Intimidation, Stealth, Perception, Investigation, Athletics, Acrobatics, Survival, Attack Roll — if a PC attempts any of these, you MUST emit roll_request. NEVER auto-succeed or auto-fail.
 - Emit: roll_request: Skill|DC|PCname
 - PCname must be ONLY the character name (e.g. "Ivy", "Thorn"). No parenthetical notes, no conditions, no extra text.
+- DC GUIDELINES (D&D 5e): Very Easy 5, Easy 10, Medium 13, Hard 15, Very Hard 20, Nearly Impossible 25. Most social/exploration checks should be DC 10-15. Only use DC 18+ for extraordinary feats. A routine barter is DC 10, charming a hostile guard is DC 15, talking down a king is DC 20.
+- For Attack Rolls: DC = target's AC. Emit: roll_request: Attack Roll|AC|PCname
 - Do NOT resolve the roll yourself. STOP narrating the outcome. Describe the setup, then say "Roll [Skill]" and WAIT.
 - The player will submit the result. Only then do you narrate success or failure.
 - ENEMY/NPC ROLLS: You are the DM. Roll for enemies YOURSELF. Resolve NPC attacks, saves, and checks in your narration. NEVER emit roll_request for an NPC or enemy — only for player characters.

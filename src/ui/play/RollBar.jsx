@@ -55,6 +55,7 @@ export default function RollBar() {
       const msg = msgs[i];
       if (msg.role === 'user') break;
       if (msg.role === 'assistant' && msg.mechanics) {
+        if (msg.content?.startsWith('[TEST]')) continue;
         const rolls = msg.mechanics.applied
           ?.filter(m => m.key === 'roll_request' && m.applied)
           .map((m, idx) => {
