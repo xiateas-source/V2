@@ -1,6 +1,7 @@
 import { createSignal, createMemo, Show } from 'solid-js';
 import { store } from '../state/index.js';
 import { loadDemoCampaign } from '../data/demo.js';
+import PlayerOnboard from './setup/PlayerOnboard.jsx';
 import Chat from './play/Chat.jsx';
 import Cargo from './reference/Cargo.jsx';
 import Journal from './reference/Journal.jsx';
@@ -49,15 +50,7 @@ export default function App() {
   return (
     <div class="app-shell">
       <main class="app-content">
-        <Show when={hasCampaign()} fallback={
-          <div class="no-campaign">
-            <p>No campaign found.</p>
-            <button class="btn-demo" onClick={loadDemoCampaign}>Load Demo Campaign</button>
-            <p style={{ color: 'var(--color-text-muted)', 'font-size': 'var(--font-size-sm)' }}>
-              Setup mode coming soon.
-            </p>
-          </div>
-        }>
+        <Show when={hasCampaign()} fallback={<PlayerOnboard />}>
           <Show when={mode() === 'play'}><Chat /></Show>
           <Show when={mode() === 'cargo'}><Cargo /></Show>
           <Show when={mode() === 'journal'}><Journal /></Show>
