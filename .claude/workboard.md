@@ -154,10 +154,18 @@ function setField(path, value, owner) {
 
 ### V2 AI contract spec
 
-The contract is the system prompt text — what the AI reads every turn. It has two halves:
+The contract is the system prompt text — what the AI reads every turn. Two contracts, two voices:
 
-**Prompt-enforced clauses** (the 15 things the AI already follows reliably — from gameplay-reference.md):
-- DM persona: epic fantasy narrator, addresses each PC by name, sensory prose
+#### Narrative contract
+
+The Narrative DM is an **epic fantasy narrator who is also a rules lawyer.** Vivid, sensory prose — players loved the storytelling in v1. But every mechanical interaction is grounded in actual rules, named precisely, and tracked. The DM doesn't choose between great story and tight game — it does both. The enforcement gates let the AI lean into narrative because code catches mechanical slips.
+
+**Voice direction:** Not dry rules recitation. Not hand-wavy storytelling. The DM cites rules when they matter, names actual spells/features/mechanics in prose (not vague descriptions), and keeps the game honest while keeping it alive. "Slasher's Mending cantrip weaves the cracked leather back together" — not "Slasher uses his smith's craft to repair the armor."
+
+**Narration style field:** Player-configurable text field injected into the Narrative contract. Set in Session Zero, editable in Settings. Examples: "Brandon Sanderson," "dark and gritty like Joe Abercrombie," "whimsical like Terry Pratchett," or freeform description. Lives in campaign data (different campaigns can have different tones). One line in the prompt that dramatically changes the feel: `"Write narrative prose in the style of [value]."`
+
+**Prompt-enforced clauses** (the 15 things the AI follows reliably — from gameplay-reference.md):
+- DM persona: addresses each PC by name, sensory prose, narration style from player config
 - Output format: narrative → `***` → Campaign State block → choices
 - Campaign State block format: Location, Time, Status, mechanics lines
 - Roll request format: `Roll Request: Skill (PC) | DC X | Context`
@@ -183,14 +191,38 @@ The contract is the system prompt text — what the AI reads every turn. It has 
 - Turn order → Gate 2
 - Skill check requirements → Gate 7
 
-**Also needed in prompt:**
+**Also needed in Narrative prompt:**
 - Ledger (compact state summary from `genLedger()`)
 - Active consequences with timers
 - Discovered module content (from episode tracking, when built)
 - Session summary (from memory.js pruning)
 - Active contracts (editable by player in manage mode)
+- Narration style directive
 
-**Acceptance test:** Write the contract text, load it into `buildPrompt()`, run a 5-message exchange. AI responds in correct format with mechanics blocks. Contract text lives in state (editable via Contracts.jsx in manage mode) with a default version seeded on first launch.
+#### Ask DM contract (OOC tab)
+
+The Ask DM is an **objective rules arbiter with full situation awareness.** By-the-book, structured, precise. Players appreciated this tone in v1's Rules/OOC channels — it added structure to the game. Cite PHB pages and rules text. Ground answers in compendium data injected from IndexedDB.
+
+**System instruction:** "You are a D&D 5e rules arbiter. Answer the question using the character data, campaign situation, and reference material provided. Be precise, cite rules sources. Advisory only — do not emit mechanics, do not advance the game state, do not narrate actions. If the question involves a hypothetical ('what would happen if...'), reason through it using the current situation but make clear this is theoretical."
+
+**Ask DM prompt assembly:**
+```
+Player taps Ask DM in OOC
+  → app reads the question
+  → interception layer checks for app issues (route to system tools if match)
+  → pulls relevant compendium data from IndexedDB (spells, feats, class features, race data)
+  → builds prompt:
+      - Ask DM system instruction (advisory only, no mechanics)
+      - Current ledger (situation awareness)
+      - Recent Narrative history (for theorycrafting context)
+      - OOC history (for follow-up questions)
+      - Character data (all PCs)
+      - Pulled compendium entries (grounded in app data)
+  → AI responds in OOC stream
+  → citation linking auto-links rules references to compendium
+```
+
+**Acceptance test:** Write both contract texts. Narrative: run 5-message exchange, AI responds with vivid prose + correct mechanics blocks + narration style applied. Ask DM: ask 3 questions (rules lookup, theorycrafting, follow-up), AI answers precisely without advancing the game.
 
 ### Core loop acceptance test
 
@@ -237,6 +269,7 @@ Full specs for each gate: `.claude/enforcement-spec.md`
 - [ ] **Ask DM interception layer** — Before Ask DM sends to the AI, pattern-match the question for app issues. "Can't modify/change/edit [X]" → route to relevant editor/wizard. "What's in my inventory" → open Cargo. "How much gold" → open Treasury. "What are my spells" → open CharSheet Spells tab. Detection patterns: "can't/won't/how do I" + field name → system tool. Only questions the app can't answer directly hit the AI. Saves API calls, gives better answers.
 - [ ] **Ask DM data injection** — Before Ask DM prompt goes out, detect what the question is about and pull relevant data from IndexedDB/state. Spell questions → pull spell entries. Feat questions → pull feat data. NPC questions → pull NPC tracker entries. Class feature questions → pull class progression data. Grounds AI answers in actual app data, not training data. Especially important for homebrew content the AI has never seen.
 - [ ] **Citation linking** — Auto-link rules references in AI responses (spell names, feat names, conditions, PHB citations) to compendium entries when content is imported. Same auto-linking tech as term glossary, extended to Ask DM and Narrative responses. AI cites "PHB 182" → tappable link to travel pace rules in compendium. Tap-to-source for AI knowledge.
+- [ ] **Push notifications** — Web Push API (free, works on Android Chrome + iOS Safari 16.4+). Fires when: OOC message received while app is backgrounded, AI response arrives in Narrative when it's not your turn, game state changes that need attention. Player opts in once. Pairs with Firebase Cloud Messaging. Needed from day one for 2-player — without it, OOC is dead (v1 problem: no notifications meant no one checked OOC).
 
 ### Quick Actions — design needed
 
@@ -263,7 +296,7 @@ v1 Quick Actions was a FAB with common play actions. Carried forward but needs r
 
 > Mid-session orientation. Overlays over chat — tap to open, tap away to close. No mode switch friction.
 
-- [ ] **Character sheet** — `CharSheet.jsx`. 6-tab overlay: Stats, Combat, Spells, Features, Equipment, Bio. System-owned fields read-only during play. Player-owned fields (name, backstory, appearance, personality, notes) editable. Familiar/mount section tied to specific PC, gets own combat token.
+- [ ] **Character sheet** — `CharSheet.jsx`. 6-tab overlay: Stats, Combat, Spells, Features, Equipment, Bio. System-owned fields read-only during play. Player-owned fields (name, backstory, appearance, personality, notes) editable. Familiar/mount section tied to specific PC, gets own combat token. **Bio tab includes race/species reference data** pulled from compendium: physical description, traits, age range, size, special abilities, lore summary. Player shouldn't need to ask the AI what their own character's species looks like.
 - [ ] **Journal** — `Journal.jsx`. Sections: Quests, Locations, NPCs, Travel Log, Consequences, Town Reputation, Secrets. All AI-owned via mechanics. Secrets consolidated to one home with `playerKnown` / `aiOnly` flags. Quests show status (active/completed/failed). Locations show discovered/undiscovered. NPCs show disposition.
 - [ ] **Cargo** — `Cargo.jsx`. Three containers: Carried (per-PC), Wagon (party shared), Hoard (stored/stashed). Items from `item_add` mechanics. Weight tracking (encumbrance). AI-generated items (Firebase) vs compendium items (IndexedDB) display the same.
 - [ ] **Travel calculator** — In Journal's locations section. Tap a known destination → see distance, estimated travel time at current party speed (accounts for slowest member — mounts, oxen, vehicles), encounter risk level. Math is free (Law 5). AI handles "should we go?" judgment via Ask DM — app handles "how long will it take?" Depends on locations tracked in Journal state with distance/terrain data.
@@ -277,7 +310,7 @@ v1 Quick Actions was a FAB with common play actions. Carried forward but needs r
 
 > First-launch experience. Mostly locked after campaign starts. Re-entry via manage mode for corrections.
 
-- [ ] **Session Zero wizard** — `SessionZero.jsx`. Campaign name, setting, tone, module selection (if content imported). AI contract defaults. Generates initial world state.
+- [ ] **Session Zero wizard** — `SessionZero.jsx`. Campaign name, setting, tone, module selection (if content imported). AI contract defaults. Generates initial world state. **Narration style field:** text input for narrative voice ("Brandon Sanderson," "dark and gritty like Joe Abercrombie," freeform description). Injects into Narrative contract as `"Write narrative prose in the style of [value]."` Lives in campaign data. Also editable mid-campaign in Settings.
 - [ ] **Character creation** — `CharCreate.jsx`. Race, class, ability scores, background, equipment. Populates system-owned fields. Spell selection for casters. Uses compendium data from IndexedDB (class progressions from v1-seed-data.md until content pipeline built).
 - [ ] **Content import** — `ContentImport.jsx`. File upload (PDF, epub, mobi). Web URL import. Markdown/text paste. JSON import. Routes to appropriate parser. Preview before committing to IndexedDB.
 - [ ] **Campaign config** — `CampaignConfig.jsx`. Module selection, episode tracking setup, house rules, contract customization.

@@ -173,6 +173,10 @@
 | Travel calculator in Journal | Tap a known destination → distance, travel time at party speed, encounter risk. Math is free (Law 5). AI handles judgment calls via Ask DM. | 31 |
 | Stop generation button | Cancel AI streaming mid-response. Keep text received, discard partial mechanics. Works in Narrative and Ask DM. | 31 |
 | Fresh start — no v1 data migration | V1 stays live for reference. V2 launches with a new campaign. No migration code needed. | 31 |
+| Narrative DM = epic narrator + rules lawyer | Players loved vivid storytelling AND appreciated by-the-book structure. V2 Narrative DM does both: sensory prose with precise mechanical grounding. Names actual spells/features in prose, doesn't hand-wave. Enforcement gates let the AI lean into narrative because code catches slips. | 31 |
+| Narration style field in Session Zero | Player-configurable text field: "Brandon Sanderson," "dark and gritty," freeform. Injected into Narrative contract. Lives in campaign data. Editable mid-campaign in Settings. One prompt line that changes the game's feel. | 31 |
+| Race/species reference data in CharSheet Bio tab | Pulled from compendium: physical description, traits, age range, lore summary. Player shouldn't need to ask the AI about their own character's species. From v1 OOC: player asked "describe a black dragonborn" — should be on the sheet. | 31 |
+| Push notifications from day one | Web Push API + FCM. OOC messages, Narrative turns, state changes that need attention. V1 OOC had no notifications → no one checked it. Needed for 2-player, critical for 6-7. | 31 |
 
 ## Open Questions (not yet decided)
 
