@@ -714,6 +714,52 @@ body {
   color: #e74c3c;
 }
 
+.roll-adv {
+  background: #2ecc71;
+  color: #fff;
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.roll-dis {
+  background: #e74c3c;
+  color: #fff;
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.roll-adv-sm, .roll-dis-sm {
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 3px;
+  padding: 0 3px;
+}
+
+.roll-adv-sm { background: #2ecc71; color: #fff; }
+.roll-dis-sm { background: #e74c3c; color: #fff; }
+
+.roll-both-dice {
+  display: flex;
+  gap: 2px;
+  font-size: var(--font-size-sm);
+}
+
+.die-used {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.die-dropped {
+  font-weight: 400;
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
 .roll-progress {
   background: var(--color-accent);
   color: var(--color-bg);

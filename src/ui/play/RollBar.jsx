@@ -1,5 +1,5 @@
 import { createSignal, createMemo, Show, For } from 'solid-js';
-import { store, setStore } from '../../state/index.js';
+import { store } from '../../state/index.js';
 import { sendMsg, isSending } from '../../ai/engine.js';
 
 const SKILL_ABILITY = {
@@ -59,14 +59,22 @@ export default function RollBar() {
         const rolls = msg.mechanics.applied
           ?.filter(m => m.key === 'roll_request' && m.applied)
           .map((m, idx) => {
-            const [skill, dcStr, rawName] = m.value.split('|').map(s => s.trim());
+            const parts = m.value.split('|').map(s => s.trim());
+            const skill = parts[0];
+            const dcStr = parts[1];
+            const rawName = parts[2];
+            const mod = (parts[3] || '').toLowerCase();
             const pcName = (rawName || 'Unknown').replace(/\s*\(.*\)$/, '');
+            let advState = 'normal';
+            if (mod === 'advantage') advState = 'advantage';
+            else if (mod === 'disadvantage') advState = 'disadvantage';
             return {
               id: `${i}-${idx}`,
               skill,
               dc: dcStr === 'none' ? null : (parseInt(dcStr, 10) || null),
               pcName,
               isPC: isPlayerChar(pcName),
+              advState,
             };
           }) || [];
         if (rolls.length > 0) return rolls;
@@ -102,14 +110,30 @@ export default function RollBar() {
   };
 
   const hasRolled = () => currentResult() !== null;
-  const total = () => hasRolled() ? currentResult() + bonus() : null;
+
+  const effectiveD20 = () => {
+    const res = currentResult();
+    if (!res) return null;
+    const roll = currentRoll();
+    if (!roll) return null;
+    if (roll.advState === 'normal') return res.d1;
+    if (roll.advState === 'advantage') return Math.max(res.d1, res.d2);
+    return Math.min(res.d1, res.d2);
+  };
+
+  const total = () => {
+    const d = effectiveD20();
+    return d !== null ? d + bonus() : null;
+  };
+
   const modStr = () => { const m = bonus(); return m >= 0 ? `+${m}` : `${m}`; };
 
   function doRoll() {
     const roll = currentRoll();
     if (!roll) return;
-    const d20 = Math.floor(Math.random() * 20) + 1;
-    setRollResults(prev => ({ ...prev, [roll.id]: d20 }));
+    const d1 = Math.floor(Math.random() * 20) + 1;
+    const d2 = Math.floor(Math.random() * 20) + 1;
+    setRollResults(prev => ({ ...prev, [roll.id]: { d1, d2 } }));
   }
 
   function submitAll() {
@@ -118,14 +142,21 @@ export default function RollBar() {
     const lines = [];
 
     for (const roll of rolls) {
-      const d20 = results[roll.id];
-      if (d20 == null) continue;
+      const res = results[roll.id];
+      if (!res) continue;
       const p = findPC(roll.pcName);
       const mod = p ? getSkillBonus(p, roll.skill) : 0;
+      let d20;
+      if (roll.advState === 'advantage') d20 = Math.max(res.d1, res.d2);
+      else if (roll.advState === 'disadvantage') d20 = Math.min(res.d1, res.d2);
+      else d20 = res.d1;
       const t = d20 + mod;
       const ms = mod >= 0 ? `+${mod}` : `${mod}`;
       const dcPart = roll.dc ? ` — DC ${roll.dc}` : '';
-      lines.push(`${roll.pcName} rolled ${t} for ${roll.skill} (d20: ${d20} ${ms})${dcPart}`);
+      let advNote = '';
+      if (roll.advState === 'advantage') advNote = ` [ADV: ${res.d1}, ${res.d2}]`;
+      else if (roll.advState === 'disadvantage') advNote = ` [DIS: ${res.d1}, ${res.d2}]`;
+      lines.push(`${roll.pcName} rolled ${t} for ${roll.skill} (d20: ${d20} ${ms})${dcPart}${advNote}`);
     }
 
     if (lines.length === 0) return;
@@ -137,13 +168,7 @@ export default function RollBar() {
   }
 
   function markSubmitted(rollId) {
-    const roll = allPendingRolls().find(r => r.id === rollId);
-    if (!roll) return;
     setSubmitted(prev => new Set([...prev, rollId]));
-  }
-
-  function handleRollAndAdvance() {
-    doRoll();
   }
 
   const allRolled = () => {
@@ -169,17 +194,32 @@ export default function RollBar() {
             <Show when={currentRoll()?.dc}>
               <span class="roll-dc">DC {currentRoll()?.dc}</span>
             </Show>
+            <Show when={currentRoll()?.advState === 'advantage'}>
+              <span class="roll-adv">ADV</span>
+            </Show>
+            <Show when={currentRoll()?.advState === 'disadvantage'}>
+              <span class="roll-dis">DIS</span>
+            </Show>
             <Show when={allPendingRolls().length > 1}>
               <span class="roll-progress">{progress()}</span>
             </Show>
           </div>
           <Show when={!hasRolled()}>
-            <button class="btn-roll" onClick={handleRollAndAdvance}>Roll d20</button>
+            <button class="btn-roll" onClick={doRoll}>
+              {currentRoll()?.advState !== 'normal' ? 'Roll 2d20' : 'Roll d20'}
+            </button>
           </Show>
           <Show when={hasRolled()}>
             <div class="roll-result-display">
-              <span class={`roll-d20 ${currentResult() === 20 ? 'nat-20' : ''} ${currentResult() === 1 ? 'nat-1' : ''}`}>
-                {currentResult()}
+              <Show when={currentRoll()?.advState !== 'normal'}>
+                <span class="roll-both-dice">
+                  <span class={effectiveD20() === currentResult()?.d1 ? 'die-used' : 'die-dropped'}>{currentResult()?.d1}</span>
+                  <span class={effectiveD20() === currentResult()?.d2 ? 'die-used' : 'die-dropped'}>{currentResult()?.d2}</span>
+                </span>
+                <span class="roll-eq">&rarr;</span>
+              </Show>
+              <span class={`roll-d20 ${effectiveD20() === 20 ? 'nat-20' : ''} ${effectiveD20() === 1 ? 'nat-1' : ''}`}>
+                {effectiveD20()}
               </span>
               <span class="roll-mod">{modStr()}</span>
               <span class="roll-eq">=</span>
@@ -195,14 +235,26 @@ export default function RollBar() {
           <div class="roll-summary">
             <For each={allPendingRolls()}>
               {(roll) => {
-                const d20 = () => rollResults()[roll.id];
+                const res = () => rollResults()[roll.id];
                 const p = () => findPC(roll.pcName);
                 const mod = () => p() ? getSkillBonus(p(), roll.skill) : 0;
+                const d20 = () => {
+                  const r = res();
+                  if (!r) return 0;
+                  if (roll.advState === 'advantage') return Math.max(r.d1, r.d2);
+                  if (roll.advState === 'disadvantage') return Math.min(r.d1, r.d2);
+                  return r.d1;
+                };
                 const t = () => d20() + mod();
                 return (
                   <div class="roll-summary-line">
                     <span class="roll-summary-name">{roll.pcName}</span>
                     <span class="roll-summary-skill">{roll.skill}</span>
+                    <Show when={roll.advState !== 'normal'}>
+                      <span class={roll.advState === 'advantage' ? 'roll-adv-sm' : 'roll-dis-sm'}>
+                        {roll.advState === 'advantage' ? 'A' : 'D'}
+                      </span>
+                    </Show>
                     <span class={`roll-summary-total ${roll.dc && t() >= roll.dc ? 'roll-pass' : ''} ${roll.dc && t() < roll.dc ? 'roll-fail' : ''}`}>
                       {t()}
                     </span>
