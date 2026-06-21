@@ -230,108 +230,175 @@ The chat is the play surface. Two tabs, multiple message types, streaming, sync,
 
 #### Two tabs
 
-**Narrative** — The game. `sendMsg()` → full core loop → mechanics emitted → state updates.
-- Player types actions, AI narrates with mechanics blocks
-- All enforcement gates run on AI responses
-- System messages appear inline (gate flags, roll requests, scene transitions, combat prompts)
-- Full chat history synced via Firebase, used in `buildPrompt()`
-
-**OOC** — Everything outside the game. Player text by default (no AI, no cost).
-- Ask DM button for on-demand AI (advisory only, no mechanics)
-- Ask DM responses appear in the OOC stream, visually distinct from player text
-- OOC history synced via Firebase (multi-device coordination)
-- Ask DM interception catches app issues before hitting AI
+| Tab | Firebase key | AI involvement | Purpose |
+|-----|-------------|----------------|---------|
+| **Narrative** | `narrative[]` | Full pipeline (buildPrompt → 9 gates → parseMechanics) | The game. Player actions in, DM narration + mechanics out. |
+| **OOC** | `ooc[]` | Selective via Ask DM (advisory prompt, no mechanics) | Table talk, strategy, rules questions, theorycrafting. |
 
 #### Tab UX
 
-- Tab bar above the chat canvas: `[Narrative] [OOC]`
+```
+┌─────────────────────────────┐
+│ [Narrative] [OOC •]         │  ← tab bar (• = unread badge)
+├─────────────────────────────┤
+│                             │
+│  chat messages scroll area  │
+│                             │
+├─────────────────────────────┤
+│ [input bar]          [send] │  ← changes per tab
+└─────────────────────────────┘
+```
+
 - Active tab visually distinct (bold/underlined, accent color)
-- Unread count badge on inactive tab when messages arrive
-- Input bar changes per tab:
-  - **Narrative:** placeholder "What do you do?", send button, stop generation button (during streaming), dice roller icon
-  - **OOC:** placeholder "Talk to the party...", send button, Ask DM button (distinct from send — different icon/color). When Ask DM is tapped, the next message routes to AI instead of plain text
+- Unread count badge on inactive tab — clears on tab tap, not on message render
 - Tab switching is instant — both message lists stay in memory, no reload
+- Each tab remembers scroll position independently
+- Draft text persists per tab — switching doesn't clear what you typed
+- Input bar changes per tab:
+  - **Narrative:** placeholder "What do you do?", send button (⚡), stop generation button (during streaming), dice roller icon
+  - **OOC:** placeholder "Talk to the party...", send button (💬, no AI), Ask DM button (🧙, distinct icon/color — routes to advisory AI)
 
 #### OOC → Narrative echo
 
 When Ask DM answers a question in OOC, a **one-line echo** appears in Narrative:
 `[OOC] Aria asked: "Can Slasher sneak attack with a thrown handaxe?" → DM: Yes, if within 30ft.`
 
-This keeps the Narrative player aware that a rules question was asked and answered without switching tabs. Echoes are:
+Keeps the Narrative player aware without tab-switching. Echoes are:
 - Collapsed by default (one line), tappable to expand full answer
-- Visually muted (smaller font, dimmed) so they don't interrupt narrative flow
-- Not sent to the AI as context — they're display-only in Narrative. The AI doesn't see echoes in its prompt
+- Visually muted (smaller font, dimmed) — doesn't interrupt narrative flow
+- Display-only in Narrative — NOT sent to the AI as context, NOT persisted in `narrative[]`
 
 #### Message types
 
 ```
-message: {
-  id: string,
-  tab: "narrative" | "ooc",
-  type: "player" | "ai" | "ask_dm" | "system" | "echo",
-  sender: string,          // PC name or "DM" or "System"
-  content: string,         // markdown text
-  mechanics: [],           // parsed mechanic objects (narrative AI only)
-  timestamp: number,       // for sync/ordering
-  inGameTime: string,      // "Day 7, 04:30 PM" from Campaign State
-  streaming: boolean,      // true while AI is still generating
-  cancelled: boolean,      // true if player stopped generation
+BaseMessage: {
+  id: string,             // 'nar_' | 'ooc_' + timestamp + random suffix
+  type: string,           // see below
+  content: string,        // markdown text
+  ts: number,             // wall clock timestamp (for sync/ordering)
+  gameTs: string,         // in-game time from Campaign State ("Day 7, 04:30 PM")
+  playerName: string,     // who sent it (multi-player: which player/device)
+  partial: boolean,       // true while AI is streaming, removed on complete
+  cancelled: boolean,     // true if player stopped generation
+}
+
+Narrative types: 'player' | 'dm' | 'system' | 'roll_result' | 'checkpoint'
+OOC types: 'player' | 'dm_advisory' | 'system'
+
+dm extends BaseMessage: {
+  mechanics: ParsedMechanic[],  // extracted mechanic pills
+  raw: string,                  // pre-strip content (before mechanic key removal)
+}
+
+roll_result extends BaseMessage: {
+  roll: { skill: string, pc: string, result: number, dc: number, outcome: string }
+}
+
+system extends BaseMessage: {
+  systemKind: 'gate_flag' | 'xp_receipt' | 'audit' | 'combat_event'
+}
+
+ParsedMechanic: {
+  key: string,      // 'hp' | 'gold' | 'xp' | 'location' | etc.
+  value: string,    // raw value
+  target: string,   // PC name if applicable
+  applied: boolean  // whether state was updated
 }
 ```
 
 **Rendering by type:**
-- `player` — right-aligned bubble, player's PC name
-- `ai` (Narrative) — left-aligned, full width, markdown rendered, mechanic pills inline, term glossary auto-linked, citation linking active
-- `ask_dm` (OOC) — left-aligned, visually distinct from player text (DM icon, different background), citation linking active
-- `system` — centered, no bubble, muted styling. Includes: gate flags, roll request banners, scene transition prompts, combat turn prompts, XP audit flags, enforcement warnings. Tappable for detail/action.
-- `echo` — Narrative tab only. Collapsed one-liner, muted, tappable to expand
+- `player` — right-aligned bubble, player's PC name, action buttons (copy, export)
+- `dm` (Narrative) — left-aligned, full width, "Dungeon Master" label, markdown rendered, mechanic pills inline, term glossary auto-linked, citation linking active
+- `dm_advisory` (OOC) — left-aligned, visually distinct (DM icon, different background), citation linking active, no mechanic pills
+- `system` — centered, no bubble, muted styling, tappable for detail/action
+- `roll_result` — inline roll display with skill, PC, result, DC, pass/fail
+- `checkpoint` — muted marker, auto-inserted at snapshot points
+- `echo` — Narrative tab only, collapsed one-liner, muted, tappable to expand
 
-#### Streaming
+#### Overlays vs inline messages
 
-AI responses stream token-by-token into the chat:
-- Markdown renders progressively as tokens arrive
-- Mechanic pills DO NOT render until streaming completes (can't parse a partial mechanics block)
-- Auto-scroll follows the streaming text
-- Stop generation button replaces send button during streaming
-- On cancel: keep received text, mark message as `cancelled: true`, discard any partial mechanics block, show "(generation stopped)" indicator
-- System messages from enforcement gates appear AFTER streaming completes and mechanics are parsed
+Some game events are **persisted system messages** (stored in chat history, scrollable). Others are **ephemeral overlays** (floating UI over chat, need player action, not persisted).
 
-#### Chat persistence & sync
-
-- **Narrative history** → Firebase (`chatHistory`). Synced across devices. Used in `buildPrompt()`.
-- **OOC history** → Firebase (`oocHistory`). Synced across devices. Ask DM responses included.
-- **Multi-device merge** — Clock-independent strategy from v1. Messages ordered by server timestamp on write, client re-sorts on read. No message loss on concurrent writes from different devices.
-- **Pruning** — `memory.js` summarizes old Narrative messages when history exceeds token budget. Summaries stored as a special message type. Original messages archived (Session Review in manage mode can access full history).
-- **OOC pruning** — OOC history is lightweight (mostly short text). No summarization needed. Keep full history per campaign. Clear on campaign reset.
-
-#### Chat export
-
-Both tabs exportable for dev review:
-- **Moment export** — Select a target message → export N messages of context around it (like v1's export format). Includes: tab, timestamp, in-game time, sender, content, mechanics.
-- **Session export** — Full session dump. Narrative + OOC interleaved by timestamp. Markdown format.
-- **Dev tools integration** — Export available from DevTools (manage mode) and from long-press on any message in chat.
-
-#### System messages in Narrative
-
-Enforcement gates and game events produce system messages inline in chat:
+**Persisted (system messages):**
 
 | Source | System message | Player action |
 |--------|---------------|---------------|
 | Gate 1: Roll confirmation | "DM resolved [PC]'s [Skill] without your roll." | Roll now / Accept |
-| Gate 2: Combat turn | "[PC], it's your turn." | Type action |
 | Gate 3: Drift detector | "DM said you found [item] but didn't log it." | Add mechanic / Dismiss |
-| Gate 4: Scene transition | "DM is moving to [location]. Ready?" | Confirm / Wait |
 | Gate 5: Unmentioned PC | "[PC] wasn't given instructions. DM wrote: [summary]." | Accept / Redirect |
 | Gate 6: Spell validation | "[PC] doesn't know [Spell]." | Acknowledge |
 | Gate 7: Skill check | "DM resolved [action] without a check." | Request roll / Accept |
 | Gate 8: XP audit | "No XP awarded for [event]." | Request XP / Dismiss |
 | Gate 9: Income/loot | "[Item] added but no gold value logged." | Appraise / Dismiss |
-| Roll request | "Roll Request: [Skill] ([PC]) | DC [X]" | Tap to roll |
-| Combat start | "Roll initiative!" | Tap to roll |
 | Level-up | "[PC] reached level [N]!" | Open wizard |
 | Previously On | Session recap card | Dismiss |
 
-System messages are actionable — each has one or two buttons. One tap resolves it. They don't accumulate — resolved system messages collapse or fade after action.
+System messages are actionable — one or two buttons, one tap resolves. Resolved messages collapse or fade.
+
+**Ephemeral overlays** (not stored in chat, live in component state):
+
+| Overlay | Trigger | Player action | On resolve |
+|---------|---------|---------------|------------|
+| Roll Request | `roll_request:` mechanic parsed | Submit roll via dice UI | Insert `roll_result` into Narrative, dismiss |
+| Scene Transition Hold | Gate 4 detects location/time change | Confirm / Wait | Confirm: apply changes. Wait: inject correction into next prompt |
+| Combat Turn Prompt | Gate 2: it's this player's turn | Submit action | Action becomes next `player` message |
+
+Overlay state is ephemeral — if the app reloads mid-overlay, it's gone. The underlying gate will re-trigger on next response if still relevant.
+
+#### Streaming
+
+```
+Player sends → API call begins → streaming response
+  ├── Each token → append to message.content → re-render progressively
+  ├── Markdown renders as tokens arrive
+  ├── Mechanic pills DO NOT render until complete (can't parse partial blocks)
+  ├── Auto-scroll follows streaming text
+  ├── Stop button → mark complete → skip mechanics parse → "(generation stopped)"
+  ├── Error → push system message "AI error: ..." → keep partial content
+  └── Stream ends → mark complete → parse mechanics → run gates → apply state
+```
+
+- **Stop generation**: keeps received text, sets `cancelled: true`, does NOT parse mechanics (partial blocks unreliable). Gates don't run on cancelled messages.
+- **Retry on error**: player taps retry → delete failed dm message → resend with same context.
+- **System messages from gates**: appear AFTER streaming completes and mechanics are parsed.
+
+#### Chat persistence & sync
+
+- **Narrative history** → Firebase (`narrative[]`). Synced across devices. Used in `buildPrompt()`.
+- **OOC history** → Firebase (`ooc[]`). Synced across devices. Ask DM responses included.
+- **Multi-device merge** — Clock-independent strategy (v1's proven `_mergeChatHistories()`):
+  1. Each message has unique `id` (timestamp + random suffix)
+  2. On Firebase update: build ID sets from local and remote
+  3. Messages only in remote → append to local (new from other device)
+  4. Messages only in local → keep (not yet synced — keep wins)
+  5. Messages in both → keep local version (local edits take precedence)
+  6. Sort merged array by `id` (timestamp-based, chronological)
+  7. Deduplicate by `id`
+- **Dirty-edit guard** — 3-second window after local edit, ignore remote Firebase updates (prevents clobber during rapid input)
+- **Narrative pruning** — `memory.js` summarizes old messages when history exceeds token budget. Summaries stored as special message type. Originals archived (accessible via Session Review in manage mode).
+- **OOC pruning** — Lightweight (mostly short text). Keep full history per campaign. Clear on campaign reset.
+- **Message deletion** — Soft delete (mark hidden, keep in array for sync integrity). Hidden messages excluded from display and prompt building but survive merge without creating conflicts.
+
+**What does NOT sync:** Overlay state, streaming state (`partial` flag), tab scroll position, input draft text, active tab selection.
+
+#### Chat export
+
+Both tabs exportable for dev review:
+- **Moment export** — Long-press a message → export N messages of context around it. Format matches v1:
+  ```
+  === TINKLE'S TINCTURES — [NARRATIVE|OOC] MOMENT EXPORT ===
+  Exported: ISO timestamp
+  Target message: #N of total
+  Context window: messages X–Y (Z total)
+  Location: current location
+  PCs: name (class level, hp/max HP), ...
+  --- CONTEXT ---
+  [timestamp] ROLE:
+  content
+  >>> TARGET MESSAGE <<<
+  ```
+- **Session export** — Full session dump. Narrative + OOC interleaved by timestamp. Markdown format.
+- **Dev tools integration** — Export also available from DevTools (manage mode).
 
 ### Core loop acceptance test
 
