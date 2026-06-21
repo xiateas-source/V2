@@ -270,12 +270,12 @@ const DISPATCH = {
   },
 
   quest_add(value) {
-    const text = value.trim();
+    const [text, notes = '', location = ''] = value.split('|').map(s => s.trim());
     const prefix = text.substring(0, 30).toLowerCase();
     if (store.campaign.quests.some(q => q.text.substring(0, 30).toLowerCase() === prefix)) return;
     setStore('campaign', 'quests', [...store.campaign.quests, {
       id: 'qst_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-      text, status: 'active', location: store.campaign.location, giverNpc: '', notes: '',
+      text, status: 'active', location: location || store.campaign.location, giverNpc: '', notes,
       chatMsgId: '', discovery: { text: '', ts: new Date().toISOString() },
       gameTs: store.campaign.time, priority: 0,
     }]);
@@ -334,7 +334,7 @@ const DISPATCH = {
   },
 
   consequence_add(value) {
-    const [text, type = 'background'] = value.split('|').map(s => s.trim());
+    const [text, deadline = '', details = ''] = value.split('|').map(s => s.trim());
     const words = text.toLowerCase().split(/\s+/);
     const isDupe = store.campaign.consequences.some(c => {
       const cWords = c.text.toLowerCase().split(/\s+/);
@@ -343,8 +343,9 @@ const DISPATCH = {
     });
     if (isDupe) return;
     setStore('campaign', 'consequences', [...store.campaign.consequences, {
-      id: 'csq_' + Date.now(), text, type, resolved: false, resolvedTs: null,
-      gameTs: store.campaign.time, location: store.campaign.location, deadline: null, _ripple: false,
+      id: 'csq_' + Date.now(), text, type: 'deadline', resolved: false, resolvedTs: null,
+      gameTs: store.campaign.time, location: store.campaign.location,
+      deadline: deadline || null, details: details || '', _ripple: false,
     }]);
   },
 
@@ -447,11 +448,20 @@ const DISPATCH = {
 
   item_add(value) {
     const parts = value.split(',').map(s => s.trim());
-    let target = 'wagon', name, qty, type, weight;
-    if (parts.length >= 5) { [target, name, qty, type, weight] = parts; }
-    else if (parts.length === 4) { [name, qty, type, weight] = parts; }
-    else { name = parts[0]; qty = parts[1] || '1'; type = parts[2] || 'item'; weight = parts[3] || '0'; }
-    const item = { name, qty: parseInt(qty, 10) || 1, type, weight: parseFloat(weight) || 0 };
+    const pcIdx = findPCIndex(parts[0]);
+    let target, name, type, attunement;
+    if (pcIdx >= 0) {
+      target = parts[0];
+      name = parts[1] || 'item';
+      type = parts[2] || 'item';
+      attunement = parts[3] || 'none';
+    } else {
+      target = 'wagon';
+      name = parts[0] || 'item';
+      type = parts[1] || 'item';
+      attunement = parts[2] || 'none';
+    }
+    const item = { name, qty: 1, type, attunement, weight: 0 };
 
     if (target.toLowerCase() === 'wagon') {
       setStore('campaign', 'inventory', 'wagon', [...store.campaign.inventory.wagon, item]);
@@ -629,7 +639,7 @@ const DISPATCH = {
   none() {},
   shell_defense() {},
   sp_charge() {},
-  wagon_add() {},
+  wagon_add(value) { DISPATCH.item_add(value); },
   wagon_cell_add() {},
   wagon_cell_update() {},
   wagon_cell_remove() {},

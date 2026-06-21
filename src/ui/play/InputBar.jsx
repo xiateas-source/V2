@@ -68,15 +68,14 @@ function exportResults() {
     characters: c.characters.map(pc => ({
       name: pc.name, hp: pc.hp, hpMax: pc.hpMax, ac: pc.ac,
       conditions: pc.conditions, concentration: pc.concentration,
-      inventory: pc.inventory,
     })),
-    treasury: c.treasury,
-    wagon: c.wagon,
+    gold: c.gold,
+    inventory: c.inventory,
     location: c.location, time: c.time, weather: c.weather,
     quests: c.quests,
     npcs: c.npcs,
     consequences: c.consequences,
-    places: c.places,
+    locations: c.locations,
     chapters: c.chapters,
     primaryMission: c.primaryMission,
   };
