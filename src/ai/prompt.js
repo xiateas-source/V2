@@ -1,5 +1,6 @@
 import { store } from '../state/index.js';
 import { buildContracts } from './contracts.js';
+import { buildRulesBlock } from './rules.js';
 import { estimateTokens } from './providers.js';
 
 export function genLedger(mode = 'compact') {
@@ -104,9 +105,11 @@ function buildCombatBlock(combat) {
   return lines.join('\n');
 }
 
-export function buildPrompt(contextInject = '') {
+export async function buildPrompt(contextInject = '') {
   const contracts = buildContracts();
   const ledger = genLedger('compact');
+
+  const rulesBlock = await buildRulesBlock();
 
   const activeConsequences = store.campaign.consequences
     .filter(c => !c.resolved)
@@ -114,6 +117,10 @@ export function buildPrompt(contextInject = '') {
     .join('\n');
 
   const sections = [contracts];
+
+  if (rulesBlock) {
+    sections.push(rulesBlock);
+  }
 
   if (activeConsequences) {
     sections.push(`ACTIVE CONSEQUENCES (track these — they have ongoing effects):\n${activeConsequences}`);

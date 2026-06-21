@@ -1,9 +1,26 @@
-import { isSeeded, markSeeded, putAll } from './local.js';
+import { isSeeded, markSeeded, putAll, getSeedVersion, setSeedVersion } from './local.js';
+
+const CURRENT_SEED_VERSION = 2;
 
 export async function runSeed() {
-  if (await isSeeded()) return;
+  const seeded = await isSeeded();
+  const version = await getSeedVersion();
 
-  const [spells, feats, glossary, maneuvers, xpThresholds, fighter, rogue, bard] = await Promise.all([
+  if (!seeded) {
+    await seedAll();
+    await markSeeded();
+    await setSeedVersion(CURRENT_SEED_VERSION);
+    return;
+  }
+
+  if (version < CURRENT_SEED_VERSION) {
+    await runMigrations(version);
+    await setSeedVersion(CURRENT_SEED_VERSION);
+  }
+}
+
+async function seedAll() {
+  const [spells, feats, glossary, maneuvers, xpThresholds, fighter, rogue, bard, rules] = await Promise.all([
     import('../../data/spells.json').then(m => m.default),
     import('../../data/feats.json').then(m => m.default),
     import('../../data/glossary.json').then(m => m.default),
@@ -12,6 +29,7 @@ export async function runSeed() {
     import('../../data/level-up-fighter.json').then(m => m.default),
     import('../../data/level-up-rogue.json').then(m => m.default),
     import('../../data/level-up-bard.json').then(m => m.default),
+    import('../../data/rules.json').then(m => m.default),
   ]);
 
   await Promise.all([
@@ -21,7 +39,13 @@ export async function runSeed() {
     putAll('maneuvers', maneuvers),
     putAll('xpThresholds', xpThresholds),
     putAll('classData', [...fighter, ...rogue, ...bard]),
+    putAll('compendium', rules),
   ]);
+}
 
-  await markSeeded();
+async function runMigrations(fromVersion) {
+  if (fromVersion < 2) {
+    const rules = await import('../../data/rules.json').then(m => m.default);
+    await putAll('compendium', rules);
+  }
 }

@@ -1,0 +1,191 @@
+[
+  {
+    "name": "When to Roll",
+    "type": "rolling",
+    "source": "DMG/SRD",
+    "context": ["any"],
+    "content": "Roll ONLY when: (1) the outcome is uncertain, AND (2) there is a meaningful consequence for failure or a time constraint. Do NOT call for a roll when: success is impossible (declare failure), success is guaranteed (declare success), or there is no penalty to retry (declare eventual success)."
+  },
+  {
+    "name": "DC Guidelines",
+    "type": "rolling",
+    "source": "PHB p.174",
+    "context": ["any"],
+    "content": "Very Easy 5, Easy 10, Medium 15, Hard 20, Very Hard 25, Nearly Impossible 30. Most social/exploration checks are DC 10-15. DC 20+ is exceptional. Routine barter DC 10, persuading reluctant NPC DC 12, charming hostile guard DC 15, deceiving suspicious mage DC 18, talking down a king DC 20."
+  },
+  {
+    "name": "Advantage and Disadvantage",
+    "type": "rolling",
+    "source": "PHB p.173",
+    "context": ["any"],
+    "content": "Roll two d20s. Advantage: take higher. Disadvantage: take lower. Multiple sources of either don't stack. If both advantage and disadvantage apply (regardless of how many sources), they cancel — roll normally. Grant advantage when: attacking from hiding, target is prone (melee), helping action, spell effects (Faerie Fire etc), flanking. Grant disadvantage when: target obscured, attacker prone, poisoned, restrained, long range, unfamiliar armor."
+  },
+  {
+    "name": "Passive Checks",
+    "type": "rolling",
+    "source": "PHB p.175",
+    "context": ["exploration", "social"],
+    "content": "Passive check = 10 + all modifiers that normally apply. Use for noticing hidden things without active searching. Passive Perception = 10 + Perception bonus. If a trap or hidden creature's DC is at or below a PC's passive Perception, they notice it automatically without a roll."
+  },
+  {
+    "name": "Contests",
+    "type": "rolling",
+    "source": "PHB p.174",
+    "context": ["combat", "social"],
+    "content": "When a PC acts directly against an NPC (grapple, hide vs search, shove), the DM rolls for the NPC and sets that result as the DC for the PC's check."
+  },
+  {
+    "name": "Attack Rolls",
+    "type": "combat",
+    "source": "PHB p.194",
+    "context": ["combat"],
+    "content": "d20 + ability modifier + proficiency bonus (if proficient). Compare total to target's AC. Meet or exceed = hit. Natural 20 always hits and is a critical (double damage dice). Natural 1 always misses. Melee uses STR (or DEX for finesse). Ranged uses DEX. Spell attacks use spellcasting ability."
+  },
+  {
+    "name": "Damage and Healing",
+    "type": "combat",
+    "source": "PHB p.196",
+    "context": ["combat"],
+    "content": "On hit, roll damage dice + ability modifier. Critical hit: roll all damage dice twice. HP cannot exceed hp_max. At 0 HP, creature falls unconscious and begins death saves. Healing at 0 HP restores consciousness."
+  },
+  {
+    "name": "Death Saves",
+    "type": "combat",
+    "source": "PHB p.197",
+    "context": ["combat"],
+    "content": "At start of turn at 0 HP, roll d20. 10+ = success, 9 or lower = failure. Three successes: stabilize (unconscious but not dying). Three failures: die. Natural 20: regain 1 HP. Natural 1: two failures. Taking damage at 0 HP = automatic failure. Critical hit at 0 HP = two failures."
+  },
+  {
+    "name": "Concentration",
+    "type": "spellcasting",
+    "source": "PHB p.203",
+    "context": ["combat", "spellcasting"],
+    "content": "Only one concentration spell at a time. Casting another concentration spell ends the first. Taking damage: CON save DC = max(10, half damage taken). Incapacitated or killed: concentration ends. Environmental hazards: DM sets DC (usually 10)."
+  },
+  {
+    "name": "Spell Slots",
+    "type": "spellcasting",
+    "source": "PHB p.201",
+    "context": ["spellcasting"],
+    "content": "Casting a spell of 1st level or higher expends a slot of that level or higher. Cantrips don't use slots. Casting at higher level uses higher slot (some spells gain benefits). Slots restore on long rest (short rest for Warlocks, partial for some features like Arcane Recovery)."
+  },
+  {
+    "name": "Opportunity Attacks",
+    "type": "combat",
+    "source": "PHB p.195",
+    "context": ["combat"],
+    "content": "When a hostile creature you can see moves out of your reach, you can use your reaction to make one melee attack against it. Triggered by leaving reach, not by forced movement (push, pull) or teleportation. Uses reaction — one per round."
+  },
+  {
+    "name": "Action Economy",
+    "type": "combat",
+    "source": "PHB p.192",
+    "context": ["combat"],
+    "content": "Each turn: one action, one bonus action (if available), one reaction (per round), movement (up to speed). Free: drop item, speak briefly, interact with one object. Action options: Attack, Cast a Spell, Dash, Disengage, Dodge, Help, Hide, Ready, Search, Use an Object."
+  },
+  {
+    "name": "Cover",
+    "type": "combat",
+    "source": "PHB p.196",
+    "context": ["combat"],
+    "content": "Half cover: +2 AC and DEX saves. Three-quarters cover: +5 AC and DEX saves. Total cover: can't be targeted directly. A target behind another creature has at minimum half cover."
+  },
+  {
+    "name": "Conditions Reference",
+    "type": "conditions",
+    "source": "PHB Appendix A",
+    "context": ["combat", "any"],
+    "content": "Blinded: auto-fail sight checks, attacks have disadvantage, attacks against have advantage. Charmed: can't attack charmer, charmer has advantage on social checks. Deafened: auto-fail hearing checks. Frightened: disadvantage on checks/attacks while source visible, can't willingly move closer. Grappled: speed 0. Incapacitated: no actions or reactions. Invisible: heavily obscured, advantage on attacks, attacks against have disadvantage. Paralyzed: incapacitated, auto-fail STR/DEX saves, attacks have advantage, hits within 5ft are crits. Petrified: incapacitated, unaware, weight x10, resistance to all damage. Poisoned: disadvantage on attacks and ability checks. Prone: disadvantage on attacks, attacks within 5ft have advantage, attacks beyond 5ft have disadvantage. Restrained: speed 0, attacks have disadvantage, attacks against have advantage, disadvantage on DEX saves. Stunned: incapacitated, auto-fail STR/DEX saves, attacks have advantage. Unconscious: incapacitated, prone, auto-fail STR/DEX saves, attacks have advantage, hits within 5ft are crits."
+  },
+  {
+    "name": "Short Rest",
+    "type": "rest",
+    "source": "PHB p.186",
+    "context": ["rest", "exploration"],
+    "content": "At least 1 hour of downtime. Can spend Hit Dice to heal (roll hit die + CON mod per die spent). Some class features restore on short rest (e.g., Fighter Action Surge, Warlock spell slots, Monk Ki points)."
+  },
+  {
+    "name": "Long Rest",
+    "type": "rest",
+    "source": "PHB p.186",
+    "context": ["rest"],
+    "content": "At least 8 hours (6 sleeping, 2 light activity). Regain all HP. Regain spent Hit Dice up to half total (minimum 1). All spell slots restored. Cannot benefit from more than one long rest in 24 hours. Interrupted by 1+ hour of combat/casting/strenuous activity."
+  },
+  {
+    "name": "Ability Checks",
+    "type": "rolling",
+    "source": "PHB p.174",
+    "context": ["any"],
+    "content": "d20 + ability modifier + proficiency bonus (if proficient in relevant skill). STR: Athletics. DEX: Acrobatics, Sleight of Hand, Stealth. CON: (no standard skills). INT: Arcana, History, Investigation, Nature, Religion. WIS: Animal Handling, Insight, Medicine, Perception, Survival. CHA: Deception, Intimidation, Performance, Persuasion."
+  },
+  {
+    "name": "Saving Throws",
+    "type": "rolling",
+    "source": "PHB p.179",
+    "context": ["combat", "any"],
+    "content": "d20 + ability modifier + proficiency bonus (if proficient). Called for by spells, traps, poisons, and other effects. Each class grants proficiency in two saving throws. DC set by the effect (spell save DC = 8 + proficiency + spellcasting ability mod)."
+  },
+  {
+    "name": "Grappling",
+    "type": "combat",
+    "source": "PHB p.195",
+    "context": ["combat"],
+    "content": "Special melee attack. Attacker rolls Athletics, target contests with Athletics or Acrobatics (target's choice). Success: target is grappled (speed 0). Escape: target uses action, Athletics or Acrobatics vs attacker's Athletics. Moving a grappled creature: speed halved."
+  },
+  {
+    "name": "Shoving",
+    "type": "combat",
+    "source": "PHB p.195",
+    "context": ["combat"],
+    "content": "Special melee attack. Attacker rolls Athletics, target contests with Athletics or Acrobatics. Success: knock prone OR push 5 feet away. Target must be within reach and no more than one size larger."
+  },
+  {
+    "name": "Stealth and Hiding",
+    "type": "exploration",
+    "source": "PHB p.177",
+    "context": ["combat", "exploration"],
+    "content": "Hide action: Stealth check vs Passive Perception of observers (or active Perception if searching). Must be heavily obscured or behind total cover to attempt. While hidden: position unknown to targets, attacks have advantage. Hiding ends when you: make noise, are discovered, attack, cast a spell, or leave cover/obscurement."
+  },
+  {
+    "name": "Surprise",
+    "type": "combat",
+    "source": "PHB p.189",
+    "context": ["combat"],
+    "content": "DM compares Stealth of hiding creatures vs Passive Perception of each opposing creature. Surprised creatures: can't move or take actions on first turn of combat, can't take reactions until that turn ends. Not surprised ≠ acted first — still roll initiative normally."
+  },
+  {
+    "name": "Falling",
+    "type": "exploration",
+    "source": "PHB p.183",
+    "context": ["exploration", "combat"],
+    "content": "1d6 bludgeoning damage per 10 feet fallen, maximum 20d6. Land prone. Falling into water or soft material may reduce damage (DM discretion)."
+  },
+  {
+    "name": "Suffocating",
+    "type": "exploration",
+    "source": "PHB p.183",
+    "context": ["exploration", "combat"],
+    "content": "Can hold breath for 1 + CON modifier minutes (minimum 30 seconds). When out of breath or choking: survive for CON modifier rounds (minimum 1). At start of next turn: drop to 0 HP and dying."
+  },
+  {
+    "name": "Exhaustion",
+    "type": "conditions",
+    "source": "PHB p.291",
+    "context": ["exploration", "rest"],
+    "content": "Level 1: Disadvantage on ability checks. Level 2: Speed halved. Level 3: Disadvantage on attacks and saves. Level 4: HP maximum halved. Level 5: Speed reduced to 0. Level 6: Death. Each level is cumulative. Finishing a long rest reduces by 1 level (if food/water consumed). Some effects cause exhaustion (forced march, environmental hazards, certain spells)."
+  },
+  {
+    "name": "Difficult Terrain",
+    "type": "exploration",
+    "source": "PHB p.182",
+    "context": ["combat", "exploration"],
+    "content": "Every foot of movement costs 1 extra foot (effectively halves speed in that terrain). Examples: rubble, undergrowth, stairs, snow, shallow water, furniture, creatures (hostile). Applies in combat zones."
+  },
+  {
+    "name": "Light and Vision",
+    "type": "exploration",
+    "source": "PHB p.183",
+    "context": ["exploration", "combat"],
+    "content": "Bright light: normal vision. Dim light: lightly obscured, disadvantage on Perception checks relying on sight. Darkness: heavily obscured, effectively blinded. Darkvision: treat darkness as dim light (within range), can't discern color. Torch: 20ft bright, 20ft dim. Lantern: 30ft bright, 30ft dim."
+  }
+]

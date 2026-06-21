@@ -34,7 +34,7 @@ export async function sendMsg(text, options = {}) {
     setStore('campaign', 'narrative', [...store.campaign.narrative, userMsg]);
 
     const receipt = contextInject;
-    const { prompt: systemPrompt } = buildPrompt(receipt);
+    const { prompt: systemPrompt } = await buildPrompt(receipt);
 
     await pruneIfNeeded('narrative');
 

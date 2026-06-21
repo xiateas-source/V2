@@ -4,3 +4,4 @@ export { extractMechanics, validateMechanics, applyMechanics, buildMechReceipt }
 export { sendMsg, isSending, stopGeneration } from './engine.js';
 export { buildContracts, ASK_DM_SYSTEM } from './contracts.js';
 export { pruneIfNeeded } from './memory.js';
+export { buildRulesBlock, detectContext, pullRules } from './rules.js';

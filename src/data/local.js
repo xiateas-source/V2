@@ -64,6 +64,22 @@ export async function markSeeded() {
   tx.objectStore('meta').put({ key: '_seeded', value: true, ts: Date.now() });
 }
 
+export async function getSeedVersion() {
+  const db = await openDB();
+  return new Promise((resolve) => {
+    const tx = db.transaction('meta', 'readonly');
+    const req = tx.objectStore('meta').get('_seedVersion');
+    req.onsuccess = () => resolve(req.result?.value || 0);
+    req.onerror = () => resolve(0);
+  });
+}
+
+export async function setSeedVersion(version) {
+  const db = await openDB();
+  const tx = db.transaction('meta', 'readwrite');
+  tx.objectStore('meta').put({ key: '_seedVersion', value: version, ts: Date.now() });
+}
+
 export async function putAll(storeName, records) {
   const db = await openDB();
   const tx = db.transaction(storeName, 'readwrite');
