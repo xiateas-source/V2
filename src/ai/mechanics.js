@@ -128,6 +128,19 @@ export function validateMechanics(mechanics) {
 }
 
 function checkRejection(mech) {
+  if (mech.key === 'concentration') {
+    const [name, spell] = mech.value.split('=').map(s => s.trim());
+    if (spell && spell.toLowerCase() !== 'none') {
+      const pc = findPC(name);
+      if (pc) {
+        const allSpells = [...(pc.cantrips || []), ...(pc.knownSpells || [])];
+        const known = allSpells.some(s => s.toLowerCase() === spell.toLowerCase());
+        if (!known && allSpells.length > 0) {
+          mech._warning = `${pc.name} may not know ${spell}`;
+        }
+      }
+    }
+  }
   if (mech.key === 'combat_start' && store.campaign.combatState.active) {
     return 'Combat already active';
   }

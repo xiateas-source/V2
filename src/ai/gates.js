@@ -132,6 +132,107 @@ export function runGate2(mechanics, narrative) {
   return flags;
 }
 
+export function runGate6(narrative, mechanics) {
+  const flags = [];
+  const spellCastPattern = /\b(\w+)\s+casts?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/g;
+  const matches = [...narrative.matchAll(spellCastPattern)];
+
+  for (const match of matches) {
+    const casterName = match[1];
+    const spellName = match[2];
+    const pc = store.campaign.characters.find(c =>
+      c.name.toLowerCase() === casterName.toLowerCase() ||
+      c.name.toLowerCase().startsWith(casterName.toLowerCase())
+    );
+    if (!pc) continue;
+
+    const allSpells = [...(pc.cantrips || []), ...(pc.knownSpells || [])];
+    if (allSpells.length === 0) continue;
+
+    const known = allSpells.some(s => s.toLowerCase() === spellName.toLowerCase());
+    if (!known) {
+      flags.push({
+        gate: 6,
+        type: 'unknown_spell',
+        text: `${pc.name} doesn't know ${spellName}`,
+        pcName: pc.name,
+        spell: spellName,
+      });
+    }
+  }
+
+  const slotUses = mechanics.filter(m => m.key === 'slot_use');
+  for (const mech of slotUses) {
+    const [name, levelStr] = mech.value.split('=').map(s => s.trim());
+    const pc = findPCByName(name);
+    if (!pc) continue;
+    const current = pc.currentSlots?.[levelStr] || 0;
+    const max = pc.spellSlots?.[levelStr] || 0;
+    if (max === 0) {
+      flags.push({
+        gate: 6,
+        type: 'no_slots',
+        text: `${pc.name} has no level ${levelStr} spell slots`,
+        pcName: pc.name,
+      });
+    }
+  }
+
+  if (flags.length) {
+    for (const f of flags) addFlag(f);
+  }
+  return flags;
+}
+
+export function runGate8(mechanics, recentNarrative) {
+  const flags = [];
+  const triggerKeys = ['quest_done', 'combat_end', 'chapter_add'];
+  const hasTrigger = mechanics.some(m => triggerKeys.includes(m.key));
+  if (!hasTrigger) return flags;
+
+  const hasXp = mechanics.some(m => m.key === 'xp');
+  if (!hasXp) {
+    const trigger = mechanics.find(m => triggerKeys.includes(m.key));
+    flags.push({
+      gate: 8,
+      type: 'missing_xp',
+      text: `No XP awarded after ${trigger.key.replace('_', ' ')}`,
+    });
+    addFlag(flags[0]);
+  }
+  return flags;
+}
+
+export function runGate9(mechanics) {
+  const flags = [];
+  const itemAdds = mechanics.filter(m => m.key === 'item_add');
+  const treasurePatterns = /\b(gem|jewel|treasure|gold|silver|ruby|emerald|diamond|sapphire|pearl|amulet|ring|necklace|bracelet|crown|scepter|goblet)\b/i;
+
+  for (const mech of itemAdds) {
+    if (treasurePatterns.test(mech.value)) {
+      const hasIncome = mechanics.some(m => m.key === 'income' || m.key === 'gp');
+      if (!hasIncome) {
+        flags.push({
+          gate: 9,
+          type: 'missing_value',
+          text: `Treasure "${mech.value.split(',')[1]?.trim() || mech.value}" added without gold value`,
+        });
+        addFlag(flags[flags.length - 1]);
+      }
+    }
+  }
+  return flags;
+}
+
+function findPCByName(name) {
+  if (!name) return null;
+  const lower = name.toLowerCase().trim();
+  return store.campaign.characters.find(pc =>
+    pc.name.toLowerCase() === lower ||
+    pc.name.toLowerCase().startsWith(lower)
+  ) || null;
+}
+
 export function advanceTurn() {
   const combat = store.campaign.combatState;
   if (!combat.active) return;

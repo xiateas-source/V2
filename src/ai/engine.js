@@ -6,7 +6,7 @@ import { extractMechanics, validateMechanics, applyMechanics, buildMechReceipt, 
 import { ASK_DM_SYSTEM } from './contracts.js';
 import { pruneIfNeeded } from './memory.js';
 import { detectDrift } from './drift.js';
-import { runGate1, runGate2, advanceTurn } from './gates.js';
+import { runGate1, runGate2, runGate6, runGate8, runGate9, advanceTurn } from './gates.js';
 
 let activeController = null;
 const [sending, setSending] = createSignal(false);
@@ -84,8 +84,12 @@ export async function sendMsg(text, options = {}) {
 
       const gate1Flags = runGate1(fullResponse, applied, text);
       const gate2Flags = runGate2(applied, fullResponse);
-      if (gate1Flags.length || gate2Flags.length) {
-        setStore('campaign', 'narrative', assistantIdx, 'gateFlags', [...gate1Flags, ...gate2Flags]);
+      const gate6Flags = runGate6(fullResponse, applied);
+      const gate8Flags = runGate8(applied, fullResponse);
+      const gate9Flags = runGate9(applied);
+      const allGateFlags = [...gate1Flags, ...gate2Flags, ...gate6Flags, ...gate8Flags, ...gate9Flags];
+      if (allGateFlags.length) {
+        setStore('campaign', 'narrative', assistantIdx, 'gateFlags', allGateFlags);
       }
 
       if (store.campaign.combatState.active && !gate2Flags.length) {
