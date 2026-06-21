@@ -42,6 +42,7 @@
 | `.claude/ui-specs-v2.md` | Phase 3–4 (CharSheet, Cargo, Treasury, Journal, Combat) |
 | `.claude/player-requests-v2.md` | Every phase — cross-cutting UX requirements, ✅ = must preserve |
 | `.claude/v1-engine-dump.md` | Phase 1–2 (mechanic key mapping, validation, pre-parse rejections, real data shapes) |
+| `.claude/v1-engine-dump-addendum.md` | Phase 1–2 (full combat state, PC template, worldData, wagon, buildPrompt structure, persistence arch, checkpoint/archive) |
 
 ---
 
