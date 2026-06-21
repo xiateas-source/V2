@@ -184,6 +184,42 @@ export function runGate6(narrative, mechanics) {
   return flags;
 }
 
+const SKILL_ACTION_MAP = [
+  { pattern: /\b(picks?\s+the\s+lock|lockpick|unlock)\b/i, skill: 'Thieves\' Tools' },
+  { pattern: /\b(sneaks?\s+(past|by|through|around)|moves?\s+stealthily|creeps?)\b/i, skill: 'Stealth' },
+  { pattern: /\b(climbs?\s+(the|up|over|a)|scales?\s+the)\b/i, skill: 'Athletics' },
+  { pattern: /\b(persuades?|convinces?|talks?\s+(them|him|her)\s+into)\b/i, skill: 'Persuasion' },
+  { pattern: /\b(intimidates?|threatens?|menacing)\b/i, skill: 'Intimidation' },
+  { pattern: /\b(deceives?|lies?\s+to|bluffs?)\b/i, skill: 'Deception' },
+  { pattern: /\b(searches?\s+(the|for)|investigates?|examines?\s+closely)\b/i, skill: 'Investigation' },
+  { pattern: /\b(tracks?|follows?\s+the\s+trail|navigates?)\b/i, skill: 'Survival' },
+  { pattern: /\b(leaps?|jumps?\s+(across|over)|acrobatic|tumbles?)\b/i, skill: 'Acrobatics' },
+  { pattern: /\b(treats?\s+the\s+wound|stabilizes?|medicine)\b/i, skill: 'Medicine' },
+];
+
+export function runGate7(narrative, mechanics, playerMessage) {
+  const flags = [];
+  const hasRollRequest = mechanics.some(m => m.key === 'roll_request');
+  if (hasRollRequest) return flags;
+
+  for (const { pattern, skill } of SKILL_ACTION_MAP) {
+    if (pattern.test(narrative)) {
+      const resolvedPattern = /\b(succeeds?|successfully|manages?\s+to|fails?\s+to|unable)\b/i;
+      if (resolvedPattern.test(narrative)) {
+        flags.push({
+          gate: 7,
+          type: 'missing_check',
+          text: `${skill} check resolved without player roll`,
+          skill,
+        });
+        addFlag(flags[flags.length - 1]);
+        break;
+      }
+    }
+  }
+  return flags;
+}
+
 export function runGate8(mechanics, recentNarrative) {
   const flags = [];
   const triggerKeys = ['quest_done', 'combat_end', 'chapter_add'];
