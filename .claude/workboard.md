@@ -14,6 +14,26 @@
 
 ---
 
+## Spec Dependencies — What to spec before each phase
+
+> Rule: **data shapes** must be specced before the phase that writes to them. **UI specs** can wait until the phase that displays them.
+
+| Phase | Must be specced first | Status | Can wait until display phase |
+|-------|----------------------|--------|------------------------------|
+| **Phase 0: Foundation** | Campaign data shape, system data shape, color themes | ✅ All done | — |
+| **Phase 1: Core Loop** | All mechanic target data shapes — quest, NPC, location, item, consequence, combat, economy. Chat messages. | ⚠️ Chat ✅, characters ✅. **Quests, NPCs, locations, consequences, secrets, town rep are skeletal — need full field specs before mechanics handlers can be built.** | Journal UI, Cargo UI, Treasury UI |
+| **Phase 2: Gates** | Field ownership registry, validation rules per gate | ✅ Ownership done. Gate rules defined. | Gate UI (pills, overlays) |
+| **Phase 3: Play Mode UI** | Combat state shape, overlay behavior specs | ⚠️ Combat state exists but thin. Overlays specced in chat-system-spec. | — |
+| **Phase 4: Reference Mode** | Nothing new — reads existing state | ✅ | Journal UI, Cargo UI (spec when building). CharSheet ✅ |
+| **Phase 5: Setup Mode** | Session Zero flow, char creation wizard fields | ❌ Not specced | — |
+| **Phase 6: Manage Mode** | — | — | DevTools, contracts editor, session review |
+| **Phase 7: Content Pipeline** | Episode/module tracking data shape | ❌ Not specced | — |
+| **Phase 8: Multi-Player** | Player identity/onboarding flow | ⚠️ Partially specced | Child-friendly view |
+
+**Build order:** Phase 0 now (no spec needed) → spec Journal data shapes → Phase 1 → Phase 2 → spec as needed from there.
+
+---
+
 ## Phase 0: Foundation
 
 > Scaffold the project, establish state management, connect Firebase. Nothing renders yet — this is plumbing.
@@ -250,8 +270,8 @@ const DEFAULT_CAMPAIGN = {
       inspiration: false,     // ☆/⭐ toggle
       deathSaves: { successes: 0, failures: 0 },
 
-      // Familiar/mount (if any)
-      familiar: null,         // { name, hp, hpMax, ac, type }
+      // Familiar/mount (if any) — gets own conditional tab in charsheet
+      familiar: null,         // { name, species, type ('Fey'|'Celestial'|'Fiend'), size, hp, hpMax, ac, speeds: { walk, fly, swim }, abilities: { str, dex, con, int, wis, cha }, senses, skills, passivePerception, specialAbilities: [], status: 'active'|'dismissed'|'dead', source: 'Find Familiar' }
     }
   ],
 
@@ -279,14 +299,15 @@ const DEFAULT_CAMPAIGN = {
   },
 
   // --- Story tracking (AI-owned) ---
-  quests: [],                 // [{ title, desc, status: 'active'|'done'|'failed', gameTs }]
+  // ⚠️ SKELETAL — need full field specs before Phase 1 mechanics handlers
+  quests: [],                 // [{ title, desc, status: 'active'|'done'|'failed', gameTs }]  ← needs: priority, giver NPC, rewards, location, completion criteria
   primaryMission: '',         // main quest text
-  npcs: [],                   // [{ name, disposition, details, hp, alive: true }]
+  npcs: [],                   // [{ name, disposition, details, hp, alive: true }]  ← needs: race, role, location, relationship, last seen, portrait flag, dialogue notes
   chapters: [],               // [{ title, content, gameTs }]
-  consequences: [],           // [{ text, type, resolved: false, gameTs }]
-  townReputation: [],         // [{ town, status, notes }]
-  secrets: [],                // [{ text, playerKnown: false, aiOnly: true }]
-  moduleProgress: {},         // { moduleName, episodes: [{ num, status }] }
+  consequences: [],           // [{ text, type, resolved: false, gameTs }]  ← needs: deadline, urgency, trigger conditions, resolution options
+  townReputation: [],         // [{ town, status, notes }]  ← needs: numeric score, events log, faction ties
+  secrets: [],                // [{ text, playerKnown: false, aiOnly: true }]  ← needs: category, reveal trigger, source
+  moduleProgress: {},         // { moduleName, episodes: [{ num, status }] }  ← needs full episode tracking spec
 
   // --- Combat (AI-owned, ephemeral during combat) ---
   combatState: {
