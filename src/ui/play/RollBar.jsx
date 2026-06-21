@@ -89,6 +89,13 @@ export default function RollBar() {
             let advState = 'normal';
             if (mod === 'advantage') advState = 'advantage';
             else if (mod === 'disadvantage') advState = 'disadvantage';
+            // Exhaustion 1+ imposes disadvantage on ability checks (not saves/attacks in 5e 2014)
+            const foundPC = findPC(pcName);
+            if (foundPC && foundPC.exhaustion >= 1 && advState === 'normal') {
+              advState = 'disadvantage';
+            } else if (foundPC && foundPC.exhaustion >= 1 && advState === 'advantage') {
+              advState = 'normal';
+            }
             return {
               id: `${i}-${idx}`,
               skill,

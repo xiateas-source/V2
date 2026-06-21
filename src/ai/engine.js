@@ -5,6 +5,7 @@ import { callProvider } from './providers.js';
 import { extractMechanics, validateMechanics, applyMechanics, buildMechReceipt, getPendingConcentrationInfo } from './mechanics.js';
 import { ASK_DM_SYSTEM } from './contracts.js';
 import { pruneIfNeeded } from './memory.js';
+import { detectDrift } from './drift.js';
 
 let activeController = null;
 const [sending, setSending] = createSignal(false);
@@ -72,6 +73,16 @@ export async function sendMsg(text, options = {}) {
       if (mechReceipt || drops.length) {
         setStore('campaign', 'narrative', assistantIdx, 'mechReceipt', mechReceipt);
         setStore('campaign', 'narrative', assistantIdx, 'mechanics', { applied, rejected });
+      }
+
+      const driftWarnings = detectDrift(fullResponse, applied);
+      if (driftWarnings.length) {
+        setStore('campaign', 'narrative', assistantIdx, 'driftWarnings', driftWarnings);
+      }
+    } else {
+      const driftWarnings = detectDrift(fullResponse, []);
+      if (driftWarnings.length) {
+        setStore('campaign', 'narrative', assistantIdx, 'driftWarnings', driftWarnings);
       }
     }
 

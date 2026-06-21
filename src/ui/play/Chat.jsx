@@ -6,6 +6,8 @@ import RollBar from './RollBar.jsx';
 import CharTiles from './CharTiles.jsx';
 import ContextBanner from './ContextBanner.jsx';
 import SituationBar from './SituationBar.jsx';
+import Combat from './Combat.jsx';
+import Rewind from './Rewind.jsx';
 
 export default function Chat() {
   const [tab, setTab] = createSignal('narrative');
@@ -57,6 +59,13 @@ export default function Chat() {
                 <div class="msg-summary-badge">Prior context</div>
               </Show>
               <div class="msg-content" innerHTML={formatMsg(msg.content)} />
+              <Show when={msg.driftWarnings?.length > 0}>
+                <div class="drift-warnings">
+                  <For each={msg.driftWarnings}>
+                    {(w) => <span class="drift-pill">{w.text}</span>}
+                  </For>
+                </div>
+              </Show>
               <Show when={msg.mechanics}>
                 <MechPills mechanics={msg.mechanics} />
               </Show>
@@ -75,8 +84,12 @@ export default function Chat() {
         <div ref={chatEnd} />
       </div>
 
+      <Combat />
       <RollBar />
-      <InputBar tab={tab()} />
+      <div class="input-area">
+        <Rewind />
+        <InputBar tab={tab()} />
+      </div>
     </div>
   );
 }
@@ -144,6 +157,8 @@ function formatPill(key, value) {
     case 'town_rep': return `Rep: ${value.split(',').slice(0, 2).join(' ')}`;
     case 'familiar_hp': return `Familiar HP: ${value}`;
     case 'animal_hp': return `Animal: ${value}`;
+    case 'hit_dice_use': return `HD: ${value}`;
+    case 'inspiration': return `Inspiration: ${value.split(/[=+]/)[0]}`;
     case 'location': case 'time': case 'weather': case 'loc_desc':
     case 'primary_mission': case 'none': case 'round_advance':
     case 'location_add': case 'location_visit':

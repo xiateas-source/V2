@@ -24,7 +24,7 @@ const KNOWN_KEYS = new Set([
   'chapter_update', 'location_add', 'location_visit', 'location_history',
   'location_investment', 'roll_request', 'zone_move', 'zone_add_enemy', 'zone_remove',
   'zone_effect', 'zone_label', 'combat_start', 'combat_end', 'zone_fog',
-  'death_save', 'none', 'round_advance',
+  'death_save', 'none', 'round_advance', 'hit_dice_use', 'inspiration',
 ]);
 
 function findPC(name) {
@@ -767,22 +767,17 @@ const DISPATCH = {
 
   short_rest(value) {
     const name = value.trim();
-    if (name.toLowerCase() === 'party' || name.toLowerCase() === 'all') {
-      store.campaign.characters.forEach((pc, idx) => {
-        const resources = pc.resources.map(r =>
-          (r.restoresOn === 'short' || r.restoresOn === 'short_rest') ? { ...r, current: r.max } : r
-        );
-        setStore('campaign', 'characters', idx, 'resources', resources);
-      });
-      return;
+    const targets = (name.toLowerCase() === 'party' || name.toLowerCase() === 'all')
+      ? store.campaign.characters.map((_, i) => i)
+      : [findPCIndex(name)].filter(i => i !== -1);
+
+    for (const idx of targets) {
+      const pc = store.campaign.characters[idx];
+      const resources = pc.resources.map(r =>
+        (r.restoresOn === 'short' || r.restoresOn === 'short_rest') ? { ...r, current: r.max } : r
+      );
+      setStore('campaign', 'characters', idx, 'resources', resources);
     }
-    const idx = findPCIndex(name);
-    if (idx === -1) return;
-    const pc = store.campaign.characters[idx];
-    const resources = pc.resources.map(r =>
-      (r.restoresOn === 'short' || r.restoresOn === 'short_rest') ? { ...r, current: r.max } : r
-    );
-    setStore('campaign', 'characters', idx, 'resources', resources);
   },
 
   long_rest(value) {
@@ -809,6 +804,42 @@ const DISPATCH = {
   round_advance() {
     if (!store.campaign.combatState.active) return;
     setStore('campaign', 'combatState', 'round', store.campaign.combatState.round + 1);
+  },
+
+  hit_dice_use(value) {
+    // Format: Name=count or Name (defaults to 1)
+    const [name, countStr] = value.split('=').map(s => s.trim());
+    const count = parseInt(countStr, 10) || 1;
+    const idx = findPCIndex(name);
+    if (idx === -1) return;
+    const pc = store.campaign.characters[idx];
+    const available = pc.hitDice.total - pc.hitDice.used;
+    if (available <= 0) return;
+    const toUse = Math.min(count, available);
+    setStore('campaign', 'characters', idx, 'hitDice', { ...pc.hitDice, used: pc.hitDice.used + toUse });
+    // Roll hit dice for healing
+    const dieSize = parseInt(pc.hitDice.die.replace('d', ''), 10) || 8;
+    const conMod = Math.floor((pc.abilityScores.con - 10) / 2);
+    let healed = 0;
+    for (let i = 0; i < toUse; i++) {
+      healed += Math.max(1, Math.floor(Math.random() * dieSize) + 1 + conMod);
+    }
+    const newHp = Math.min(pc.hpMax, pc.hp + healed);
+    setStore('campaign', 'characters', idx, 'hp', newHp);
+  },
+
+  inspiration(value) {
+    // Format: Name=true/false or Name+/Name-
+    const match = value.match(/^(.+?)([=+-])(.*)$/);
+    if (!match) return;
+    const [, name, op, val] = match.map(s => s?.trim());
+    const idx = findPCIndex(name);
+    if (idx === -1) return;
+    if (op === '-' || val === 'false') {
+      setStore('campaign', 'characters', idx, 'inspiration', false);
+    } else {
+      setStore('campaign', 'characters', idx, 'inspiration', true);
+    }
   },
 
   save_game() {},
