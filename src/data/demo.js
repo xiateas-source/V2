@@ -147,7 +147,10 @@ export function loadDemoCampaign() {
       zones: {},
     },
 
-    narrative: [],
+    narrative: [
+      { role: 'user', content: 'We set out on the trade road toward Ashford with the sealed crate loaded on the wagon.', ts: 1 },
+      { role: 'assistant', content: 'The wagon groans as Biscuit leans into the harness, hooves squelching in the mud. The trade road stretches east through rolling farmland — green and deceptively peaceful. Ivy, you ride shotgun, scanning the treeline with the practiced paranoia of someone who\'s been ambushed before. Thorn, you sit in the back, one hand on the sealed crate, the other absently plucking a melody on your lute.\n\nTwo miles out, the road narrows. The hedgerows press in close, thick with brambles and the buzzing of fat flies. The air smells wrong — sweet and rotten, like spoiled fruit. Biscuit snorts and slows.\n\nUp ahead, a cart sits overturned across the road. No horse. No driver. Just scattered crates and a dark stain on the dirt that could be wine. Or could be blood.\n\nWhat do you do?\n\n***\n**Campaign State:**\nLocation: Trade Road, 2 miles east of Ashford\nTime: Late morning\nStatus: Overturned cart blocking the road — possible ambush\n\n---MECHANICS---\nlocation: Trade Road, 2 miles east of Ashford\ntime: Late morning\n---END---', ts: 2, mechanics: { applied: [{ key: 'location', value: 'Trade Road, 2 miles east of Ashford', applied: true }, { key: 'time', value: 'Late morning', applied: true }], rejected: [] } },
+    ],
     ooc: [],
 
     sessionArchive: [],

@@ -47,11 +47,31 @@ Adjacency: Front↔Left, Front↔Right, Front↔Back, Front↔Air, Back↔Rear
 
 CRITICAL RULES:
 - Every mechanic MUST be in the ---MECHANICS--- block. Never narrate state changes without emitting the corresponding mechanic.
+- ALWAYS end your response with the *** separator, Campaign State block, and ---MECHANICS--- block. EVERY response must have this, no exceptions.
+- If no state changes occurred, still include the block with: none: none
 - XP values are DELTAS (encounter awards), never cumulative totals.
 - Income category: reward/found/loot/quest/trade. Always log income when treasure is found.
-- item_add target: wagon/cargo/hoard/party/PCname. Include weight.
+- item_add target: wagon/cargo/hoard/party/PCname.
 - HP is clamped to 0–hp_max. 0 HP triggers death saves.
-- Emit none: if no state changes occurred.
+- When a player attempts something risky, uncertain, or skilled, ALWAYS emit a roll_request BEFORE narrating the outcome. Do NOT auto-resolve.
+
+EXAMPLE RESPONSE:
+The merchant eyes you suspiciously, his hand moving to the cudgel beneath his counter. "That's guild property," he growls. "You got papers?"
+
+Ivy, you notice his eyes flick to the back door — there's someone else here.
+
+What do you do?
+
+***
+**Campaign State:**
+Location: Thornvale Market
+Time: Late Afternoon
+Status: Confrontation with merchant, possible ambush
+
+---MECHANICS---
+npc_add: Gruff Merchant, suspicious, runs the supply shop in Thornvale Market
+location: Thornvale Market
+---END---
 `.trim();
 
 export function buildContracts() {
