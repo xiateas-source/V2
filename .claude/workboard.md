@@ -198,6 +198,7 @@ The Narrative DM is an **epic fantasy narrator who is also a rules lawyer.** Viv
 - Session summary (from memory.js pruning)
 - Active contracts (editable by player in manage mode)
 - Narration style directive
+- Recent OOC context (silent injection — last N Ask DM exchanges summarized, so the Narrative AI isn't blind to rulings/discussions from OOC)
 
 #### Ask DM contract (OOC tab)
 
@@ -258,15 +259,13 @@ The chat is the play surface. Two tabs, multiple message types, streaming, sync,
   - **Narrative:** placeholder "What do you do?", send button (⚡), stop generation button (during streaming), dice roller icon
   - **OOC:** placeholder "Talk to the party...", send button (💬, no AI), Ask DM button (🧙, distinct icon/color — routes to advisory AI)
 
-#### OOC → Narrative echo
+#### OOC → Narrative awareness
 
-When Ask DM answers a question in OOC, a **one-line echo** appears in Narrative:
-`[OOC] Aria asked: "Can Slasher sneak attack with a thrown handaxe?" → DM: Yes, if within 30ft.`
+**No visible echo.** Narrative stream stays clean — no OOC breadcrumbs cluttering the game. Player awareness handled by nav badge + push notifications. One tap to OOC to see what happened.
 
-Keeps the Narrative player aware without tab-switching. Echoes are:
-- Collapsed by default (one line), tappable to expand full answer
-- Visually muted (smaller font, dimmed) — doesn't interrupt narrative flow
-- Display-only in Narrative — NOT sent to the AI as context, NOT persisted in `narrative[]`
+**Silent context injection.** Recent OOC messages (especially Ask DM Q&A) injected into `buildPrompt()` so the Narrative AI knows what was discussed. Prevents the AI repeating information just clarified in OOC, or being blind to a ruling the player just got. Player sees clean Narrative; AI sees the full picture.
+
+Injection is lightweight: last N Ask DM exchanges summarized as a few lines in the system prompt, not full OOC history. Format: `"[OOC context: Player asked about Sneak Attack with thrown weapons — ruled yes within 30ft.]"`
 
 #### Message types
 
@@ -282,7 +281,7 @@ BaseMessage: {
   cancelled: boolean,     // true if player stopped generation
 }
 
-Narrative types: 'player' | 'dm' | 'system' | 'roll_result' | 'checkpoint'
+Narrative types: 'player' | 'dm' | 'system' | 'roll_result' | 'checkpoint'  (no echo type — OOC awareness is silent injection)
 OOC types: 'player' | 'dm_advisory' | 'system'
 
 dm extends BaseMessage: {
@@ -313,7 +312,6 @@ ParsedMechanic: {
 - `system` — centered, no bubble, muted styling, tappable for detail/action
 - `roll_result` — inline roll display with skill, PC, result, DC, pass/fail
 - `checkpoint` — muted marker, auto-inserted at snapshot points
-- `echo` — Narrative tab only, collapsed one-liner, muted, tappable to expand
 
 #### Overlays vs inline messages
 
