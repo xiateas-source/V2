@@ -31,12 +31,11 @@ body {
 }
 
 .overlay-handle {
-  height: 36px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #1a1a2e;
-  border-bottom: 1px solid #2a2a4a;
 }
 .overlay-handle .bar {
   width: 40px;
@@ -47,24 +46,23 @@ body {
 
 /* ── HEADER ── */
 .sheet-header {
-  padding: 12px 16px 4px;
+  padding: 8px 16px 4px;
   background: #1a1a2e;
-  position: relative;
 }
 .header-main {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 .pc-avatar {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: #4a9eff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   color: #fff;
   flex-shrink: 0;
@@ -76,59 +74,89 @@ body {
   position: absolute;
   bottom: -2px;
   right: -2px;
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background: #4a9eff;
   border: 2px solid #1a1a2e;
-  cursor: pointer;
+  overflow: hidden;
 }
 .avatar-color-hint::after {
   content: '';
   position: absolute;
-  inset: 2px;
+  inset: 0;
   border-radius: 50%;
   background: conic-gradient(#e74c3c, #f1c40f, #2ecc71, #3498db, #9b59b6, #e74c3c);
 }
 .pc-info { flex: 1; min-width: 0; }
-.pc-name { font-size: 18px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 4px; }
-.pc-subtitle { font-size: 13px; color: #8a8a9a; margin-top: 2px; }
-.hp-mini {
+.pc-name { font-size: 16px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 4px; }
+.pc-subtitle { font-size: 12px; color: #8a8a9a; margin-top: 1px; }
+.inspiration-star { font-size: 18px; cursor: pointer; }
+.ok-btn {
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: #2a2a4a;
+  color: #8a8a9a;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #3a3a4a;
+}
+
+/* ── QUICK STATS (always visible) ── */
+.quick-stats {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: #2a2a4a;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  flex-shrink: 0;
+  padding: 4px 16px;
+  background: #1a1a2e;
+  font-size: 12px;
+  flex-wrap: wrap;
 }
-.hp-mini .heart { color: #e74c3c; }
+.qs-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: #8a8a9a;
+  white-space: nowrap;
+}
+.qs-item .val { color: #fff; font-weight: 600; }
+.qs-item .val.hp { color: #2ecc71; }
+.qs-item .val.low { color: #e74c3c; }
+.qs-sep { color: #2a2a4a; }
+
+.quick-stats-2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 16px 4px;
+  background: #1a1a2e;
+  font-size: 11px;
+  color: #555;
+}
+.qs2-item { white-space: nowrap; }
+.qs2-item .val { color: #8a8a9a; font-weight: 600; }
 
 /* XP bar */
 .xp-bar-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 16px 8px;
+  padding: 2px 16px 6px;
   background: #1a1a2e;
   cursor: pointer;
 }
-.xp-label { font-size: 11px; color: #6a6a7a; white-space: nowrap; }
+.xp-label { font-size: 10px; color: #6a6a7a; white-space: nowrap; }
 .xp-track {
   flex: 1;
-  height: 5px;
+  height: 4px;
   background: #2a2a4a;
-  border-radius: 3px;
+  border-radius: 2px;
   overflow: hidden;
-  position: relative;
 }
 .xp-fill {
   height: 100%;
-  border-radius: 3px;
+  border-radius: 2px;
   width: 72%;
-  transition: width 0.3s;
 }
 .xp-fill.normal { background: #f1c40f; }
 .xp-fill.ready {
@@ -139,68 +167,29 @@ body {
   0%, 100% { box-shadow: 0 0 4px rgba(46, 204, 113, 0.3); }
   50% { box-shadow: 0 0 12px rgba(46, 204, 113, 0.8); }
 }
-.xp-nums { font-size: 11px; color: #8a8a9a; font-weight: 600; white-space: nowrap; }
+.xp-nums { font-size: 10px; color: #6a6a7a; font-weight: 600; white-space: nowrap; }
 
 /* Swipe hint */
 .swipe-indicator {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 4px 16px 2px;
+  gap: 5px;
+  padding: 2px 16px 2px;
   background: #1a1a2e;
-  font-size: 10px;
-  color: #4a4a5a;
-}
-.swipe-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #3a3a4a;
-}
-.swipe-dot.active { background: #4a9eff; }
-
-/* ── LOCK BAR ── */
-.lock-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 16px;
-  background: #1a1a2e;
+  font-size: 9px;
+  color: #3a3a4a;
   border-bottom: 1px solid #2a2a4a;
-  font-size: 11px;
-  color: #6a6a7a;
 }
-.lock-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.lock-toggle {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-  color: #4a9eff;
-  font-weight: 600;
-  font-size: 11px;
-}
-.import-btn {
-  font-size: 11px;
-  color: #6a6a7a;
-  cursor: pointer;
-  padding: 2px 6px;
-  border: 1px solid #3a3a4a;
-  border-radius: 4px;
-}
-.import-btn:hover { color: #aaa; border-color: #555; }
+.swipe-dot { width: 5px; height: 5px; border-radius: 50%; background: #3a3a4a; }
+.swipe-dot.active { background: #4a9eff; }
 
 /* ── TAB BAR ── */
 .tab-bar {
   display: flex;
   background: #1a1a2e;
   border-bottom: 2px solid #2a2a4a;
-  padding: 0 4px;
+  padding: 0 2px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -208,8 +197,8 @@ body {
 .tab-bar::-webkit-scrollbar { display: none; }
 .tab {
   flex: 0 0 auto;
-  padding: 10px 14px;
-  font-size: 13px;
+  padding: 8px 11px;
+  font-size: 12px;
   font-weight: 600;
   color: #6a6a7a;
   cursor: pointer;
@@ -219,17 +208,14 @@ body {
   transition: all 0.2s;
   position: relative;
 }
-.tab.active {
-  color: #4a9eff;
-  border-bottom-color: #4a9eff;
-}
+.tab.active { color: #4a9eff; border-bottom-color: #4a9eff; }
 .tab:hover { color: #aaa; }
 .tab .changed-dot {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 6px;
-  height: 6px;
+  top: 4px;
+  right: 2px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: #f1c40f;
   animation: dotPulse 2s ease-in-out infinite;
@@ -243,175 +229,127 @@ body {
 .tab-content {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 12px 16px;
   display: none;
 }
 .tab-content.active { display: block; }
 
-/* ── COMMON STYLES ── */
+/* ── COMMON ── */
 .section-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
   color: #6a6a7a;
-  margin-bottom: 8px;
-  margin-top: 16px;
+  margin-bottom: 6px;
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .section-label:first-child { margin-top: 0; }
+.hint-text { font-size: 10px; color: #3a3a4a; text-transform: none; letter-spacing: 0; font-weight: 400; }
 
-.stat-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 12px;
-  background: #1a1a2e;
-  border-radius: 8px;
-  margin-bottom: 4px;
+.ownership-tag {
+  display: inline-block;
+  font-size: 8px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  vertical-align: middle;
 }
-.stat-row .label { font-size: 14px; color: #ccc; }
-.stat-row .value { font-size: 14px; font-weight: 600; color: #fff; }
-.stat-row.rollable {
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: border-color 0.15s;
-}
-.stat-row.rollable:active { border-color: #4a9eff; background: #1a2a3e; }
-.stat-row.rollable .value { color: #4a9eff; }
-.roll-hint {
-  font-size: 10px;
-  color: #3a3a4a;
-  margin-left: 4px;
-}
+.ownership-tag.ai { background: #2a1a3a; color: #9b59b6; }
+.ownership-tag.system { background: #1a2a3a; color: #3498db; }
+.ownership-tag.player { background: #1a3a2a; color: #2ecc71; }
 
+/* ── STATS TAB ── */
 .ability-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 6px;
+  margin-bottom: 6px;
 }
 .ability-box {
   background: #1a1a2e;
-  border-radius: 10px;
-  padding: 10px 8px;
+  border-radius: 8px;
+  padding: 8px 6px;
   text-align: center;
   cursor: pointer;
   border: 1px solid transparent;
   transition: border-color 0.15s;
 }
 .ability-box:active { border-color: #4a9eff; background: #1a2a3e; }
-.ability-box .abbr {
-  font-size: 11px;
-  font-weight: 700;
-  color: #6a6a7a;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-.ability-box .score {
-  font-size: 24px;
-  font-weight: 700;
-  color: #fff;
-  margin: 4px 0 2px;
-}
-.ability-box .mod {
-  font-size: 13px;
-  color: #4a9eff;
-  font-weight: 600;
-}
+.ability-box .abbr { font-size: 10px; font-weight: 700; color: #6a6a7a; text-transform: uppercase; letter-spacing: 1px; }
+.ability-box .score { font-size: 22px; font-weight: 700; color: #fff; margin: 2px 0 1px; }
+.ability-box .mod { font-size: 12px; color: #4a9eff; font-weight: 600; }
 
 .skill-row {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
+  padding: 7px 10px;
   background: #1a1a2e;
-  border-radius: 6px;
-  margin-bottom: 3px;
+  border-radius: 5px;
+  margin-bottom: 2px;
   cursor: pointer;
-  gap: 8px;
+  gap: 6px;
   border: 1px solid transparent;
-  transition: border-color 0.15s;
 }
 .skill-row:active { border-color: #4a9eff; background: #1a2a3e; }
-.skill-row .prof-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #3a3a4a;
-  flex-shrink: 0;
-}
-.skill-row .prof-dot.proficient { background: #4a9eff; }
-.skill-row .prof-dot.expertise { background: #f1c40f; }
-.skill-row .name { flex: 1; font-size: 13px; color: #ccc; }
-.skill-row .bonus { font-size: 13px; font-weight: 600; color: #4a9eff; }
-.skill-row .ability-tag { font-size: 10px; color: #555; }
+.prof-dot { width: 7px; height: 7px; border-radius: 50%; background: #3a3a4a; flex-shrink: 0; }
+.prof-dot.proficient { background: #4a9eff; }
+.prof-dot.expertise { background: #f1c40f; }
+.skill-row .name { flex: 1; font-size: 12px; color: #ccc; }
+.skill-row .bonus { font-size: 12px; font-weight: 600; color: #4a9eff; }
+.skill-row .ability-tag { font-size: 9px; color: #555; }
 
 .save-row {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
+  padding: 7px 10px;
+  background: #1a1a2e;
+  border-radius: 5px;
+  margin-bottom: 2px;
+  cursor: pointer;
+  gap: 6px;
+  border: 1px solid transparent;
+}
+.save-row:active { border-color: #4a9eff; background: #1a2a3e; }
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
   background: #1a1a2e;
   border-radius: 6px;
   margin-bottom: 3px;
-  cursor: pointer;
-  gap: 8px;
-  border: 1px solid transparent;
-  transition: border-color 0.15s;
 }
-.save-row:active { border-color: #4a9eff; background: #1a2a3e; }
-.save-row .prof-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #3a3a4a;
-  flex-shrink: 0;
-}
-.save-row .prof-dot.proficient { background: #4a9eff; }
-.save-row .name { flex: 1; font-size: 13px; color: #ccc; }
-.save-row .bonus { font-size: 13px; font-weight: 600; color: #4a9eff; }
+.stat-row .label { font-size: 13px; color: #ccc; }
+.stat-row .value { font-size: 13px; font-weight: 600; color: #fff; }
+.stat-row.rollable { cursor: pointer; border: 1px solid transparent; }
+.stat-row.rollable:active { border-color: #4a9eff; background: #1a2a3e; }
+.stat-row.rollable .value { color: #4a9eff; }
 
 /* ── VITALS TAB ── */
 .hp-section {
   background: #1a1a2e;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 8px;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 6px;
 }
-.hp-bar-container {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-.hp-numbers {
-  font-size: 28px;
-  font-weight: 700;
-  color: #fff;
-  white-space: nowrap;
-}
+.hp-bar-container { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.hp-numbers { font-size: 26px; font-weight: 700; color: #fff; white-space: nowrap; }
 .hp-numbers .slash { color: #555; margin: 0 2px; }
 .hp-numbers .max { color: #888; }
-.hp-bar {
-  flex: 1;
-  height: 8px;
-  background: #2a2a4a;
-  border-radius: 4px;
-  overflow: hidden;
-}
-.hp-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #e74c3c, #2ecc71);
-  border-radius: 4px;
-  width: 73%;
-}
-.hp-buttons {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-}
+.hp-bar { flex: 1; height: 7px; background: #2a2a4a; border-radius: 4px; overflow: hidden; }
+.hp-bar-fill { height: 100%; background: linear-gradient(90deg, #e74c3c, #2ecc71); border-radius: 4px; width: 73%; }
+.hp-buttons { display: flex; gap: 6px; justify-content: center; }
 .hp-btn {
-  padding: 6px 16px;
+  padding: 5px 14px;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   border: none;
@@ -423,10 +361,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 8px;
-  padding-top: 8px;
+  margin-top: 6px;
+  padding-top: 6px;
   border-top: 1px solid #2a2a4a;
-  font-size: 13px;
+  font-size: 12px;
   color: #8a8a9a;
 }
 .hp-temp .value { color: #3498db; font-weight: 600; }
@@ -434,87 +372,81 @@ body {
 .ac-block {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   background: #1a1a2e;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 8px;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 6px;
 }
 .ac-shield {
-  width: 56px;
-  height: 64px;
+  width: 50px;
+  height: 58px;
   background: #2a2a4a;
-  border-radius: 8px;
+  border-radius: 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   border: 2px solid #4a9eff;
 }
-.ac-shield .number { font-size: 24px; font-weight: 700; color: #fff; }
-.ac-shield .label { font-size: 9px; color: #6a6a7a; text-transform: uppercase; letter-spacing: 1px; }
+.ac-shield .number { font-size: 22px; font-weight: 700; color: #fff; }
+.ac-shield .aclabel { font-size: 8px; color: #6a6a7a; text-transform: uppercase; letter-spacing: 1px; }
 .ac-details { flex: 1; }
-.ac-details .line { font-size: 13px; color: #aaa; margin-bottom: 4px; }
+.ac-details .line { font-size: 12px; color: #aaa; margin-bottom: 3px; }
 
 .attack-card {
   background: #1a1a2e;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 6px;
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 4px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: border-color 0.15s;
 }
 .attack-card:active { border-color: #4a9eff; background: #1a2a3e; }
-.attack-icon { font-size: 18px; width: 36px; text-align: center; }
+.attack-icon { font-size: 16px; width: 30px; text-align: center; }
 .attack-info { flex: 1; }
-.attack-name { font-size: 14px; font-weight: 600; color: #fff; }
-.attack-stats { font-size: 12px; color: #8a8a9a; margin-top: 2px; }
+.attack-name { font-size: 13px; font-weight: 600; color: #fff; }
+.attack-stats { font-size: 11px; color: #8a8a9a; margin-top: 1px; }
 .attack-stats span { color: #4a9eff; font-weight: 600; }
-.attack-roll-hint { font-size: 10px; color: #3a3a4a; }
+.roll-hint { font-size: 9px; color: #3a3a4a; }
 
-.condition-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 8px;
-}
+.condition-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px; }
 .condition-chip {
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 .condition-chip.active { background: #4a1a3a; color: #e74c3c; }
 .condition-chip.conc { background: #1a3a4a; color: #3498db; }
 .condition-duration {
-  font-size: 10px;
+  font-size: 9px;
   opacity: 0.7;
   background: rgba(255,255,255,0.1);
-  padding: 1px 4px;
-  border-radius: 4px;
+  padding: 1px 3px;
+  border-radius: 3px;
 }
 
 .hit-dice-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background: #1a1a2e;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 6px;
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 4px;
 }
-.dice-pips { display: flex; gap: 4px; }
+.dice-pips { display: flex; gap: 3px; }
 .dice-pip {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   border: 2px solid #4a9eff;
   cursor: pointer;
@@ -524,24 +456,23 @@ body {
 
 .death-saves {
   display: flex;
-  gap: 16px;
+  gap: 14px;
   background: #1a1a2e;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 6px;
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 4px;
 }
-.ds-group { display: flex; align-items: center; gap: 6px; }
-.ds-label { font-size: 12px; color: #8a8a9a; }
-.ds-pips { display: flex; gap: 4px; }
+.ds-group { display: flex; align-items: center; gap: 5px; }
+.ds-pips { display: flex; gap: 3px; }
 .ds-pip {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 9px;
 }
 .ds-pip.success { border: 2px solid #2ecc71; color: #2ecc71; }
 .ds-pip.success.filled { background: #2ecc71; color: #fff; }
@@ -551,21 +482,21 @@ body {
 .exhaustion-pips {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   background: #1a1a2e;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 6px;
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 4px;
 }
 .exh-pip {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 4px;
   border: 2px solid #3a3a4a;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   color: #555;
   cursor: pointer;
@@ -573,375 +504,378 @@ body {
 .exh-pip.filled { background: #4a3a1a; border-color: #f39c12; color: #f39c12; }
 
 /* Rest buttons */
-.rest-buttons {
-  display: flex;
-  gap: 8px;
-  margin-top: 4px;
-  margin-bottom: 8px;
-}
+.rest-buttons { display: flex; gap: 6px; margin-bottom: 6px; }
 .rest-btn {
   flex: 1;
-  padding: 10px;
-  border-radius: 8px;
+  padding: 8px;
+  border-radius: 6px;
   border: 1px solid #2a2a4a;
   background: #1a1a2e;
   color: #aaa;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   text-align: center;
-  transition: all 0.15s;
 }
 .rest-btn:active { background: #2a2a4a; color: #fff; }
-.rest-btn .icon { font-size: 16px; display: block; margin-bottom: 2px; }
-.rest-btn .hint { font-size: 10px; color: #555; font-weight: 400; margin-top: 2px; }
+.rest-btn .icon { font-size: 14px; display: block; margin-bottom: 1px; }
+.rest-btn .rest-hint { font-size: 9px; color: #555; font-weight: 400; margin-top: 1px; }
 
-/* Familiar card */
+/* Familiar */
 .familiar-card {
   background: #1a1a2e;
-  border-radius: 10px;
-  padding: 12px;
-  margin-bottom: 6px;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 4px;
   border: 1px solid #2a3a4a;
 }
-.familiar-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-}
+.familiar-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .familiar-icon {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: #2a3a4a;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 16px;
 }
-.familiar-name { font-size: 14px; font-weight: 600; color: #fff; }
-.familiar-type { font-size: 11px; color: #6a6a7a; }
-.familiar-stats {
-  display: flex;
-  gap: 12px;
-}
-.familiar-stat {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: #8a8a9a;
-}
+.familiar-name { font-size: 13px; font-weight: 600; color: #fff; }
+.familiar-type { font-size: 10px; color: #6a6a7a; }
+.familiar-stats { display: flex; gap: 10px; }
+.familiar-stat { display: flex; align-items: center; gap: 3px; font-size: 11px; color: #8a8a9a; }
 .familiar-stat .val { color: #fff; font-weight: 600; }
-.familiar-hp-bar {
-  flex: 1;
-  height: 4px;
-  background: #2a2a4a;
-  border-radius: 2px;
-  overflow: hidden;
-  margin-left: 8px;
-}
-.familiar-hp-fill {
-  height: 100%;
-  background: #2ecc71;
-  width: 100%;
-  border-radius: 2px;
-}
+.familiar-hp-bar { flex: 1; height: 3px; background: #2a2a4a; border-radius: 2px; overflow: hidden; margin-left: 6px; }
+.familiar-hp-fill { height: 100%; background: #2ecc71; width: 100%; border-radius: 2px; }
 
 /* ── SPELLS TAB ── */
-.spellcasting-stats {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-}
+.spellcasting-stats { display: flex; gap: 6px; margin-bottom: 10px; }
 .sc-stat {
   flex: 1;
   background: #1a1a2e;
-  border-radius: 8px;
-  padding: 10px 8px;
+  border-radius: 6px;
+  padding: 8px 6px;
   text-align: center;
 }
-.sc-stat .sc-label {
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #6a6a7a;
-}
-.sc-stat .sc-value {
-  font-size: 22px;
-  font-weight: 700;
-  color: #fff;
-  margin-top: 2px;
-}
-.sc-stat .sc-source {
-  font-size: 10px;
-  color: #555;
-  margin-top: 2px;
-}
-.sc-stat.rollable { cursor: pointer; border: 1px solid transparent; transition: border-color 0.15s; }
+.sc-stat .sc-label { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #6a6a7a; }
+.sc-stat .sc-value { font-size: 20px; font-weight: 700; color: #fff; margin-top: 1px; }
+.sc-stat .sc-source { font-size: 9px; color: #555; margin-top: 1px; }
+.sc-stat.rollable { cursor: pointer; border: 1px solid transparent; }
 .sc-stat.rollable:active { border-color: #9b59b6; }
 .sc-stat.rollable .sc-value { color: #9b59b6; }
 
-/* Concentration pinned spell */
 .conc-pinned {
   background: #1a2a3a;
   border: 1px solid #3498db;
-  border-radius: 10px;
-  padding: 10px 12px;
-  margin-bottom: 12px;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   animation: concGlow 2s ease-in-out infinite;
 }
 @keyframes concGlow {
-  0%, 100% { box-shadow: 0 0 4px rgba(52, 152, 219, 0.2); }
-  50% { box-shadow: 0 0 10px rgba(52, 152, 219, 0.4); }
+  0%, 100% { box-shadow: 0 0 3px rgba(52, 152, 219, 0.2); }
+  50% { box-shadow: 0 0 8px rgba(52, 152, 219, 0.4); }
 }
-.conc-icon { font-size: 16px; color: #3498db; flex-shrink: 0; }
+.conc-icon { font-size: 14px; color: #3498db; }
 .conc-info { flex: 1; }
-.conc-label { font-size: 10px; color: #3498db; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-.conc-spell-name { font-size: 14px; font-weight: 600; color: #fff; margin-top: 1px; }
+.conc-label { font-size: 9px; color: #3498db; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.conc-spell-name { font-size: 13px; font-weight: 600; color: #fff; }
 .conc-end {
-  padding: 4px 10px;
-  border-radius: 6px;
+  padding: 3px 8px;
+  border-radius: 5px;
   background: #2a1a1a;
   color: #e74c3c;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   cursor: pointer;
   border: 1px solid #4a2a2a;
 }
 
+.browse-compendium {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  background: #1a2a3a;
+  border: 1px solid #2a3a5a;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4a9eff;
+}
+.browse-compendium:active { background: #2a3a5a; }
+
+.spell-notes {
+  padding: 8px 10px;
+  background: #1a1a2e;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  font-size: 11px;
+  color: #8a8a9a;
+  border-left: 2px solid #f1c40f;
+  cursor: pointer;
+}
+
 .slot-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 6px;
+  padding: 6px 10px;
   background: #1a1a2e;
-  border-radius: 8px;
-  margin-bottom: 4px;
+  border-radius: 6px;
+  margin-bottom: 3px;
 }
-.slot-level { font-size: 13px; color: #8a8a9a; width: 50px; }
-.slot-pips { display: flex; gap: 4px; flex: 1; }
+.slot-level { font-size: 12px; color: #8a8a9a; width: 36px; }
+.slot-pips { display: flex; gap: 3px; flex: 1; }
 .slot-pip {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   border: 2px solid #9b59b6;
   cursor: pointer;
 }
 .slot-pip.available { background: #9b59b6; }
-.slot-pip.used { background: transparent; }
 
 .spell-card {
   background: #1a1a2e;
-  border-radius: 8px;
-  padding: 10px 12px;
-  margin-bottom: 4px;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 3px;
   cursor: pointer;
+}
+.spell-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 .spell-level-badge {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: #2a2a4a;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   color: #9b59b6;
   flex-shrink: 0;
 }
 .spell-level-badge.cantrip { color: #2ecc71; }
 .spell-info { flex: 1; }
-.spell-name { font-size: 13px; font-weight: 600; color: #e0dcd0; }
-.spell-meta { font-size: 11px; color: #6a6a7a; margin-top: 2px; }
-
-/* ── FEATURES TAB ── */
-.feature-card {
-  background: #1a1a2e;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 6px;
-  cursor: pointer;
+.spell-name { font-size: 12px; font-weight: 600; color: #e0dcd0; }
+.spell-tag {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+  flex-shrink: 0;
 }
-.feature-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.feature-name { font-size: 14px; font-weight: 600; color: #fff; }
-.feature-source { font-size: 11px; color: #6a6a7a; }
-.feature-desc {
-  font-size: 12px;
-  color: #8a8a9a;
+.spell-tag.cantrip-tag { background: #1a3a2a; color: #2ecc71; }
+.spell-tag.school-tag { background: #2a2a3a; color: #8a8a9a; }
+.spell-expand { font-size: 10px; color: #4a4a5a; flex-shrink: 0; cursor: pointer; }
+.spell-detail {
   margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #2a2a4a;
+  font-size: 11px;
+  color: #8a8a9a;
   line-height: 1.4;
 }
+.spell-detail .spell-meta { color: #8a8a9a; margin-bottom: 4px; }
+.spell-detail .spell-components {
+  display: inline-flex;
+  gap: 5px;
+  margin-bottom: 4px;
+}
+.spell-detail .spell-components .comp {
+  background: #2a1a3a;
+  color: #c4a0ff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+}
+.spell-detail .spell-desc { color: #aaa; }
+
+/* ── FEATURES TAB ── */
+.feature-item {
+  padding: 8px 0;
+  border-bottom: 1px solid #1a1a2e;
+}
+.feature-item:last-child { border-bottom: none; }
+.feature-name-inline {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+}
+.feature-source-inline { font-size: 10px; color: #6a6a7a; margin-left: 4px; font-weight: 400; text-transform: none; }
+.feature-desc-inline { font-size: 12px; color: #aaa; margin-top: 3px; line-height: 1.4; }
 
 .resource-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   background: #1a1a2e;
-  border-radius: 8px;
-  padding: 10px 12px;
-  margin-bottom: 4px;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 3px;
 }
-.resource-name { font-size: 13px; color: #ccc; }
-.resource-pips { display: flex; gap: 3px; }
+.resource-name { font-size: 12px; color: #ccc; }
+.resource-pips { display: flex; gap: 2px; }
 .resource-pip {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   border: 2px solid #f1c40f;
   cursor: pointer;
 }
 .resource-pip.available { background: #f1c40f; }
 
+.bio-tag {
+  padding: 2px 7px;
+  background: #2a2a4a;
+  border-radius: 8px;
+  font-size: 10px;
+  color: #aaa;
+}
+
 /* ── EQUIPMENT TAB ── */
-.equip-section { margin-bottom: 12px; }
 .equip-card {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: flex-start;
+  gap: 8px;
   background: #1a1a2e;
-  border-radius: 8px;
-  padding: 10px 12px;
-  margin-bottom: 4px;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 3px;
   cursor: pointer;
 }
-.equip-icon { font-size: 16px; width: 24px; text-align: center; }
+.equip-icon { font-size: 14px; width: 20px; text-align: center; margin-top: 1px; }
 .equip-info { flex: 1; }
-.equip-name { font-size: 13px; font-weight: 600; color: #e0dcd0; }
-.equip-detail { font-size: 11px; color: #6a6a7a; }
+.equip-name { font-size: 12px; font-weight: 600; color: #e0dcd0; }
+.equip-detail { font-size: 10px; color: #6a6a7a; margin-top: 1px; }
+.equip-acquired { font-size: 9px; color: #555; margin-top: 1px; }
 .equip-qty {
-  font-size: 12px;
+  font-size: 10px;
   color: #8a8a9a;
   background: #2a2a4a;
-  padding: 2px 8px;
-  border-radius: 10px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  flex-shrink: 0;
 }
+.item-type-tag {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.item-type-tag.weapon { background: #3a1a1a; color: #e74c3c; }
+.item-type-tag.tool { background: #1a2a3a; color: #3498db; }
+.item-type-tag.supply { background: #2a3a1a; color: #8bc34a; }
+.item-type-tag.herb { background: #1a3a2a; color: #2ecc71; }
+.item-type-tag.component { background: #2a1a3a; color: #9b59b6; }
+.item-type-tag.item { background: #2a2a3a; color: #8a8a9a; }
+.item-type-tag.treasure { background: #3a3a1a; color: #f1c40f; }
+
 .weight-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 6px;
+  padding: 6px 10px;
   background: #1a1a2e;
-  border-radius: 8px;
-  margin-bottom: 8px;
+  border-radius: 6px;
+  margin-bottom: 6px;
 }
-.weight-label { font-size: 12px; color: #8a8a9a; }
-.weight-track {
+.weight-label { font-size: 11px; color: #8a8a9a; }
+.weight-track { flex: 1; height: 5px; background: #2a2a4a; border-radius: 3px; overflow: hidden; }
+.weight-fill { height: 100%; background: #4a9eff; border-radius: 3px; width: 45%; }
+.weight-nums { font-size: 11px; color: #aaa; font-weight: 600; }
+
+.currency-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px;
+  background: #1a1a2e;
+  border-radius: 6px;
+  margin-top: 6px;
+  cursor: pointer;
+}
+.currency-item {
   flex: 1;
-  height: 6px;
+  text-align: center;
+  padding: 4px;
+}
+.currency-item .coin-label { font-size: 9px; color: #6a6a7a; text-transform: uppercase; font-weight: 700; }
+.currency-item .coin-val { font-size: 14px; font-weight: 700; color: #fff; margin-top: 1px; }
+.currency-item .coin-val.gold { color: #f1c40f; }
+.currency-sep { color: #2a2a4a; font-size: 10px; }
+.currency-link { font-size: 9px; color: #4a9eff; text-align: center; margin-top: 4px; cursor: pointer; }
+
+/* Edit button */
+.edit-bar {
+  padding: 10px 16px;
+  background: #16213e;
+  border-top: 1px solid #2a2a4a;
+  display: flex;
+  justify-content: center;
+}
+.edit-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 24px;
   background: #2a2a4a;
-  border-radius: 3px;
-  overflow: hidden;
+  border: 1px solid #3a3a5a;
+  border-radius: 8px;
+  color: #aaa;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
 }
-.weight-fill {
-  height: 100%;
-  background: #4a9eff;
-  border-radius: 3px;
-  width: 45%;
-}
-.weight-nums { font-size: 12px; color: #aaa; font-weight: 600; }
+.edit-btn:active { background: #3a3a5a; color: #fff; }
 
 /* ── BIO TAB ── */
 .bio-section {
   background: #1a1a2e;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 8px;
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 6px;
 }
-.bio-section .text {
-  font-size: 13px;
-  color: #ccc;
-  line-height: 1.5;
-}
+.bio-section .text { font-size: 12px; color: #ccc; line-height: 1.5; }
 .bio-field-row {
   display: flex;
   justify-content: space-between;
-  padding: 6px 0;
+  padding: 5px 0;
   border-bottom: 1px solid #2a2a4a;
 }
 .bio-field-row:last-child { border-bottom: none; }
-.bio-field-row .label { font-size: 13px; color: #8a8a9a; }
-.bio-field-row .value { font-size: 13px; color: #e0dcd0; font-weight: 500; }
-.bio-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 4px;
-}
-.bio-tag {
-  padding: 3px 8px;
-  background: #2a2a4a;
-  border-radius: 10px;
-  font-size: 11px;
-  color: #aaa;
-}
-.edit-hint {
-  font-size: 11px;
-  color: #4a9eff;
-  text-align: right;
-  margin-top: 4px;
-  cursor: pointer;
-}
+.bio-field-row .label { font-size: 12px; color: #8a8a9a; }
+.bio-field-row .value { font-size: 12px; color: #e0dcd0; font-weight: 500; }
+.bio-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; }
+.edit-hint { font-size: 10px; color: #4a9eff; text-align: right; margin-top: 3px; cursor: pointer; }
 .race-card {
   background: #1a1a2e;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 8px;
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 6px;
   border-left: 3px solid #4a9eff;
 }
-.race-card .race-name {
-  font-size: 15px;
-  font-weight: 700;
-  color: #fff;
-  margin-bottom: 6px;
-}
-.race-traits {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 8px;
-}
-.race-trait {
-  padding: 3px 8px;
-  background: #2a3a4a;
-  border-radius: 10px;
-  font-size: 11px;
-  color: #4a9eff;
-}
-
-/* ── OWNERSHIP TAGS ── */
-.ownership-tag {
-  display: inline-block;
-  font-size: 9px;
-  padding: 1px 5px;
-  border-radius: 4px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  vertical-align: middle;
-  margin-left: 6px;
-}
-.ownership-tag.ai { background: #2a1a3a; color: #9b59b6; }
-.ownership-tag.system { background: #1a2a3a; color: #3498db; }
-.ownership-tag.player { background: #1a3a2a; color: #2ecc71; }
-
-.inspiration-star {
-  font-size: 20px;
-  cursor: pointer;
-}
+.race-card .race-name { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+.race-traits { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 6px; }
+.race-trait { padding: 2px 7px; background: #2a3a4a; border-radius: 8px; font-size: 10px; color: #4a9eff; }
 </style>
 </head>
 <body>
@@ -949,49 +883,56 @@ body {
 <div class="phone">
   <div class="overlay-handle"><div class="bar"></div></div>
 
-  <!-- HEADER — with XP bar, swipe between PCs, color picker on avatar -->
+  <!-- HEADER -->
   <div class="sheet-header">
     <div class="header-main">
-      <div class="pc-avatar">V
-        <div class="avatar-color-hint" title="Tap to change PC color"></div>
-      </div>
+      <div class="pc-avatar">V<div class="avatar-color-hint"></div></div>
       <div class="pc-info">
         <div class="pc-name">Valenns Vogelsang <span class="inspiration-star">&#9734;</span></div>
-        <div class="pc-subtitle">Half-Elf Wizard 5 (Illusionist)</div>
+        <div class="pc-subtitle">Wizard (Illusionist) Lv.5 &mdash; Half-Elf</div>
       </div>
-      <div class="hp-mini"><span class="heart">&#9829;</span> 33/45</div>
+      <div class="ok-btn">&#10005; Close</div>
     </div>
   </div>
 
-  <!-- XP BAR — tap to edit, glows at level-up threshold -->
-  <div class="xp-bar-row" title="Tap to edit XP">
-    <div class="xp-label">XP</div>
-    <div class="xp-track">
-      <div class="xp-fill normal"></div>
+  <!-- QUICK STATS — always visible, dense summary like v1 -->
+  <div class="quick-stats">
+    <div class="qs-item"><span class="val hp">33</span>/<span class="val">45</span> HP</div>
+    <div class="qs-sep">|</div>
+    <div class="qs-item">AC <span class="val">15</span></div>
+    <div class="qs-sep">|</div>
+    <div class="qs-item">INT <span class="val">+4</span></div>
+    <div class="qs-sep">|</div>
+    <div class="qs-item">SpDC <span class="val">15</span></div>
+    <div class="qs-sep">|</div>
+    <div class="qs-item"><span class="inspiration-star" style="font-size:13px">&#9734;</span></div>
+  </div>
+  <div class="quick-stats-2">
+    <div class="qs2-item">HD: <span class="val">3/5d6</span></div>
+    <div class="qs2-item">Prof: <span class="val">+3</span></div>
+    <div class="qs2-item">PP: <span class="val">11</span></div>
+    <div class="qs2-item" style="margin-left:auto">
+      <span class="val" style="color:#f1c40f">4,700</span> XP
     </div>
-    <div class="xp-nums">4,700 / 6,500</div>
   </div>
 
-  <!-- SWIPE INDICATOR — shows other PCs available -->
+  <!-- XP BAR -->
+  <div class="xp-bar-row">
+    <div class="xp-track"><div class="xp-fill normal"></div></div>
+    <div class="xp-nums">next: 6,500</div>
+  </div>
+
+  <!-- SWIPE INDICATOR -->
   <div class="swipe-indicator">
-    <span style="font-size:10px;color:#3a3a4a">&#9664;</span>
+    <span>&#9664;</span>
     <div class="swipe-dot active"></div>
     <div class="swipe-dot"></div>
     <div class="swipe-dot"></div>
-    <span style="font-size:10px;color:#3a3a4a">&#9654;</span>
-    <span style="margin-left:4px;color:#3a3a4a">swipe for other PCs</span>
+    <span>&#9654;</span>
+    <span style="margin-left:3px">swipe for other PCs</span>
   </div>
 
-  <!-- LOCK BAR — with JSON import button -->
-  <div class="lock-bar">
-    <span>Fields locked during play</span>
-    <div class="lock-actions">
-      <span class="import-btn" title="Update from JSON">JSON</span>
-      <span class="lock-toggle">&#128274; Unlock</span>
-    </div>
-  </div>
-
-  <!-- TAB BAR — with "what changed" dots on Vitals and Spells -->
+  <!-- TAB BAR -->
   <div class="tab-bar" id="tabBar">
     <div class="tab active" data-tab="stats">Stats</div>
     <div class="tab" data-tab="vitals">Vitals<div class="changed-dot"></div></div>
@@ -1003,131 +944,37 @@ body {
 
   <!-- ═══ STATS TAB ═══ -->
   <div class="tab-content active" id="tab-stats">
-    <div class="section-label">Ability Scores <span class="ownership-tag system">system</span> <span style="font-size:10px;color:#3a3a4a;text-transform:none;letter-spacing:0">tap any to roll</span></div>
+    <div class="section-label">Ability Scores <span class="ownership-tag system">system</span> <span class="hint-text">tap any to roll</span></div>
     <div class="ability-grid">
-      <div class="ability-box">
-        <div class="abbr">STR</div>
-        <div class="score">10</div>
-        <div class="mod">+0</div>
-      </div>
-      <div class="ability-box">
-        <div class="abbr">DEX</div>
-        <div class="score">14</div>
-        <div class="mod">+2</div>
-      </div>
-      <div class="ability-box">
-        <div class="abbr">CON</div>
-        <div class="score">13</div>
-        <div class="mod">+1</div>
-      </div>
-      <div class="ability-box">
-        <div class="abbr">INT</div>
-        <div class="score">18</div>
-        <div class="mod">+4</div>
-      </div>
-      <div class="ability-box">
-        <div class="abbr">WIS</div>
-        <div class="score">12</div>
-        <div class="mod">+1</div>
-      </div>
-      <div class="ability-box">
-        <div class="abbr">CHA</div>
-        <div class="score">11</div>
-        <div class="mod">+0</div>
-      </div>
+      <div class="ability-box"><div class="abbr">STR</div><div class="score">10</div><div class="mod">+0</div></div>
+      <div class="ability-box"><div class="abbr">DEX</div><div class="score">14</div><div class="mod">+2</div></div>
+      <div class="ability-box"><div class="abbr">CON</div><div class="score">13</div><div class="mod">+1</div></div>
+      <div class="ability-box"><div class="abbr">INT</div><div class="score">18</div><div class="mod">+4</div></div>
+      <div class="ability-box"><div class="abbr">WIS</div><div class="score">12</div><div class="mod">+1</div></div>
+      <div class="ability-box"><div class="abbr">CHA</div><div class="score">11</div><div class="mod">+0</div></div>
     </div>
 
     <div class="section-label">Saving Throws <span class="ownership-tag system">system</span></div>
-    <div class="save-row">
-      <div class="prof-dot proficient"></div>
-      <div class="name">Intelligence</div>
-      <div class="bonus">+7</div>
-    </div>
-    <div class="save-row">
-      <div class="prof-dot proficient"></div>
-      <div class="name">Wisdom</div>
-      <div class="bonus">+4</div>
-    </div>
-    <div class="save-row">
-      <div class="prof-dot"></div>
-      <div class="name">Strength</div>
-      <div class="bonus">+0</div>
-    </div>
-    <div class="save-row">
-      <div class="prof-dot"></div>
-      <div class="name">Dexterity</div>
-      <div class="bonus">+2</div>
-    </div>
-    <div class="save-row">
-      <div class="prof-dot"></div>
-      <div class="name">Constitution</div>
-      <div class="bonus">+1</div>
-    </div>
-    <div class="save-row">
-      <div class="prof-dot"></div>
-      <div class="name">Charisma</div>
-      <div class="bonus">+0</div>
-    </div>
+    <div class="save-row"><div class="prof-dot proficient"></div><div class="name" style="flex:1;font-size:12px;color:#ccc">Intelligence</div><div style="font-size:12px;font-weight:600;color:#4a9eff">+7</div></div>
+    <div class="save-row"><div class="prof-dot proficient"></div><div class="name" style="flex:1;font-size:12px;color:#ccc">Wisdom</div><div style="font-size:12px;font-weight:600;color:#4a9eff">+4</div></div>
+    <div class="save-row"><div class="prof-dot"></div><div class="name" style="flex:1;font-size:12px;color:#ccc">Strength</div><div style="font-size:12px;font-weight:600;color:#4a9eff">+0</div></div>
+    <div class="save-row"><div class="prof-dot"></div><div class="name" style="flex:1;font-size:12px;color:#ccc">Dexterity</div><div style="font-size:12px;font-weight:600;color:#4a9eff">+2</div></div>
+    <div class="save-row"><div class="prof-dot"></div><div class="name" style="flex:1;font-size:12px;color:#ccc">Constitution</div><div style="font-size:12px;font-weight:600;color:#4a9eff">+1</div></div>
+    <div class="save-row"><div class="prof-dot"></div><div class="name" style="flex:1;font-size:12px;color:#ccc">Charisma</div><div style="font-size:12px;font-weight:600;color:#4a9eff">+0</div></div>
 
     <div class="section-label">Skills <span class="ownership-tag system">system</span></div>
-    <div class="skill-row">
-      <div class="prof-dot proficient"></div>
-      <div class="name">Arcana</div>
-      <div class="ability-tag">INT</div>
-      <div class="bonus">+7</div>
-    </div>
-    <div class="skill-row">
-      <div class="prof-dot proficient"></div>
-      <div class="name">History</div>
-      <div class="ability-tag">INT</div>
-      <div class="bonus">+7</div>
-    </div>
-    <div class="skill-row">
-      <div class="prof-dot proficient"></div>
-      <div class="name">Investigation</div>
-      <div class="ability-tag">INT</div>
-      <div class="bonus">+7</div>
-    </div>
-    <div class="skill-row">
-      <div class="prof-dot"></div>
-      <div class="name">Perception</div>
-      <div class="ability-tag">WIS</div>
-      <div class="bonus">+1</div>
-    </div>
-    <div class="skill-row">
-      <div class="prof-dot"></div>
-      <div class="name">Stealth</div>
-      <div class="ability-tag">DEX</div>
-      <div class="bonus">+2</div>
-    </div>
-    <div class="skill-row">
-      <div class="prof-dot"></div>
-      <div class="name">Persuasion</div>
-      <div class="ability-tag">CHA</div>
-      <div class="bonus">+0</div>
-    </div>
+    <div class="skill-row"><div class="prof-dot proficient"></div><div class="name">Arcana</div><div class="ability-tag">INT</div><div class="bonus">+7</div></div>
+    <div class="skill-row"><div class="prof-dot proficient"></div><div class="name">History</div><div class="ability-tag">INT</div><div class="bonus">+7</div></div>
+    <div class="skill-row"><div class="prof-dot proficient"></div><div class="name">Investigation</div><div class="ability-tag">INT</div><div class="bonus">+7</div></div>
+    <div class="skill-row"><div class="prof-dot"></div><div class="name">Perception</div><div class="ability-tag">WIS</div><div class="bonus">+1</div></div>
+    <div class="skill-row"><div class="prof-dot"></div><div class="name">Stealth</div><div class="ability-tag">DEX</div><div class="bonus">+2</div></div>
+    <div class="skill-row"><div class="prof-dot"></div><div class="name">Persuasion</div><div class="ability-tag">CHA</div><div class="bonus">+0</div></div>
 
-    <div class="section-label" style="margin-top:16px">Quick Reference</div>
-    <div class="stat-row rollable">
-      <div class="label">Initiative</div>
-      <div class="value">+2 <span class="roll-hint">tap to roll</span></div>
-    </div>
-    <div class="stat-row">
-      <div class="label">Proficiency Bonus</div>
-      <div class="value">+3</div>
-    </div>
-    <div class="stat-row">
-      <div class="label">Speed</div>
-      <div class="value">30 ft</div>
-    </div>
-    <div class="stat-row">
-      <div class="label">Passive Perception</div>
-      <div class="value">11</div>
-    </div>
-    <div class="stat-row">
-      <div class="label">Passive Investigation</div>
-      <div class="value">17</div>
-    </div>
+    <div class="section-label" style="margin-top:12px">Quick Reference</div>
+    <div class="stat-row rollable"><div class="label">Initiative</div><div class="value">+2</div></div>
+    <div class="stat-row"><div class="label">Speed</div><div class="value">30 ft</div></div>
+    <div class="stat-row"><div class="label">Passive Perception</div><div class="value">11</div></div>
+    <div class="stat-row"><div class="label">Passive Investigation</div><div class="value">17</div></div>
   </div>
 
   <!-- ═══ VITALS TAB ═══ -->
@@ -1145,51 +992,39 @@ body {
         <button class="hp-btn plus">+1</button>
         <button class="hp-btn plus">+5</button>
       </div>
-      <div class="hp-temp">
-        <span>Temp HP</span>
-        <span class="value">0</span>
-      </div>
+      <div class="hp-temp"><span>Temp HP</span><span class="value">0</span></div>
     </div>
 
     <div class="section-label">Armor Class <span class="ownership-tag system">system</span></div>
     <div class="ac-block">
-      <div class="ac-shield">
-        <div class="number">15</div>
-        <div class="label">AC</div>
-      </div>
+      <div class="ac-shield"><div class="number">15</div><div class="aclabel">AC</div></div>
       <div class="ac-details">
         <div class="line">Mage Armor (13 + DEX)</div>
-        <div class="line" style="font-size:11px;color:#666">No armor equipped</div>
+        <div class="line" style="font-size:10px;color:#555">No armor equipped</div>
       </div>
     </div>
 
-    <div class="section-label">Attacks <span class="ownership-tag system">system</span> <span style="font-size:10px;color:#3a3a4a;text-transform:none;letter-spacing:0">tap to roll</span></div>
+    <div class="section-label">Attacks <span class="ownership-tag system">system</span> <span class="hint-text">tap to roll</span></div>
     <div class="attack-card">
       <div class="attack-icon">&#9876;</div>
-      <div class="attack-info">
-        <div class="attack-name">Dagger</div>
-        <div class="attack-stats"><span>+5</span> to hit | <span>1d4+2</span> piercing</div>
-      </div>
-      <div class="attack-roll-hint">d20</div>
+      <div class="attack-info"><div class="attack-name">Dagger</div><div class="attack-stats"><span>+5</span> to hit | <span>1d4+2</span> piercing | finesse</div></div>
+      <div class="roll-hint">d20</div>
     </div>
     <div class="attack-card">
       <div class="attack-icon">&#10040;</div>
-      <div class="attack-info">
-        <div class="attack-name">Fire Bolt</div>
-        <div class="attack-stats"><span>+7</span> to hit | <span>2d10</span> fire | 120ft</div>
-      </div>
-      <div class="attack-roll-hint">d20</div>
+      <div class="attack-info"><div class="attack-name">Fire Bolt</div><div class="attack-stats"><span>+7</span> to hit | <span>2d10</span> fire | 120ft</div></div>
+      <div class="roll-hint">d20</div>
     </div>
 
     <div class="section-label">Conditions <span class="ownership-tag ai">AI</span></div>
     <div class="condition-chips">
-      <div class="condition-chip conc">&#9679; Concentrating: Mage Armor <span class="condition-duration">8h</span></div>
+      <div class="condition-chip conc">&#9679; Mage Armor <span class="condition-duration">8h</span></div>
     </div>
-    <div style="font-size:12px;color:#555;padding:0 4px 8px">No active conditions &mdash; tap to add manually</div>
+    <div style="font-size:11px;color:#555;padding:0 0 6px">No conditions &mdash; tap to add manually</div>
 
-    <div class="section-label">Hit Dice <span class="ownership-tag system">system</span></div>
+    <div class="section-label">Hit Dice</div>
     <div class="hit-dice-row">
-      <span style="font-size:13px;color:#8a8a9a;width:40px">d6</span>
+      <span style="font-size:12px;color:#8a8a9a;width:32px">d6</span>
       <div class="dice-pips">
         <div class="dice-pip available"></div>
         <div class="dice-pip available"></div>
@@ -1197,50 +1032,27 @@ body {
         <div class="dice-pip used"></div>
         <div class="dice-pip used"></div>
       </div>
-      <span style="font-size:12px;color:#4a9eff;margin-left:auto">3/5</span>
-      <span style="font-size:11px;color:#555;margin-left:4px">tap to heal ~d6+1</span>
+      <span style="font-size:11px;color:#4a9eff;margin-left:auto">3/5</span>
+      <span style="font-size:10px;color:#555;margin-left:3px">tap to heal ~d6+1</span>
     </div>
 
     <div class="section-label">Death Saves <span class="ownership-tag ai">AI</span></div>
     <div class="death-saves">
-      <div class="ds-group">
-        <div class="ds-label">&#9829;</div>
-        <div class="ds-pips">
-          <div class="ds-pip success">&#9829;</div>
-          <div class="ds-pip success">&#9829;</div>
-          <div class="ds-pip success">&#9829;</div>
-        </div>
-      </div>
-      <div class="ds-group">
-        <div class="ds-label">&#9760;</div>
-        <div class="ds-pips">
-          <div class="ds-pip fail">&#9760;</div>
-          <div class="ds-pip fail">&#9760;</div>
-          <div class="ds-pip fail">&#9760;</div>
-        </div>
-      </div>
+      <div class="ds-group"><div style="font-size:11px;color:#8a8a9a;margin-right:2px">&#9829;</div><div class="ds-pips"><div class="ds-pip success">&#9829;</div><div class="ds-pip success">&#9829;</div><div class="ds-pip success">&#9829;</div></div></div>
+      <div class="ds-group"><div style="font-size:11px;color:#8a8a9a;margin-right:2px">&#9760;</div><div class="ds-pips"><div class="ds-pip fail">&#9760;</div><div class="ds-pip fail">&#9760;</div><div class="ds-pip fail">&#9760;</div></div></div>
     </div>
 
     <div class="section-label">Exhaustion <span class="ownership-tag ai">AI</span></div>
     <div class="exhaustion-pips">
-      <div class="exh-pip">1</div>
-      <div class="exh-pip">2</div>
-      <div class="exh-pip">3</div>
-      <div class="exh-pip">4</div>
-      <div class="exh-pip">5</div>
-      <div class="exh-pip">6</div>
-      <span style="font-size:12px;color:#555;margin-left:auto">None</span>
+      <div class="exh-pip">1</div><div class="exh-pip">2</div><div class="exh-pip">3</div><div class="exh-pip">4</div><div class="exh-pip">5</div><div class="exh-pip">6</div>
+      <span style="font-size:11px;color:#555;margin-left:auto">None</span>
     </div>
 
-    <!-- FAMILIAR — lives in Vitals since it has HP/AC -->
     <div class="section-label">Familiar <span class="ownership-tag ai">AI</span></div>
     <div class="familiar-card">
       <div class="familiar-header">
         <div class="familiar-icon">&#128056;</div>
-        <div>
-          <div class="familiar-name">Quill</div>
-          <div class="familiar-type">Owl &middot; Find Familiar</div>
-        </div>
+        <div><div class="familiar-name">Quill</div><div class="familiar-type">Owl &middot; Find Familiar</div></div>
       </div>
       <div class="familiar-stats">
         <div class="familiar-stat">HP <span class="val">1/1</span><div class="familiar-hp-bar"><div class="familiar-hp-fill"></div></div></div>
@@ -1249,210 +1061,166 @@ body {
       </div>
     </div>
 
-    <!-- REST BUTTONS -->
     <div class="section-label">Rest</div>
     <div class="rest-buttons">
-      <div class="rest-btn">
-        <div class="icon">&#9788;</div>
-        Short Rest
-        <div class="hint">Hit dice + Arcane Recovery</div>
-      </div>
-      <div class="rest-btn">
-        <div class="icon">&#9790;</div>
-        Long Rest
-        <div class="hint">Full HP, slots, hit dice</div>
-      </div>
+      <div class="rest-btn"><div class="icon">&#9788;</div>Short Rest<div class="rest-hint">Hit dice + recovery</div></div>
+      <div class="rest-btn"><div class="icon">&#9790;</div>Long Rest<div class="rest-hint">Full HP, slots, dice</div></div>
     </div>
   </div>
 
   <!-- ═══ SPELLS TAB ═══ -->
   <div class="tab-content" id="tab-spells">
-    <!-- Spellcasting stats — Spell Save DC + Spell Attack -->
     <div class="section-label">Spellcasting <span class="ownership-tag system">system</span></div>
     <div class="spellcasting-stats">
-      <div class="sc-stat">
-        <div class="sc-label">Spell Save DC</div>
-        <div class="sc-value">15</div>
-        <div class="sc-source">8 + Prof + INT</div>
-      </div>
-      <div class="sc-stat rollable">
-        <div class="sc-label">Spell Attack</div>
-        <div class="sc-value">+7</div>
-        <div class="sc-source">Prof + INT &middot; tap to roll</div>
-      </div>
-      <div class="sc-stat">
-        <div class="sc-label">Ability</div>
-        <div class="sc-value">INT</div>
-        <div class="sc-source">+4 modifier</div>
-      </div>
+      <div class="sc-stat"><div class="sc-label">Spell Save DC</div><div class="sc-value">15</div><div class="sc-source">8 + Prof + INT</div></div>
+      <div class="sc-stat rollable"><div class="sc-label">Spell Attack</div><div class="sc-value">+7</div><div class="sc-source">tap to roll</div></div>
+      <div class="sc-stat"><div class="sc-label">Ability</div><div class="sc-value">INT</div><div class="sc-source">+4 modifier</div></div>
     </div>
 
-    <!-- Concentration pinned spell -->
     <div class="conc-pinned">
       <div class="conc-icon">&#9679;</div>
-      <div class="conc-info">
-        <div class="conc-label">Concentrating</div>
-        <div class="conc-spell-name">Mage Armor</div>
-      </div>
+      <div class="conc-info"><div class="conc-label">Concentrating</div><div class="conc-spell-name">Mage Armor</div></div>
       <div class="conc-end">End</div>
     </div>
 
+    <div class="browse-compendium">&#128218; Browse Compendium</div>
+
+    <div class="spell-notes">&#9998; Spellcasting Notes &mdash; tap to expand</div>
+
     <div class="section-label">Spell Slots</div>
-    <div class="slot-bar">
-      <div class="slot-level">1st</div>
-      <div class="slot-pips">
-        <div class="slot-pip available"></div>
-        <div class="slot-pip available"></div>
-        <div class="slot-pip used"></div>
-        <div class="slot-pip used"></div>
-      </div>
-      <span style="font-size:12px;color:#8a8a9a">2/4</span>
-    </div>
-    <div class="slot-bar">
-      <div class="slot-level">2nd</div>
-      <div class="slot-pips">
-        <div class="slot-pip available"></div>
-        <div class="slot-pip available"></div>
-        <div class="slot-pip available"></div>
-      </div>
-      <span style="font-size:12px;color:#8a8a9a">3/3</span>
-    </div>
-    <div class="slot-bar">
-      <div class="slot-level">3rd</div>
-      <div class="slot-pips">
-        <div class="slot-pip available"></div>
-        <div class="slot-pip available"></div>
-      </div>
-      <span style="font-size:12px;color:#8a8a9a">2/2</span>
-    </div>
+    <div class="slot-bar"><div class="slot-level">1st</div><div class="slot-pips"><div class="slot-pip available"></div><div class="slot-pip available"></div><div class="slot-pip used"></div><div class="slot-pip used"></div></div><span style="font-size:11px;color:#8a8a9a">2/4</span></div>
+    <div class="slot-bar"><div class="slot-level">2nd</div><div class="slot-pips"><div class="slot-pip available"></div><div class="slot-pip available"></div><div class="slot-pip available"></div></div><span style="font-size:11px;color:#8a8a9a">3/3</span></div>
+    <div class="slot-bar"><div class="slot-level">3rd</div><div class="slot-pips"><div class="slot-pip available"></div><div class="slot-pip available"></div></div><span style="font-size:11px;color:#8a8a9a">2/2</span></div>
 
     <div class="section-label">Cantrips</div>
+    <!-- Collapsed cantrips -->
     <div class="spell-card">
-      <div class="spell-level-badge cantrip">C</div>
-      <div class="spell-info">
-        <div class="spell-name">Fire Bolt</div>
-        <div class="spell-meta">Evocation | 1 action | 120 ft</div>
+      <div class="spell-header">
+        <div class="spell-level-badge cantrip">C</div>
+        <div class="spell-info"><div class="spell-name">Fire Bolt</div></div>
+        <div class="spell-tag cantrip-tag">Cantrip</div>
+        <div class="spell-expand">&#9660;</div>
       </div>
     </div>
+    <!-- Expanded cantrip example -->
     <div class="spell-card">
-      <div class="spell-level-badge cantrip">C</div>
-      <div class="spell-info">
-        <div class="spell-name">Prestidigitation</div>
-        <div class="spell-meta">Transmutation | 1 action | 10 ft</div>
+      <div class="spell-header">
+        <div class="spell-level-badge cantrip">C</div>
+        <div class="spell-info"><div class="spell-name">Prestidigitation</div></div>
+        <div class="spell-tag cantrip-tag">Cantrip</div>
+        <div class="spell-expand">&#9650;</div>
+      </div>
+      <div class="spell-detail">
+        <div class="spell-meta">1 action &middot; 10 ft &middot; Up to 1 hour</div>
+        <div class="spell-components"><span class="comp">V</span><span class="comp">S</span></div>
+        <div class="spell-desc">Minor magical tricks and distractions. Create sensory effects, clean/soil objects, warm/chill/flavor materials, create small images or symbols.</div>
       </div>
     </div>
+    <div class="spell-card"><div class="spell-header"><div class="spell-level-badge cantrip">C</div><div class="spell-info"><div class="spell-name">Mending</div></div><div class="spell-tag cantrip-tag">Cantrip</div><div class="spell-expand">&#9660;</div></div></div>
+
+    <div class="section-label">1st Level</div>
+    <!-- Expanded 1st-level spell example (Message-style layout the player requested) -->
     <div class="spell-card">
-      <div class="spell-level-badge cantrip">C</div>
-      <div class="spell-info">
-        <div class="spell-name">Mending</div>
-        <div class="spell-meta">Transmutation | 1 minute | Touch</div>
+      <div class="spell-header">
+        <div class="spell-level-badge">1</div>
+        <div class="spell-info"><div class="spell-name">Shield</div></div>
+        <div class="spell-tag school-tag">Abjuration</div>
+        <div class="spell-expand">&#9650;</div>
+      </div>
+      <div class="spell-detail">
+        <div class="spell-meta">1 reaction &middot; Self &middot; 1 round</div>
+        <div class="spell-components"><span class="comp">V</span><span class="comp">S</span></div>
+        <div class="spell-desc">+5 bonus to AC until the start of your next turn, including against the triggering attack. No effect from Magic Missile.</div>
+      </div>
+    </div>
+    <div class="spell-card"><div class="spell-header"><div class="spell-level-badge">1</div><div class="spell-info"><div class="spell-name">Magic Missile</div></div><div class="spell-tag school-tag">Evocation</div><div class="spell-expand">&#9660;</div></div></div>
+    <div class="spell-card"><div class="spell-header"><div class="spell-level-badge">1</div><div class="spell-info"><div class="spell-name">Mage Armor</div></div><div class="spell-tag school-tag">Abjuration</div><div class="spell-expand">&#9660;</div></div></div>
+    <!-- Expanded spell with V, S, M to show material component badge -->
+    <div class="spell-card">
+      <div class="spell-header">
+        <div class="spell-level-badge">1</div>
+        <div class="spell-info"><div class="spell-name">Find Familiar</div></div>
+        <div class="spell-tag school-tag">Conjuration</div>
+        <div class="spell-expand">&#9650;</div>
+      </div>
+      <div class="spell-detail">
+        <div class="spell-meta">1 hour &middot; 10 ft &middot; Instantaneous</div>
+        <div class="spell-components"><span class="comp">V</span><span class="comp">S</span><span class="comp">M</span></div>
+        <div class="spell-desc">Summon a familiar — a spirit in animal form (owl, cat, etc.). Can communicate telepathically within 100 ft. Can deliver touch spells. Costs 10 gp of charcoal, incense, and herbs consumed in a brass brazier.</div>
       </div>
     </div>
 
-    <div class="section-label">Known Spells</div>
+    <div class="section-label">2nd Level</div>
+    <div class="spell-card"><div class="spell-header"><div class="spell-level-badge">2</div><div class="spell-info"><div class="spell-name">Misty Step</div></div><div class="spell-tag school-tag">Conjuration</div><div class="spell-expand">&#9660;</div></div></div>
+    <div class="spell-card"><div class="spell-header"><div class="spell-level-badge">2</div><div class="spell-info"><div class="spell-name">Invisibility</div></div><div class="spell-tag school-tag">Illusion</div><div class="spell-expand">&#9660;</div></div></div>
+
+    <div class="section-label">3rd Level</div>
     <div class="spell-card">
-      <div class="spell-level-badge">1</div>
-      <div class="spell-info">
-        <div class="spell-name">Shield</div>
-        <div class="spell-meta">Abjuration | 1 reaction | Self</div>
+      <div class="spell-header">
+        <div class="spell-level-badge">3</div>
+        <div class="spell-info"><div class="spell-name">Fireball</div></div>
+        <div class="spell-tag school-tag">Evocation</div>
+        <div class="spell-expand">&#9650;</div>
       </div>
-    </div>
-    <div class="spell-card">
-      <div class="spell-level-badge">1</div>
-      <div class="spell-info">
-        <div class="spell-name">Magic Missile</div>
-        <div class="spell-meta">Evocation | 1 action | 120 ft</div>
-      </div>
-    </div>
-    <div class="spell-card">
-      <div class="spell-level-badge">1</div>
-      <div class="spell-info">
-        <div class="spell-name">Mage Armor</div>
-        <div class="spell-meta">Abjuration | 1 action | Touch</div>
-      </div>
-    </div>
-    <div class="spell-card">
-      <div class="spell-level-badge">2</div>
-      <div class="spell-info">
-        <div class="spell-name">Misty Step</div>
-        <div class="spell-meta">Conjuration | 1 bonus | Self</div>
-      </div>
-    </div>
-    <div class="spell-card">
-      <div class="spell-level-badge">3</div>
-      <div class="spell-info">
-        <div class="spell-name">Fireball</div>
-        <div class="spell-meta">Evocation | 1 action | 150 ft</div>
+      <div class="spell-detail">
+        <div class="spell-meta">1 action &middot; 150 ft &middot; Instantaneous</div>
+        <div class="spell-components"><span class="comp">V</span><span class="comp">S</span><span class="comp">M</span></div>
+        <div class="spell-desc">20-ft radius sphere of fire. Each creature makes DEX save — 8d6 fire damage, half on success. Ignites flammable objects. Tiny ball of bat guano and sulfur.</div>
       </div>
     </div>
   </div>
 
   <!-- ═══ FEATURES TAB ═══ -->
   <div class="tab-content" id="tab-features">
-    <div class="section-label">Class Features <span class="ownership-tag system">system</span></div>
-    <div class="feature-card">
-      <div class="feature-header">
-        <div class="feature-name">Arcane Recovery</div>
-        <div class="feature-source">Wizard 1</div>
+    <div class="section-label">Class Features &amp; Feats <span class="ownership-tag system">system</span></div>
+    <div style="background:#1a1a2e;border-radius:6px;padding:10px">
+      <div class="feature-item">
+        <span class="feature-name-inline">ARCANE RECOVERY</span><span class="feature-source-inline">Wizard 1</span>
+        <div class="feature-desc-inline">Once per day on a short rest, recover up to 2 levels worth of spell slots.</div>
       </div>
-      <div class="feature-desc">Once per day during a short rest, recover spell slots with combined level equal to half your wizard level (rounded up).</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-header">
-        <div class="feature-name">Improved Minor Illusion</div>
-        <div class="feature-source">Illusionist 2</div>
+      <div class="feature-item">
+        <span class="feature-name-inline">IMPROVED MINOR ILLUSION</span><span class="feature-source-inline">Illusionist 2</span>
+        <div class="feature-desc-inline">Cast Minor Illusion with sound and image simultaneously.</div>
       </div>
-      <div class="feature-desc">When you cast Minor Illusion, you can create both a sound and an image with a single casting.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-header">
-        <div class="feature-name">Malleable Illusions</div>
-        <div class="feature-source">Illusionist 6</div>
+      <div class="feature-item">
+        <span class="feature-name-inline">MALLEABLE ILLUSIONS</span><span class="feature-source-inline">Illusionist 6</span>
+        <div class="feature-desc-inline">When you cast an illusion spell with a duration of 1 minute or longer, you can use your action to change the nature of that illusion.</div>
       </div>
-      <div class="feature-desc">When you cast an illusion spell with a duration of 1 minute or longer, you can use your action to change the nature of that illusion.</div>
-    </div>
-
-    <div class="section-label">Racial Traits <span class="ownership-tag system">system</span></div>
-    <div class="feature-card">
-      <div class="feature-header">
-        <div class="feature-name">Darkvision</div>
-        <div class="feature-source">Half-Elf</div>
+      <div class="feature-item">
+        <span class="feature-name-inline">WAR CASTER</span><span class="feature-source-inline">Feat (Lvl 4)</span>
+        <div class="feature-desc-inline">Advantage on CON saves for concentration. Can cast spells as opportunity attacks. Somatic components with hands full.</div>
       </div>
-      <div class="feature-desc">See in dim light within 60 feet as if bright light, and in darkness as if dim light.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-header">
-        <div class="feature-name">Fey Ancestry</div>
-        <div class="feature-source">Half-Elf</div>
+      <div class="feature-item">
+        <span class="feature-name-inline">DARKVISION</span><span class="feature-source-inline">Half-Elf</span>
+        <div class="feature-desc-inline">See in dim light within 60 feet as if bright light, and in darkness as if dim light.</div>
       </div>
-      <div class="feature-desc">Advantage on saving throws against being charmed, and magic can't put you to sleep.</div>
+      <div class="feature-item">
+        <span class="feature-name-inline">FEY ANCESTRY</span><span class="feature-source-inline">Half-Elf</span>
+        <div class="feature-desc-inline">Advantage on saving throws against being charmed, and magic can't put you to sleep.</div>
+      </div>
     </div>
 
     <div class="section-label">Resources</div>
-    <div class="resource-row">
-      <div class="resource-name">Arcane Recovery</div>
-      <div class="resource-pips">
-        <div class="resource-pip available"></div>
-      </div>
+    <div class="resource-row"><div class="resource-name">Arcane Recovery</div><div class="resource-pips"><div class="resource-pip available"></div></div></div>
+
+    <div class="section-label">Languages</div>
+    <div style="display:flex;flex-wrap:wrap;gap:3px;">
+      <div class="bio-tag">Common</div>
+      <div class="bio-tag">Elvish</div>
+      <div class="bio-tag">Draconic</div>
     </div>
 
-    <div class="section-label">Feats</div>
-    <div class="feature-card">
-      <div class="feature-header">
-        <div class="feature-name">War Caster</div>
-        <div class="feature-source">Feat (Lvl 4)</div>
-      </div>
-      <div class="feature-desc">Advantage on CON saves for concentration. Can cast spells as opportunity attacks. Somatic components with hands full.</div>
-    </div>
-
-    <div class="section-label">Proficiencies <span class="ownership-tag system">system</span></div>
-    <div style="display:flex;flex-wrap:wrap;gap:4px;">
+    <div class="section-label">Equipment Proficiencies</div>
+    <div style="display:flex;flex-wrap:wrap;gap:3px;">
       <div class="bio-tag">Daggers</div>
       <div class="bio-tag">Darts</div>
       <div class="bio-tag">Slings</div>
       <div class="bio-tag">Quarterstaffs</div>
       <div class="bio-tag">Light Crossbows</div>
     </div>
+
+    <div class="section-label">Skill Proficiencies</div>
+    <div style="font-size:11px;color:#aaa;padding:4px 0">Arcana +7, History +7, Investigation +7, Insight +4</div>
   </div>
 
   <!-- ═══ EQUIPMENT TAB ═══ -->
@@ -1464,69 +1232,97 @@ body {
     </div>
 
     <div class="section-label">Equipped</div>
-    <div class="equip-section">
-      <div class="equip-card">
-        <div class="equip-icon">&#128481;</div>
-        <div class="equip-info">
-          <div class="equip-name">Dagger</div>
-          <div class="equip-detail">1d4 piercing | Finesse, Light, Thrown</div>
-        </div>
-        <div class="equip-qty">x2</div>
+    <div class="equip-card">
+      <div class="equip-icon">&#9876;</div>
+      <div class="equip-info">
+        <div class="equip-name">Dagger</div>
+        <div class="equip-detail">1d4 piercing | Finesse, Light, Thrown</div>
       </div>
-      <div class="equip-card">
-        <div class="equip-icon">&#128144;</div>
-        <div class="equip-info">
-          <div class="equip-name">Arcane Focus (Crystal)</div>
-          <div class="equip-detail">Spellcasting focus</div>
-        </div>
+      <div class="item-type-tag weapon">weapon</div>
+      <div class="equip-qty">x2</div>
+    </div>
+    <div class="equip-card">
+      <div class="equip-icon">&#128144;</div>
+      <div class="equip-info">
+        <div class="equip-name">Arcane Focus (Crystal)</div>
+        <div class="equip-detail">Spellcasting focus</div>
       </div>
+      <div class="item-type-tag tool">tool</div>
     </div>
 
     <div class="section-label">Carried</div>
-    <div class="equip-section">
-      <div class="equip-card">
-        <div class="equip-icon">&#128218;</div>
-        <div class="equip-info">
-          <div class="equip-name">Spellbook</div>
-          <div class="equip-detail">3 lb</div>
-        </div>
+    <div class="equip-card">
+      <div class="equip-icon">&#128218;</div>
+      <div class="equip-info">
+        <div class="equip-name">Spellbook</div>
+        <div class="equip-detail">Contains wizard spells known</div>
       </div>
-      <div class="equip-card">
-        <div class="equip-icon">&#127890;</div>
-        <div class="equip-info">
-          <div class="equip-name">Explorer's Pack</div>
-          <div class="equip-detail">Bedroll, mess kit, tinderbox, torches, rations, waterskin</div>
-        </div>
+      <div class="item-type-tag tool">tool</div>
+    </div>
+    <div class="equip-card">
+      <div class="equip-icon">&#127890;</div>
+      <div class="equip-info">
+        <div class="equip-name">Scholar's Pack</div>
+        <div class="equip-detail">Backpack, lore items</div>
       </div>
-      <div class="equip-card">
-        <div class="equip-icon">&#129497;</div>
-        <div class="equip-info">
-          <div class="equip-name">Component Pouch</div>
-          <div class="equip-detail">Spell components</div>
-        </div>
+      <div class="item-type-tag supply">supply</div>
+    </div>
+    <div class="equip-card">
+      <div class="equip-icon">&#127807;</div>
+      <div class="equip-info">
+        <div class="equip-name">Silver-Leaf</div>
+        <div class="equip-detail">Rare herb, alchemical</div>
+        <div class="equip-acquired">+4 Day 18, 06:00 AM &mdash; Mere of Dead Men</div>
       </div>
-      <div class="equip-card">
-        <div class="equip-icon">&#128176;</div>
-        <div class="equip-info">
-          <div class="equip-name">Potion of Healing</div>
-          <div class="equip-detail">2d4+2 HP | Consumable</div>
-        </div>
-        <div class="equip-qty">x3</div>
+      <div class="item-type-tag herb">herb</div>
+    </div>
+    <div class="equip-card">
+      <div class="equip-icon">&#128142;</div>
+      <div class="equip-info">
+        <div class="equip-name">Loose Gems</div>
+        <div class="equip-detail">Assorted uncut gemstones</div>
+        <div class="equip-acquired">+12 Day 25, 10:15 PM &mdash; Hunting Lodge</div>
       </div>
+      <div class="item-type-tag treasure">treasure</div>
+    </div>
+    <div class="equip-card">
+      <div class="equip-icon">&#128176;</div>
+      <div class="equip-info">
+        <div class="equip-name">Potion of Healing</div>
+        <div class="equip-detail">2d4+2 HP | Consumable</div>
+      </div>
+      <div class="item-type-tag item">item</div>
+      <div class="equip-qty">x3</div>
+    </div>
+    <div class="equip-card">
+      <div class="equip-icon">&#128302;</div>
+      <div class="equip-info">
+        <div class="equip-name">Ley-Line Relay</div>
+        <div class="equip-detail">Magical component</div>
+        <div class="equip-acquired">+1 Day 20, 01:30 AM &mdash; Escape Tunnel</div>
+      </div>
+      <div class="item-type-tag component">component</div>
     </div>
 
-    <div style="text-align:center;padding:16px;color:#555;font-size:12px;">
-      Tap item for details | Wagon & Hoard in Cargo tab
+    <!-- CURRENCY — quick view at bottom -->
+    <div class="section-label">Party Currency</div>
+    <div class="currency-bar">
+      <div class="currency-item"><div class="coin-label">CP</div><div class="coin-val">0</div></div>
+      <div class="currency-sep">|</div>
+      <div class="currency-item"><div class="coin-label">SP</div><div class="coin-val">0</div></div>
+      <div class="currency-sep">|</div>
+      <div class="currency-item"><div class="coin-label">GP</div><div class="coin-val gold">1,115</div></div>
+      <div class="currency-sep">|</div>
+      <div class="currency-item"><div class="coin-label">PP</div><div class="coin-val">0</div></div>
     </div>
+    <div class="currency-link">Tap for full Treasury &rarr;</div>
   </div>
 
   <!-- ═══ BIO TAB ═══ -->
   <div class="tab-content" id="tab-bio">
     <div class="race-card">
       <div class="race-name">Half-Elf</div>
-      <div class="bio-section" style="background:transparent;padding:0;margin:0">
-        <div class="text" style="font-size:12px;">Walking in two worlds but truly belonging to neither, half-elves combine what some say are the best qualities of their elf and human parents: human curiosity, inventiveness, and ambition tempered by the refined senses, love of nature, and artistic tastes of the elves.</div>
-      </div>
+      <div style="font-size:11px;color:#aaa;line-height:1.4;">Walking in two worlds but truly belonging to neither, half-elves combine the best qualities of their elf and human parents.</div>
       <div class="race-traits">
         <div class="race-trait">Darkvision 60ft</div>
         <div class="race-trait">Fey Ancestry</div>
@@ -1539,59 +1335,51 @@ body {
 
     <div class="section-label">Identity <span class="ownership-tag system">system</span></div>
     <div class="bio-section">
-      <div class="bio-field-row">
-        <div class="label">Background</div>
-        <div class="value">Sage</div>
-      </div>
-      <div class="bio-field-row">
-        <div class="label">Alignment</div>
-        <div class="value">Chaotic Good</div>
-      </div>
-      <div class="bio-field-row">
-        <div class="label">Languages</div>
-        <div class="value">
-          <div class="bio-tags" style="justify-content:flex-end">
-            <div class="bio-tag">Common</div>
-            <div class="bio-tag">Elvish</div>
-            <div class="bio-tag">Draconic</div>
-          </div>
-        </div>
-      </div>
+      <div class="bio-field-row"><div class="label">Background</div><div class="value">Sage</div></div>
+      <div class="bio-field-row"><div class="label">Alignment</div><div class="value">Chaotic Good</div></div>
     </div>
 
     <div class="section-label">Appearance <span class="ownership-tag player">player</span></div>
     <div class="bio-section">
-      <div class="text">Tall and lean with sharp features softened by an easy smile. Silver-streaked dark hair pulled back in a loose ponytail. Pale green eyes that seem to glow faintly when casting. Wears a deep blue traveling cloak over simple scholar's robes.</div>
+      <div class="text">Tall and lean with sharp features softened by an easy smile. Silver-streaked dark hair pulled back in a loose ponytail. Pale green eyes that seem to glow faintly when casting. Deep blue traveling cloak over scholar's robes.</div>
       <div class="edit-hint">&#9998; tap to edit</div>
     </div>
 
     <div class="section-label">Personality <span class="ownership-tag player">player</span></div>
     <div class="bio-section">
-      <div class="text">Endlessly curious and slightly absent-minded. Collects odd trinkets and scribbles notes in margins. Speaks to his familiar more than to people. Genuinely kind but can be oblivious to social cues when deep in thought.</div>
+      <div class="text">Endlessly curious and slightly absent-minded. Collects odd trinkets and scribbles notes in margins. Speaks to his familiar more than to people.</div>
       <div class="edit-hint">&#9998; tap to edit</div>
     </div>
 
     <div class="section-label">Backstory <span class="ownership-tag player">player</span></div>
     <div class="bio-section">
-      <div class="text">Raised in a wizard's library in Waterdeep, Valenns grew up surrounded by books and magic but starved for adventure. When a merchant caravan needed a guard who could also identify magical artifacts, he jumped at the chance. Three years on the road later, he's seen more of the world than most scholars dream of...</div>
+      <div class="text">Raised in a wizard's library in Waterdeep. When a merchant caravan needed a guard who could identify magical artifacts, he jumped at the chance. Three years on the road later...</div>
       <div class="edit-hint">&#9998; tap to edit</div>
     </div>
 
     <div class="section-label">Notes <span class="ownership-tag player">player</span></div>
     <div class="bio-section">
-      <div class="text" style="color:#888;font-style:italic">No notes yet. Tap to add.</div>
+      <div class="text" style="color:#666;font-style:italic">No notes yet. Tap to add.</div>
       <div class="edit-hint">&#9998; tap to edit</div>
     </div>
+  </div>
+
+  <!-- EDIT BAR (shown on editable tabs) -->
+  <div class="edit-bar" id="editBar" style="display:none">
+    <div class="edit-btn">&#9998; Edit</div>
   </div>
 </div>
 
 <script>
+const editableTabs = ['spells', 'equipment', 'bio'];
 document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     tab.classList.add('active');
     document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    document.getElementById('editBar').style.display =
+      editableTabs.includes(tab.dataset.tab) ? 'flex' : 'none';
   });
 });
 </script>
