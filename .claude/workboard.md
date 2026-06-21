@@ -451,10 +451,10 @@ The game supports fluid handoff between solo and multi-player within a session. 
 | Aspect | Single player | Multi player |
 |--------|--------------|--------------|
 | Character selection | "All" — player controls all PCs | Each player selects their PC(s) |
-| Gate 5 (Unmentioned PCs) | Disabled — solo player is responsible for all PCs | Active — only flags PCs belonging to current player |
+| Gate 5 (Unmentioned PCs) | Active — checks all PCs against the solo player. If AI acts for a PC the player didn't mention, it's flagged. | Active — only flags PCs belonging to current player |
 | Previously On | Triggers on AFK return | Triggers on AFK return AND on player handoff (mode switch) |
-| Push notifications | Not needed (one device) | Active — notifies when other player acts |
-| OOC tab | Table talk with yourself (mainly Ask DM) | Table talk between players + Ask DM |
+| Push notifications | Off (one device) | Active — notifies when other player acts |
+| OOC tab | Available for Ask DM questions (no table talk — you're talking to yourself). Send button hidden, Ask DM button only. | Table talk between players + Ask DM |
 | Input bar label | "What do you do?" | "What does [PC name] do?" |
 
 **Mode switch triggers Previously On:** When toggling from single → multi (a player is rejoining), the app triggers Previously On so the returning player gets caught up. Example: Mom played solo for an hour, Dad picks up his phone, toggles multi → sees "Previously On" recap of what happened while he was away.
@@ -496,7 +496,7 @@ Gate 5 (Unmentioned PC Actions) must be player-aware, not just PC-aware.
 - AI responds: Valenns searches (good), Aria stands guard (Dad's PC — not flagged by Gate 5 for Mom), Slasher checks the door (Dad's PC — not flagged for Mom).
 - If the AI also narrated "Valenns casts Detect Magic" but Mom didn't say that — Gate 5 flags it, because Valenns is Mom's PC and Mom didn't mention casting.
 
-**In single player mode:** Gate 5 is disabled entirely. The solo player is responsible for all PCs and explicitly accepted that in the mode selection. Flagging every response would be noise.
+**In single player mode:** Gate 5 checks all PCs against the solo player. One player controls everyone, so if the player says "Valenns searches the room" and the AI narrates Aria and Slasher doing things the player didn't say — that's still a flag. The solo player still deserves to decide what each PC does.
 
 #### Input field during streaming
 
@@ -583,7 +583,7 @@ A session where: player types an action → AI responds with narrative + mechani
 - [ ] **Gate 2: Combat turn enforcement** — When `combat.active`, enforce initiative order. One PC per AI response. Track actions used per turn (action/bonus/reaction/movement). Reject multi-turn responses. Prompt next PC after current turn resolves.
 - [ ] **Gate 3: Drift detectors** — Scan narrative for state changes without matching mechanics. Gold/items/NPCs/HP/conditions/location/time. Flag with warning pill. Offer to auto-generate missing mechanic. Don't auto-reject.
 - [ ] **Gate 4: Scene transition** — Detect location/time changes in mechanics. Hold transition, show narrative up to that point. Prompt player: "Ready to move on?" Player-initiated moves lower the gate.
-- [ ] **Gate 5: Unmentioned PC actions** — Parse player message for PC names as actors. Parse AI response for PC names as actors. Diff. Flag PCs the AI acted for that the player didn't mention. Distinguish actions from perceptions. **Multi-player aware:** only flags PCs belonging to the current player (from PlayerOnboard selection). Other players' PCs are not flagged. Disabled entirely in single-player mode. See "Gate 5 multi-player awareness" in chat spec.
+- [ ] **Gate 5: Unmentioned PC actions** — Parse player message for PC names as actors. Parse AI response for PC names as actors. Diff. Flag PCs the AI acted for that the player didn't mention. Distinguish actions from perceptions. **Player-aware:** in single-player, checks all PCs against the solo player. In multi-player, only flags PCs belonging to the current player (from PlayerOnboard selection). See "Gate 5 multi-player awareness" in chat spec.
 - [ ] **Gate 6: Spell validation** — Check spell name against caster's known spells. Check slot availability. Auto-resolve concentration conflicts. Requires system-owned spell data populated by char creation / level-up.
 - [ ] **Gate 7: Skill check requirement** — Map action keywords in player messages to expected checks. If AI resolves without requesting a roll, flag it. Three-condition test: uncertain outcome + meaningful consequences + requires skill.
 - [ ] **Gate 8: XP audit** — After `quest_done`, combat end, `chapter_add`: check if `xp:` mechanic was emitted in same or previous 2 responses. Flag if missing.
