@@ -8,6 +8,8 @@ import ContextBanner from './ContextBanner.jsx';
 import SituationBar from './SituationBar.jsx';
 import Combat from './Combat.jsx';
 import Rewind from './Rewind.jsx';
+import TTS from './TTS.jsx';
+import { autoRead, speak } from '../../audio/browserTTS.js';
 
 export default function Chat() {
   const [tab, setTab] = createSignal('narrative');
@@ -19,10 +21,29 @@ export default function Chat() {
     return store.campaign[key] || [];
   };
 
+  const lastAssistantMsg = () => {
+    const msgs = messages();
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      if (msgs[i].role === 'assistant') return msgs[i].content;
+    }
+    return '';
+  };
+
+  let wasSending = false;
+
   createEffect(() => {
     messages();
     const sending = isSending();
-    void sending;
+
+    if (wasSending && !sending && autoRead()) {
+      const msgs = messages();
+      const last = msgs[msgs.length - 1];
+      if (last && last.role === 'assistant') {
+        speak(last.content);
+      }
+    }
+    wasSending = sending;
+
     setTimeout(() => {
       if (messagesDiv) {
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -49,6 +70,7 @@ export default function Chat() {
         >
           Ask DM
         </button>
+        <TTS text={lastAssistantMsg()} />
       </div>
 
       <div class="chat-messages" ref={messagesDiv}>
