@@ -892,25 +892,26 @@ h1 {
     <div class="mode-box active-mode">
       <div class="mode-name">Play</div>
       <div class="mode-list">
-        &bull; Chat canvas (always visible)<br>
+        &bull; Chat (Narrative + OOC tabs)<br>
         &bull; Context banner<br>
-        &bull; Quest/situation bar<br>
+        &bull; Situation bar<br>
         &bull; Character tiles<br>
         &bull; Combat overlay<br>
         &bull; Quick actions FAB<br>
-        &bull; Dice roller<br>
+        &bull; Dice roller (inline)<br>
         &bull; Roll requests<br>
         &bull; TTS toggle<br>
-        &bull; Rewind controls<br><br>
+        &bull; Rewind controls<br>
+        &bull; Push notifications<br><br>
         <em style="color:var(--gold-bright)">Primary mode during sessions</em>
       </div>
     </div>
     <div class="mode-box">
       <div class="mode-name">Reference</div>
       <div class="mode-list">
-        &bull; Character sheet (6 tabs)<br>
-        &bull; Journal (quests/NPCs/locs)<br>
-        &bull; Cargo (inventory/wagon)<br>
+        &bull; CharSheet (Stats/Vitals/Spells/Features/Equipment/Bio)<br>
+        &bull; Journal (quests/NPCs/locs/secrets)<br>
+        &bull; Cargo (carried/wagon/hoard)<br>
         &bull; Treasury (coins/log)<br>
         &bull; Compendium (spells/feats)<br>
         &bull; Glossary (97 terms)<br><br>
@@ -958,23 +959,22 @@ h1 {
     </div>
   </div>
 
-  <div class="section-title">Bottom Nav</div>
-  <div class="box-grid cols-4">
+  <div class="section-title">Bottom Nav (3 items)</div>
+  <div class="box-grid cols-3">
     <div class="box" style="text-align:center">
       <div class="icon">📦</div>
       <div class="title">Cargo</div>
-    </div>
-    <div class="box" style="text-align:center">
-      <div class="icon">💰</div>
-      <div class="title">Treasury</div>
+      <div class="desc">Inventory, wagon, hoard. Treasury accessible via link.</div>
     </div>
     <div class="box" style="text-align:center">
       <div class="icon">📔</div>
       <div class="title">Journal</div>
+      <div class="desc">Quests, NPCs, locations, consequences, secrets.</div>
     </div>
     <div class="box" style="text-align:center">
       <div class="icon">⚙</div>
       <div class="title">Settings</div>
+      <div class="desc">Providers, TTS, themes. Gateway to Manage mode.</div>
     </div>
   </div>
 
@@ -990,7 +990,7 @@ h1 {
     </div>
     <div class="box">
       <div class="title">Character Sheet</div>
-      <div class="desc">Tap character tile → slides up. 6 tabs: Core, Skills, Combat, Spells, Gear, Features.</div>
+      <div class="desc">Tap character tile → slides up. 6 tabs: Stats, Vitals, Spells, Features, Equipment, Bio.</div>
     </div>
   </div>
 
@@ -1005,82 +1005,97 @@ h1 {
   <div class="tree">
 <span class="dir">src/</span>
 ├── <span class="dir">ai/</span>
-│   ├── <span class="file">providers.js</span> <span class="comment">— Gemini, OpenRouter wrappers</span>
-│   ├── <span class="file">prompt.js</span> <span class="comment">— buildPrompt(), genLedger()</span>
-│   ├── <span class="file">mechanics.js</span> <span class="comment">— 65 keys, extract/validate/apply</span>
-│   ├── <span class="file">engine.js</span> <span class="comment">— sendMsg(), callAI(), core loop</span>
-│   ├── <span class="file">contracts.js</span> <span class="comment">— AI contracts, load/inject</span>
-│   └── <span class="file">memory.js</span> <span class="comment">— summarize, prune, archive</span>
+│   ├── <span class="file">providers.js</span> <span class="comment">— Gemini, OpenRouter wrappers, retry, fallback</span>
+│   ├── <span class="file">prompt.js</span> <span class="comment">— buildPrompt(), genLedger(), OOC context injection</span>
+│   ├── <span class="file">mechanics.js</span> <span class="comment">— 65 keys, dispatch table, extract/validate(9 gates)/apply</span>
+│   ├── <span class="file">engine.js</span> <span class="comment">— sendMsg(), callAI(), streaming, stop generation</span>
+│   ├── <span class="file">contracts.js</span> <span class="comment">— AI contracts (Narrative + Ask DM voices)</span>
+│   ├── <span class="file">memory.js</span> <span class="comment">— summarize, prune, Previously On, archive</span>
+│   └── <span class="file">index.js</span>
 │
 ├── <span class="dir">content/</span>
 │   ├── <span class="file">fileParser.js</span> <span class="comment">— PDF, epub, mobi</span>
 │   ├── <span class="file">webParser.js</span> <span class="comment">— web reference import</span>
 │   ├── <span class="file">mdParser.js</span> <span class="comment">— markdown/text</span>
 │   ├── <span class="file">jsonParser.js</span> <span class="comment">— AI-generated JSON</span>
-│   └── <span class="file">normalizer.js</span> <span class="comment">— common schema output</span>
+│   ├── <span class="file">normalizer.js</span> <span class="comment">— common schema output</span>
+│   └── <span class="file">index.js</span>
 │
 ├── <span class="dir">data/</span>
-│   ├── <span class="file">firebase.js</span> <span class="comment">— sync, merge, offline fallback</span>
-│   ├── <span class="file">local.js</span> <span class="comment">— IndexedDB compendiums</span>
+│   ├── <span class="file">firebase.js</span> <span class="comment">— init, auth, sync, merge, offline fallback</span>
+│   ├── <span class="file">local.js</span> <span class="comment">— IndexedDB wrapper (compendiums)</span>
 │   ├── <span class="file">bundles.js</span> <span class="comment">— content pack gen + import</span>
-│   └── <span class="file">migrate.js</span> <span class="comment">— state version migration</span>
+│   ├── <span class="file">seed.js</span> <span class="comment">— first-launch seeding from static JSON</span>
+│   ├── <span class="file">migrate.js</span> <span class="comment">— state version migration</span>
+│   └── <span class="file">index.js</span>
 │
 ├── <span class="dir">state/</span>
-│   ├── <span class="file">store.js</span> <span class="comment">— SolidJS signals, ownership enforcement</span>
-│   ├── <span class="file">campaign.js</span> <span class="comment">— campaign data shape + reset</span>
-│   └── <span class="file">system.js</span> <span class="comment">— system data (survives swap)</span>
+│   ├── <span class="file">store.js</span> <span class="comment">— SolidJS signals, ownership enforcement, owned setters</span>
+│   ├── <span class="file">campaign.js</span> <span class="comment">— campaign data shape + resetCampaign()</span>
+│   ├── <span class="file">system.js</span> <span class="comment">— system data (survives swap)</span>
+│   └── <span class="file">index.js</span>
 │
 ├── <span class="dir">ui/</span>
 │   ├── <span class="dir">play/</span>
-│   │   ├── <span class="file">Chat.jsx</span> <span class="comment">— chat canvas (Narrative + OOC tabs)</span>
-│   │   ├── <span class="file">ContextBanner.jsx</span> <span class="comment">— location, weather, time</span>
-│   │   ├── <span class="file">QuestBar.jsx</span> <span class="comment">— quest chips, pinned main quest</span>
-│   │   ├── <span class="file">CharTiles.jsx</span> <span class="comment">— PC HP tiles</span>
-│   │   ├── <span class="file">Combat.jsx</span> <span class="comment">— zone grid, initiative, tokens</span>
-│   │   ├── <span class="file">InputBar.jsx</span> <span class="comment">— message input + send</span>
-│   │   ├── <span class="file">QuickActions.jsx</span> <span class="comment">— FAB, common actions</span>
-│   │   ├── <span class="file">DiceRoller.jsx</span> <span class="comment">— d4-d20</span>
-│   │   ├── <span class="file">RollRequest.jsx</span> <span class="comment">— system roll prompts</span>
-│   │   ├── <span class="file">Rewind.jsx</span> <span class="comment">— checkpoint controls</span>
-│   │   └── <span class="file">TTS.jsx</span> <span class="comment">— text-to-speech</span>
+│   │   ├── <span class="file">Chat.jsx</span> <span class="comment">— two-tab chat (Narrative + OOC)</span>
+│   │   ├── <span class="file">ContextBanner.jsx</span> <span class="comment">— location, weather, time (tappable)</span>
+│   │   ├── <span class="file">SituationBar.jsx</span> <span class="comment">— main quest pinned, consequences, player quests</span>
+│   │   ├── <span class="file">CharTiles.jsx</span> <span class="comment">— PC HP tiles (tap → sheet)</span>
+│   │   ├── <span class="file">Combat.jsx</span> <span class="comment">— zone grid, initiative strip, tokens</span>
+│   │   ├── <span class="file">InputBar.jsx</span> <span class="comment">— per-tab input (send/stop vs send/Ask DM)</span>
+│   │   ├── <span class="file">QuickActions.jsx</span> <span class="comment">— FAB, common play actions</span>
+│   │   ├── <span class="file">DiceRoller.jsx</span> <span class="comment">— d4-d20 (inline icon)</span>
+│   │   ├── <span class="file">RollRequest.jsx</span> <span class="comment">— pre-filled roll prompts from AI</span>
+│   │   ├── <span class="file">Rewind.jsx</span> <span class="comment">— checkpoint/rewind (mid-session)</span>
+│   │   └── <span class="file">TTS.jsx</span> <span class="comment">— text-to-speech toggle</span>
 │   │
 │   ├── <span class="dir">reference/</span>
-│   │   ├── <span class="file">CharSheet.jsx</span> <span class="comment">— 6-tab sheet overlay</span>
-│   │   ├── <span class="file">Journal.jsx</span> <span class="comment">— quests, NPCs, locations, consequences</span>
-│   │   ├── <span class="file">Cargo.jsx</span> <span class="comment">— inventory, wagon, hoard</span>
-│   │   ├── <span class="file">Treasury.jsx</span> <span class="comment">— coins, income/expense log</span>
-│   │   ├── <span class="file">Compendium.jsx</span> <span class="comment">— spell/feat/item browser</span>
-│   │   └── <span class="file">Glossary.jsx</span> <span class="comment">— D&D term definitions</span>
+│   │   ├── <span class="file">CharSheet.jsx</span> <span class="comment">— 6 tabs: Stats/Vitals/Spells/Features/Equipment/Bio</span>
+│   │   ├── <span class="file">Journal.jsx</span> <span class="comment">— quests, NPCs, locations, consequences, secrets</span>
+│   │   ├── <span class="file">Cargo.jsx</span> <span class="comment">— carried (per-PC), wagon, hoard, encumbrance</span>
+│   │   ├── <span class="file">Treasury.jsx</span> <span class="comment">— coins, income/expense log, lifestyle</span>
+│   │   ├── <span class="file">Compendium.jsx</span> <span class="comment">— spell/feat/item browser (IndexedDB)</span>
+│   │   └── <span class="file">Glossary.jsx</span> <span class="comment">— 97 D&D term definitions</span>
 │   │
 │   ├── <span class="dir">setup/</span>
-│   │   ├── <span class="file">SessionZero.jsx</span>
-│   │   ├── <span class="file">CharCreate.jsx</span>
-│   │   ├── <span class="file">ContentImport.jsx</span>
-│   │   ├── <span class="file">CampaignConfig.jsx</span>
-│   │   └── <span class="file">PlayerOnboard.jsx</span>
+│   │   ├── <span class="file">SessionZero.jsx</span> <span class="comment">— campaign name, setting, narration style</span>
+│   │   ├── <span class="file">CharCreate.jsx</span> <span class="comment">— race, class, abilities, spells</span>
+│   │   ├── <span class="file">ContentImport.jsx</span> <span class="comment">— file/web/markdown/JSON import</span>
+│   │   ├── <span class="file">CampaignConfig.jsx</span> <span class="comment">— module selection, house rules</span>
+│   │   └── <span class="file">PlayerOnboard.jsx</span> <span class="comment">— identity, PC selection, push opt-in</span>
 │   │
 │   ├── <span class="dir">manage/</span>
-│   │   ├── <span class="file">Contracts.jsx</span> <span class="comment">— AI contract editor</span>
-│   │   ├── <span class="file">SessionReview.jsx</span>
-│   │   ├── <span class="file">DevTools.jsx</span> <span class="comment">— flags, state inspector</span>
-│   │   └── <span class="file">Settings.jsx</span> <span class="comment">— API keys, TTS, prefs</span>
+│   │   ├── <span class="file">Contracts.jsx</span> <span class="comment">— AI contract editor (code vs prompt enforced)</span>
+│   │   ├── <span class="file">SessionReview.jsx</span> <span class="comment">— archive, export, past sessions</span>
+│   │   ├── <span class="file">DevTools.jsx</span> <span class="comment">— state inspector, gate fire log</span>
+│   │   └── <span class="file">Settings.jsx</span> <span class="comment">— API keys, TTS, themes, narration style</span>
 │   │
 │   ├── <span class="dir">shared/</span>
-│   │   ├── <span class="file">MechPill.jsx</span> <span class="comment">— tappable mechanic pills</span>
+│   │   ├── <span class="file">MechPill.jsx</span> <span class="comment">— tappable mechanic pills (tap → source)</span>
 │   │   ├── <span class="file">Toast.jsx</span>
 │   │   ├── <span class="file">Modal.jsx</span> <span class="comment">— bottom sheet overlays</span>
-│   │   ├── <span class="file">Nav.jsx</span> <span class="comment">— bottom nav bar</span>
-│   │   └── <span class="file">LevelUp.jsx</span> <span class="comment">— event-driven wizard</span>
+│   │   ├── <span class="file">Nav.jsx</span> <span class="comment">— bottom nav: Cargo / Journal / Settings</span>
+│   │   └── <span class="file">LevelUp.jsx</span> <span class="comment">— event-driven wizard (XP threshold trigger)</span>
 │   │
-│   ├── <span class="file">App.jsx</span> <span class="comment">— root component, mode routing</span>
+│   ├── <span class="file">App.jsx</span> <span class="comment">— mode router, bottom nav</span>
 │   └── <span class="file">AppSimple.jsx</span> <span class="comment">— child-friendly entry point</span>
 │
 ├── <span class="dir">audio/</span>
 │   ├── <span class="file">browserTTS.js</span>
 │   └── <span class="file">elevenlabs.js</span>
 │
-├── <span class="file">main.js</span>
-└── <span class="file">style.css</span> <span class="comment">— 20 themes, global styles</span>
+├── <span class="file">main.js</span> <span class="comment">— mounts App, calls initData()</span>
+└── <span class="file">style.css</span> <span class="comment">— 20 themes as [data-theme] blocks</span>
+
+<span class="dir">data/</span> <span class="comment">— static JSON seed files (bundled)</span>
+├── <span class="file">xp-thresholds.json</span>
+├── <span class="file">level-up-fighter.json</span>
+├── <span class="file">level-up-rogue.json</span>
+├── <span class="file">level-up-bard.json</span>
+├── <span class="file">spells.json</span> <span class="comment">— 94 spells (cantrips–L2)</span>
+├── <span class="file">maneuvers.json</span> <span class="comment">— 16 Battle Master</span>
+├── <span class="file">feats.json</span> <span class="comment">— 44 (PHB + TCoE)</span>
+└── <span class="file">glossary.json</span> <span class="comment">— 97 D&D terms</span>
   </div>
 
 </div>
