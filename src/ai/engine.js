@@ -6,6 +6,7 @@ import { extractMechanics, validateMechanics, applyMechanics, buildMechReceipt, 
 import { ASK_DM_SYSTEM } from './contracts.js';
 import { pruneIfNeeded } from './memory.js';
 import { detectDrift } from './drift.js';
+import { runGate1, runGate2, advanceTurn } from './gates.js';
 
 let activeController = null;
 const [sending, setSending] = createSignal(false);
@@ -80,11 +81,30 @@ export async function sendMsg(text, options = {}) {
       if (driftWarnings.length) {
         setStore('campaign', 'narrative', assistantIdx, 'driftWarnings', driftWarnings);
       }
+
+      const gate1Flags = runGate1(fullResponse, applied, text);
+      const gate2Flags = runGate2(applied, fullResponse);
+      if (gate1Flags.length || gate2Flags.length) {
+        setStore('campaign', 'narrative', assistantIdx, 'gateFlags', [...gate1Flags, ...gate2Flags]);
+      }
+
+      if (store.campaign.combatState.active && !gate2Flags.length) {
+        const hasRoundAdvance = applied.some(m => m.key === 'round_advance');
+        const currentActor = store.campaign.combatState.initiative[store.campaign.combatState.currentTurn];
+        if (currentActor?.type === 'pc' && !hasRoundAdvance) {
+          advanceTurn();
+        }
+      }
     } else {
       const driftOpts = { playerMessage: text, characters: store.campaign.characters };
       const driftWarnings = detectDrift(fullResponse, [], driftOpts);
       if (driftWarnings.length) {
         setStore('campaign', 'narrative', assistantIdx, 'driftWarnings', driftWarnings);
+      }
+
+      const gate1Flags = runGate1(fullResponse, [], text);
+      if (gate1Flags.length) {
+        setStore('campaign', 'narrative', assistantIdx, 'gateFlags', gate1Flags);
       }
     }
 

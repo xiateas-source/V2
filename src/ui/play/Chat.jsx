@@ -127,6 +127,13 @@ export default function Chat() {
                   </For>
                 </div>
               </Show>
+              <Show when={msg.gateFlags?.length > 0}>
+                <div class="gate-flags">
+                  <For each={msg.gateFlags}>
+                    {(f) => <span class={`gate-flag gate-${f.gate}`}>{f.text}</span>}
+                  </For>
+                </div>
+              </Show>
               <Show when={msg.mechanics}>
                 <MechPills mechanics={msg.mechanics} />
               </Show>

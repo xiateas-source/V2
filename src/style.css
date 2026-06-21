@@ -1916,6 +1916,30 @@ body {
   font-weight: 600;
 }
 
+.gate-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: var(--spacing-xs);
+  padding-top: var(--spacing-xs);
+  border-top: 1px dashed var(--color-danger);
+}
+
+.gate-flag {
+  display: inline-block;
+  padding: 2px var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  font-size: 0.65rem;
+  background: var(--color-danger);
+  color: #fff;
+  font-weight: 600;
+}
+
+.gate-flag.gate-2 {
+  background: var(--color-warning);
+  color: var(--color-bg);
+}
+
 /* --- CHARACTER SHEET --- */
 
 .charsheet-page {
