@@ -153,7 +153,7 @@
 |----------|-----------|---------|
 | Town reputation system carried forward | Useful concept, didn't execute properly in v1. Needs proper implementation. Lives in Journal. AI-owned via mechanics. | 30 |
 | Secrets system — one home | v1 had campaign secrets AND dm secrets in multiple places. V2: one secrets model in Journal, with playerKnown/aiOnly flags. Law 4: data has one home. | 30 |
-| Three color modes (default, light, night) | Valued feature from v1. New palette TBD but mode switching stays. | 30 |
+| 20 color themes: 10 dark + 10 light | Replaces v1's three modes. Dark/Light toggle + cycle button in Settings rotates through 10 palettes per mode. Stored as `dark-0`..`dark-9`, `light-0`..`light-9`. Default: `dark-0` (Obsidian). All defined in `palette-sampler.html` and converted to CSS `[data-theme]` blocks. | 31 |
 | Prose dice rolling added to AI failures | AI rolls dice in narration instead of using mechanics system. Detection needed. | 30 |
 | Scenes/snippets cut | Being phased out — replaced by content import pipeline. | 30 |
 | Plugin system — icebox | Created accidentally in v1 (superpowers). Could support game-system plugins (Pathfinder, homebrew rules) someday. Not v2 priority. | 30 |

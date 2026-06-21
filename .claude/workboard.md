@@ -24,7 +24,7 @@
 - [ ] **State store** — `src/state/store.js`. SolidJS `createStore` with field ownership enforcement. Every field tagged `ai | player | system`. Setter functions that check ownership before writing. `campaign.js` for campaign data shape + `resetCampaign()`. `system.js` for system data shape.
 - [ ] **Firebase setup** — New Firebase project (separate from v1). `src/data/firebase.js` with init, auth (anonymous), realtime DB read/write. Offline fallback to localStorage. `src/data/local.js` with IndexedDB wrapper for compendium storage.
 - [ ] **Seed data loading** — On first launch (empty IndexedDB), populate from bundled JSON files derived from `v1-seed-data.md`: XP thresholds (L1–20), level-up data (Fighter/Rogue/Bard L2–10), Bard spell list, spell compendium (94 spells), 16 Battle Master maneuvers, 44 feats (PHB + TCoE), 97-term glossary. These are the v1 constants (SPELL_DB, LEVEL_UP_DATA, FEATS_DB, GLOSSARY) converted to IndexedDB records. Seeding runs before content pipeline exists — it's a one-time load from static JSON, not a parser.
-- [?] **Color palette** — Design session needed with UI visible. Three modes: default, light, night. v1 Soft Autumn not carrying forward. CSS custom properties ready in Phase 0 scaffold, placeholder values until palette chosen. **Blocks all UI phases (3–6)** — build with placeholders, swap values when palette is decided. This is a design task, not a code task.
+- [ ] **Color palette** — 20 themes total: 10 dark palettes + 10 light palettes. Two toggle buttons in Settings: Dark/Light mode switch + palette cycle button. Tapping the cycle button rotates through the 10 palettes within the current mode. All 20 defined as CSS custom property sets in `style.css`. Palette names stored in `system.settings.theme` as `dark-0` through `dark-9` and `light-0` through `light-9`. See palette spec below. v1 Soft Autumn not carrying forward.
 
 ### Scaffold spec
 
@@ -322,7 +322,7 @@ const DEFAULT_SYSTEM = {
 
   // --- App settings ---
   settings: {
-    theme: 'default',         // 'default' | 'light' | 'night'
+    theme: 'dark-0',           // 'dark-0'..'dark-9' | 'light-0'..'light-9'
     ttsEnabled: false,
     ttsVoice: null,           // browser voice URI or ElevenLabs voice ID
     pushEnabled: false,
@@ -410,27 +410,37 @@ IndexedDB stores reference content that doesn't change during play. Populated by
 
 ### Color palette spec
 
-**Status:** Design task, not code task. Blocks visual polish, not functionality.
+**20 themes:** 10 dark + 10 light. Player cycles through them with a button in Settings.
 
-**What Phase 0 creates:** CSS custom properties with placeholder values. Gray-scale placeholders that make the UI usable but ugly — motivates choosing a real palette.
+**How it works:**
+- `<html data-theme="dark-0">` (or `dark-1`, `light-3`, etc.)
+- Each theme is a `[data-theme="..."]` block in `style.css` that sets the same CSS custom properties
+- Settings has two controls: Dark/Light toggle + "Next palette" cycle button
+- Current theme stored in `system.settings.theme` (e.g., `"dark-4"`)
+- On app load, `data-theme` attribute set from stored preference
 
+**CSS custom properties (same for all 20 themes):**
 ```css
-:root, [data-theme="default"] {
-  --color-bg: #1a1a2e;
-  --color-surface: #16213e;
-  --color-surface-alt: #0f3460;
-  --color-text: #e0e0e0;
-  --color-text-muted: #888;
-  --color-accent: #e94560;
-  --color-accent-dim: #c73e54;
-  --color-success: #4ecca3;
-  --color-warning: #f0a500;
-  --color-danger: #e94560;
-  --color-border: #333;
-  --color-input-bg: #0f0f1a;
-  --color-dm-bubble: #1e1e3a;
-  --color-player-bubble: #2a2a4a;
+--color-bg             /* page/app background */
+--color-surface        /* card/panel background */
+--color-surface-alt    /* alternate surface (hover, nested) */
+--color-text           /* primary text */
+--color-text-muted     /* secondary/hint text */
+--color-accent         /* primary action color (buttons, links, active nav) */
+--color-accent-dim     /* accent hover/pressed state */
+--color-success        /* positive (hp heal, quest done, item add) */
+--color-warning        /* caution (low slots, timer expiring) */
+--color-danger         /* negative (hp damage, quest fail, error) */
+--color-border         /* dividers, input borders */
+--color-input-bg       /* text input background */
+--color-dm-bubble      /* DM message bubble */
+--color-player-bubble  /* player message bubble */
+--color-nav-bg         /* bottom nav background */
+```
 
+**Shared properties (don't change per theme):**
+```css
+:root {
   --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'SF Mono', 'Fira Code', monospace;
   --font-size-sm: 0.85rem;
@@ -446,29 +456,18 @@ IndexedDB stores reference content that doesn't change during play. Populated by
   --radius-md: 12px;
   --radius-lg: 20px;
 
-  --touch-target: 44px;       /* minimum tap target per Apple HIG */
+  --touch-target: 44px;
   --nav-height: 56px;
   --input-height: 48px;
 }
-
-[data-theme="light"] {
-  --color-bg: #f5f5f5;
-  --color-surface: #ffffff;
-  --color-text: #1a1a1a;
-  --color-text-muted: #666;
-  /* ... override dark values ... */
-}
-
-[data-theme="night"] {
-  --color-bg: #0a0a0a;
-  --color-surface: #111;
-  --color-text: #c0c0c0;
-  --color-accent: #cc3344;
-  /* ... dimmer, redder for dark rooms ... */
-}
 ```
 
-**These are placeholders.** The real palette comes from a design session where you can see the colors on screen. The values above are functional (dark mode default, readable contrast) but not the final brand.
+**The 20 themes** are defined in `palette-sampler.html` with full color values and mini chat mockups for visual review. The agent building Phase 0 should convert those 20 palette objects into `[data-theme="dark-0"]` through `[data-theme="light-9"]` CSS blocks.
+
+**Dark palettes (0-9):** Obsidian, Dragonscale, Grimoire, Hearthstone, Midnight Blue, Blood Moon, Ironwood, Duskfall, Shadowfell, Candlelight
+**Light palettes (0-9):** Parchment, Ivory Tower, Meadow, Sandstone, Frost, Rosewood, Daybreak, Lavender, Driftwood, Sea Glass
+
+Default on first launch: `dark-0` (Obsidian).
 
 ### Phase 0 acceptance test
 
@@ -479,7 +478,7 @@ When Phase 0 is done, the app should:
 4. State store exists with campaign + system shapes, ownership enforcement works (test: calling `aiSet('characters.0.name', 'x')` throws OwnershipError)
 5. Firebase connects (anonymous auth), reads/writes to a test path succeed
 6. IndexedDB opens, seed data loads on first visit (97 glossary terms, 94 spells, 44 feats, XP thresholds, 3 classes of level-up data, 16 maneuvers)
-7. Theme toggle works — `data-theme` attribute changes, colors swap
+7. Theme cycling works — `data-theme` attribute changes between all 20 themes, colors swap
 8. All import paths resolve (no broken imports from the empty barrel files)
 
 ---

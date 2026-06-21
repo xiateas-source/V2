@@ -133,7 +133,7 @@ src/
 - Drift detectors catch AI narrating state changes without emitting mechanics
 - Campaign data resets on swap. System data survives.
 - Mobile only — no desktop layouts, no hover interactions, portrait mode, one-handed
-- Three color modes (default, light, night) — new palette TBD, v1 Soft Autumn not carrying forward
+- 20 color themes (10 dark + 10 light) — Dark/Light toggle + palette cycle button in Settings
 
 ---
 
