@@ -1,10 +1,45 @@
 import { createSignal, For, Show } from 'solid-js';
-import { store } from '../../state/index.js';
+import { store, setStore } from '../../state/index.js';
 
 export default function CharSheet(props) {
   const [activePC, setActivePC] = createSignal(props.initialPC || 0);
+  const [editingHP, setEditingHP] = createSignal(false);
+  const [hpInput, setHpInput] = createSignal('');
+  const [addingCondition, setAddingCondition] = createSignal(false);
+  const [condInput, setCondInput] = createSignal('');
 
   const pc = () => store.campaign.characters[activePC()] || null;
+
+  function startHPEdit() {
+    setHpInput(String(pc()?.hp || 0));
+    setEditingHP(true);
+  }
+
+  function commitHP() {
+    const val = parseInt(hpInput(), 10);
+    if (!isNaN(val)) {
+      const idx = activePC();
+      const clamped = Math.max(0, Math.min(val, store.campaign.characters[idx].hpMax));
+      setStore('campaign', 'characters', idx, 'hp', clamped);
+    }
+    setEditingHP(false);
+  }
+
+  function removeCondition(condIdx) {
+    const idx = activePC();
+    const updated = store.campaign.characters[idx].conditions.filter((_, i) => i !== condIdx);
+    setStore('campaign', 'characters', idx, 'conditions', updated);
+  }
+
+  function addCondition() {
+    const name = condInput().trim();
+    if (!name) return;
+    const idx = activePC();
+    const updated = [...store.campaign.characters[idx].conditions, { name }];
+    setStore('campaign', 'characters', idx, 'conditions', updated);
+    setCondInput('');
+    setAddingCondition(false);
+  }
 
   const abilityMod = (score) => {
     const mod = Math.floor((score - 10) / 2);
@@ -57,9 +92,21 @@ export default function CharSheet(props) {
           </div>
 
           <div class="cs-vitals">
-            <div class="cs-vital-box">
+            <div class="cs-vital-box cs-vital-editable" onClick={() => !editingHP() && startHPEdit()}>
               <span class="cs-vital-label">HP</span>
-              <span class="cs-vital-value">{pc().hp}/{pc().hpMax}</span>
+              <Show when={editingHP()} fallback={
+                <span class="cs-vital-value">{pc().hp}/{pc().hpMax}</span>
+              }>
+                <input
+                  class="cs-hp-input"
+                  type="number"
+                  value={hpInput()}
+                  onInput={(e) => setHpInput(e.target.value)}
+                  onBlur={commitHP}
+                  onKeyDown={(e) => e.key === 'Enter' && commitHP()}
+                  ref={(el) => setTimeout(() => el.select(), 0)}
+                />
+              </Show>
             </div>
             <div class="cs-vital-box">
               <span class="cs-vital-label">AC</span>
@@ -98,16 +145,36 @@ export default function CharSheet(props) {
             </div>
           </div>
 
-          <Show when={pc().conditions.length > 0}>
-            <div class="cs-section">
-              <div class="cs-section-title">Conditions</div>
+          <div class="cs-section">
+            <div class="cs-section-title">
+              Conditions
+              <button class="cs-add-btn" onClick={() => setAddingCondition(true)}>+</button>
+            </div>
+            <Show when={pc().conditions.length > 0}>
               <div class="cs-tag-list">
                 <For each={pc().conditions}>
-                  {(c) => <span class="cs-tag cs-tag-condition">{c.name || c}</span>}
+                  {(c, idx) => (
+                    <span class="cs-tag cs-tag-condition cs-tag-removable" onClick={() => removeCondition(idx())}>
+                      {c.name || c} &times;
+                    </span>
+                  )}
                 </For>
               </div>
-            </div>
-          </Show>
+            </Show>
+            <Show when={addingCondition()}>
+              <div class="cs-cond-add">
+                <input
+                  class="cs-cond-input"
+                  placeholder="Condition name"
+                  value={condInput()}
+                  onInput={(e) => setCondInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && addCondition()}
+                  ref={(el) => setTimeout(() => el.focus(), 0)}
+                />
+                <button class="cs-cond-save" onClick={addCondition}>Add</button>
+              </div>
+            </Show>
+          </div>
 
           <Show when={pc().attacks?.length > 0}>
             <div class="cs-section">

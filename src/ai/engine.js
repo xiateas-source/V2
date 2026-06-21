@@ -75,12 +75,14 @@ export async function sendMsg(text, options = {}) {
         setStore('campaign', 'narrative', assistantIdx, 'mechanics', { applied, rejected });
       }
 
-      const driftWarnings = detectDrift(fullResponse, applied);
+      const driftOpts = { playerMessage: text, characters: store.campaign.characters };
+      const driftWarnings = detectDrift(fullResponse, applied, driftOpts);
       if (driftWarnings.length) {
         setStore('campaign', 'narrative', assistantIdx, 'driftWarnings', driftWarnings);
       }
     } else {
-      const driftWarnings = detectDrift(fullResponse, []);
+      const driftOpts = { playerMessage: text, characters: store.campaign.characters };
+      const driftWarnings = detectDrift(fullResponse, [], driftOpts);
       if (driftWarnings.length) {
         setStore('campaign', 'narrative', assistantIdx, 'driftWarnings', driftWarnings);
       }

@@ -5,6 +5,7 @@ import InputBar from './InputBar.jsx';
 import RollBar from './RollBar.jsx';
 import CharTiles from './CharTiles.jsx';
 import ContextBanner from './ContextBanner.jsx';
+import PreviouslyOn from './PreviouslyOn.jsx';
 import SituationBar from './SituationBar.jsx';
 import Combat from './Combat.jsx';
 import Rewind from './Rewind.jsx';
@@ -53,6 +54,7 @@ export default function Chat() {
 
   return (
     <div class="chat-container">
+      <PreviouslyOn />
       <ContextBanner />
       <CharTiles />
       <SituationBar />

@@ -4,11 +4,32 @@ const NPC_INTRO_PATTERNS = /\b(introduces?\s+(herself|himself|themselves)|"[^"]*
 const HP_NARRATION = /\b(takes?\s+\d+\s+(points?\s+of\s+)?damage|loses?\s+\d+\s+h(it\s*)?p(oints?)?|heals?\s+\d+)/i;
 const ROLL_IN_PROSE = /\b(rolls?\s+(a\s+)?\d+|rolled\s+(a\s+)?\d+|rolls?\s+a\s+natural|nat(ural)?\s+(20|1)|the\s+d(ice|20)\s+(shows?|lands?|comes?\s+up))/i;
 
-export function detectDrift(narrative, mechanics) {
+export function detectDrift(narrative, mechanics, opts = {}) {
   const warnings = [];
   if (!narrative) return warnings;
 
   const mechanicKeys = new Set((mechanics || []).map(m => m.key));
+
+  if (opts.playerMessage && opts.characters?.length > 1) {
+    const mentioned = new Set();
+    const msgLower = opts.playerMessage.toLowerCase();
+    for (const pc of opts.characters) {
+      if (msgLower.includes(pc.name.toLowerCase())) mentioned.add(pc.name);
+    }
+    if (mentioned.size > 0) {
+      const narrativeLower = narrative.toLowerCase();
+      const ACTION_VERBS = /\b(attacks?|casts?|swings?|fires?|shoots?|runs?|dashes?|moves?|sneaks?|picks?\s*up|grabs?|throws?|drinks?|uses?)\b/;
+      for (const pc of opts.characters) {
+        if (mentioned.has(pc.name)) continue;
+        const nameIdx = narrativeLower.indexOf(pc.name.toLowerCase());
+        if (nameIdx === -1) continue;
+        const vicinity = narrative.slice(nameIdx, nameIdx + 80);
+        if (ACTION_VERBS.test(vicinity)) {
+          warnings.push({ type: 'unmentioned_pc', text: `AI acted for ${pc.name} without player direction` });
+        }
+      }
+    }
+  }
 
   if (GOLD_PATTERNS.test(narrative)) {
     const hasGoldMech = mechanicKeys.has('income') || mechanicKeys.has('expense') || mechanicKeys.has('gp');
