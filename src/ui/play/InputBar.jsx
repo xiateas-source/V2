@@ -162,8 +162,13 @@ function exportResults() {
     narrative: c.narrative.map(m => ({ role: m.role, content: m.content, hasMechanics: !!m.mechanics })),
   };
   const text = JSON.stringify(out, null, 2);
+  const done = () => {
+    alert('Copied to clipboard — chat cleared');
+    setStore('campaign', 'narrative', []);
+    setStore('campaign', 'ooc', []);
+  };
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(text).then(() => alert('Copied to clipboard'));
+    navigator.clipboard.writeText(text).then(done);
   } else {
     const ta = document.createElement('textarea');
     ta.value = text;
@@ -171,7 +176,7 @@ function exportResults() {
     ta.select();
     document.execCommand('copy');
     document.body.removeChild(ta);
-    alert('Copied to clipboard');
+    done();
   }
 }
 
