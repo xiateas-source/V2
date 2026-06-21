@@ -146,7 +146,7 @@ function setField(path, value, owner) {
 - [ ] **Prompt builder** — `src/ai/prompt.js`. `buildPrompt(state, contracts, ledger, consequences)` assembles system prompt. `genLedger(state)` compiles compact state summary (v1 format preserved — see v1-engine-reference.md). Prompt budget tracking (token estimate). Active consequences with timers injected.
 - [ ] **Mechanics pipeline** — `src/ai/mechanics.js`. Dispatch table registry. `extractMechanics(response)` parses mechanics block. `validateMechanics(changes, state)` checks ownership + basic validity. `applyMechanics(valid, state)` writes through owned setters. Start with the v1 mechanic keys (all 65 from v1-engine-reference.md).
 - [ ] **Engine orchestrator** — `src/ai/engine.js`. `sendMsg()` runs the full loop. `callAI()` handles retry + fallback with streaming. Double-send guard. Context injection for corrections. **Stop generation:** cancel button on input bar during AI streaming. Stops the stream, keeps text received so far, discards any partial mechanics block (incomplete mechanics never apply). Works in both Narrative and Ask DM.
-- [ ] **Chat UI** — `src/ui/play/Chat.jsx`. Message list (player + AI). Markdown rendering in AI responses. Mechanics block parsed into mechanic pills (tappable, but tap targets come later). Auto-scroll. `src/ui/play/InputBar.jsx` — text input + send button.
+- [ ] **Chat UI** — `src/ui/play/Chat.jsx` + `InputBar.jsx`. Two-tab chat system (Narrative + OOC). See full chat system spec below.
 - [ ] **App shell** — `src/ui/App.jsx`. Mode routing (setup/play/reference/manage). Bottom nav stub (Cargo / Journal / Settings). Play mode as default after campaign exists.
 - [ ] **Contracts loader** — `src/ai/contracts.js`. Load contracts from state. Inject into buildPrompt. v1 contract format preserved (see v1-contract-reference.md). Default contracts seeded from v1.
 - [ ] **V2 AI contract text** — The actual system prompt content that `buildPrompt()` injects. Not code — this is a writing task. See spec below.
@@ -223,6 +223,115 @@ Player taps Ask DM in OOC
 ```
 
 **Acceptance test:** Write both contract texts. Narrative: run 5-message exchange, AI responds with vivid prose + correct mechanics blocks + narration style applied. Ask DM: ask 3 questions (rules lookup, theorycrafting, follow-up), AI answers precisely without advancing the game.
+
+### Chat system spec
+
+The chat is the play surface. Two tabs, multiple message types, streaming, sync, export.
+
+#### Two tabs
+
+**Narrative** — The game. `sendMsg()` → full core loop → mechanics emitted → state updates.
+- Player types actions, AI narrates with mechanics blocks
+- All enforcement gates run on AI responses
+- System messages appear inline (gate flags, roll requests, scene transitions, combat prompts)
+- Full chat history synced via Firebase, used in `buildPrompt()`
+
+**OOC** — Everything outside the game. Player text by default (no AI, no cost).
+- Ask DM button for on-demand AI (advisory only, no mechanics)
+- Ask DM responses appear in the OOC stream, visually distinct from player text
+- OOC history synced via Firebase (multi-device coordination)
+- Ask DM interception catches app issues before hitting AI
+
+#### Tab UX
+
+- Tab bar above the chat canvas: `[Narrative] [OOC]`
+- Active tab visually distinct (bold/underlined, accent color)
+- Unread count badge on inactive tab when messages arrive
+- Input bar changes per tab:
+  - **Narrative:** placeholder "What do you do?", send button, stop generation button (during streaming), dice roller icon
+  - **OOC:** placeholder "Talk to the party...", send button, Ask DM button (distinct from send — different icon/color). When Ask DM is tapped, the next message routes to AI instead of plain text
+- Tab switching is instant — both message lists stay in memory, no reload
+
+#### OOC → Narrative echo
+
+When Ask DM answers a question in OOC, a **one-line echo** appears in Narrative:
+`[OOC] Aria asked: "Can Slasher sneak attack with a thrown handaxe?" → DM: Yes, if within 30ft.`
+
+This keeps the Narrative player aware that a rules question was asked and answered without switching tabs. Echoes are:
+- Collapsed by default (one line), tappable to expand full answer
+- Visually muted (smaller font, dimmed) so they don't interrupt narrative flow
+- Not sent to the AI as context — they're display-only in Narrative. The AI doesn't see echoes in its prompt
+
+#### Message types
+
+```
+message: {
+  id: string,
+  tab: "narrative" | "ooc",
+  type: "player" | "ai" | "ask_dm" | "system" | "echo",
+  sender: string,          // PC name or "DM" or "System"
+  content: string,         // markdown text
+  mechanics: [],           // parsed mechanic objects (narrative AI only)
+  timestamp: number,       // for sync/ordering
+  inGameTime: string,      // "Day 7, 04:30 PM" from Campaign State
+  streaming: boolean,      // true while AI is still generating
+  cancelled: boolean,      // true if player stopped generation
+}
+```
+
+**Rendering by type:**
+- `player` — right-aligned bubble, player's PC name
+- `ai` (Narrative) — left-aligned, full width, markdown rendered, mechanic pills inline, term glossary auto-linked, citation linking active
+- `ask_dm` (OOC) — left-aligned, visually distinct from player text (DM icon, different background), citation linking active
+- `system` — centered, no bubble, muted styling. Includes: gate flags, roll request banners, scene transition prompts, combat turn prompts, XP audit flags, enforcement warnings. Tappable for detail/action.
+- `echo` — Narrative tab only. Collapsed one-liner, muted, tappable to expand
+
+#### Streaming
+
+AI responses stream token-by-token into the chat:
+- Markdown renders progressively as tokens arrive
+- Mechanic pills DO NOT render until streaming completes (can't parse a partial mechanics block)
+- Auto-scroll follows the streaming text
+- Stop generation button replaces send button during streaming
+- On cancel: keep received text, mark message as `cancelled: true`, discard any partial mechanics block, show "(generation stopped)" indicator
+- System messages from enforcement gates appear AFTER streaming completes and mechanics are parsed
+
+#### Chat persistence & sync
+
+- **Narrative history** → Firebase (`chatHistory`). Synced across devices. Used in `buildPrompt()`.
+- **OOC history** → Firebase (`oocHistory`). Synced across devices. Ask DM responses included.
+- **Multi-device merge** — Clock-independent strategy from v1. Messages ordered by server timestamp on write, client re-sorts on read. No message loss on concurrent writes from different devices.
+- **Pruning** — `memory.js` summarizes old Narrative messages when history exceeds token budget. Summaries stored as a special message type. Original messages archived (Session Review in manage mode can access full history).
+- **OOC pruning** — OOC history is lightweight (mostly short text). No summarization needed. Keep full history per campaign. Clear on campaign reset.
+
+#### Chat export
+
+Both tabs exportable for dev review:
+- **Moment export** — Select a target message → export N messages of context around it (like v1's export format). Includes: tab, timestamp, in-game time, sender, content, mechanics.
+- **Session export** — Full session dump. Narrative + OOC interleaved by timestamp. Markdown format.
+- **Dev tools integration** — Export available from DevTools (manage mode) and from long-press on any message in chat.
+
+#### System messages in Narrative
+
+Enforcement gates and game events produce system messages inline in chat:
+
+| Source | System message | Player action |
+|--------|---------------|---------------|
+| Gate 1: Roll confirmation | "DM resolved [PC]'s [Skill] without your roll." | Roll now / Accept |
+| Gate 2: Combat turn | "[PC], it's your turn." | Type action |
+| Gate 3: Drift detector | "DM said you found [item] but didn't log it." | Add mechanic / Dismiss |
+| Gate 4: Scene transition | "DM is moving to [location]. Ready?" | Confirm / Wait |
+| Gate 5: Unmentioned PC | "[PC] wasn't given instructions. DM wrote: [summary]." | Accept / Redirect |
+| Gate 6: Spell validation | "[PC] doesn't know [Spell]." | Acknowledge |
+| Gate 7: Skill check | "DM resolved [action] without a check." | Request roll / Accept |
+| Gate 8: XP audit | "No XP awarded for [event]." | Request XP / Dismiss |
+| Gate 9: Income/loot | "[Item] added but no gold value logged." | Appraise / Dismiss |
+| Roll request | "Roll Request: [Skill] ([PC]) | DC [X]" | Tap to roll |
+| Combat start | "Roll initiative!" | Tap to roll |
+| Level-up | "[PC] reached level [N]!" | Open wizard |
+| Previously On | Session recap card | Dismiss |
+
+System messages are actionable — each has one or two buttons. One tap resolves it. They don't accumulate — resolved system messages collapse or fade after action.
 
 ### Core loop acceptance test
 
