@@ -1,37 +1,58 @@
 # Session Log — Handoff Note
 
-## Session 32 · 2026-06-21
+## Session 33 · 2026-06-21
 
 ### Shipped
-- **Charsheet mockup v1 parity rewrite** — `charsheet-mockup.html` rewritten to match v1's information density: quick stats line, item type tags with color coding, acquisition metadata, currency on Equipment tab, browse compendium button, spell expand/collapse, full feature text
-- **V,S,M component badges** — Spell cards now show V, S, M as prominent purple pill badges on their own line, per explicit player request. Three expanded examples in mockup (Prestidigitation, Shield, Find Familiar, Fireball)
-- **Manual Override editor spec** — v1's "Advanced Editor" renamed to "Manual Override" — full form-based escape hatch for when the engine gets things wrong. Sub-tabs: Skills, Features, Attacks, Spells, Gear, Familiar. All edits audited.
-- **Derived bonuses decision** — V1's proficiency auto-calc was buggy (stored computed values that drifted). V2 derives all bonuses at render time: `mod = abilityMod + (isProficient ? profBonus : 0)`. Nothing stored, nothing stale.
-- **Expanded familiar stat block** — Tap-to-expand on Vitals tab: collapsed (name, status, HP/AC) → expanded (full 6-stat abilities, speeds, senses, skills, special abilities, action buttons). Gets its own conditional 7th tab when character has a familiar.
-- **Spec dependency map** — Added to workboard: what must be specced before each build phase. Key gap flagged: Journal data shapes (quests, NPCs, locations, consequences, secrets, town rep) are skeletal.
-- **Familiar data shape expanded** — Full stat block fields in campaign data shape
+- **Combat overlay** (`Combat.jsx`) — initiative order, HP bars, zone map, turn advancement button
+- **Rewind/Undo** (`Rewind.jsx`) — reverses all mechanics from last AI response (Law 2 enforcement)
+- **Character sheet overlay** (`CharSheet.jsx`) — full sheet: abilities, attacks, slots, spells, features, resources, inventory, proficiencies
+- **Drift detector** (`drift.js`) — flags AI narrating state without emitting mechanics (gold, items, NPCs, HP, rolls in prose)
+- **Browser TTS** (`browserTTS.js`, `TTS.jsx`) — Web Speech API, auto-read mode for hands-free play
+- **Firebase sync** (`sync.js`) — reactive 3s debounced sync, offline-first with localStorage fallback
+- **Dice roller** (`DiceRoller.jsx`) — quick d4-d100 buttons with nat 20/1 styling
+- **Compendium browser** (`Compendium.jsx`) — searchable spells/rules/glossary from IndexedDB, lazy-loaded in Journal
+- **Temp HP mechanic** — absorbs damage first, doesn't stack, cleared on long rest
+- **Hit dice spending** — HD use mechanic with CON mod healing
+- **Inspiration mechanic** — grant/remove via mechanics pipeline
+- **Exhaustion penalties** — disadvantage on ability checks at level 1+
+- **Death save tracking** in mechanics pipeline
+- **Long rest** — full HP, slot recovery, HD refresh (half), clear temp/exhaustion
+- **Combat initiative** — sorted by roll, round/turn tracking, round_advance mechanic
+- **Enhanced memory** — summaries preserve mechanics, 16 event retention
+- **CharTiles enhanced** — spell slot pips, exhaustion, death saves, temp HP, tap-to-source
+- **Combat prompt** — sorted initiative with >>> marker and [DOWN] status
 
-### Decisions Made (Session 32)
-- Manual Override editor kept (renamed from "Advanced Editor") — safety net, not primary path
-- All bonuses derived at render time, not stored (fixes v1 proficiency bugs)
-- Familiar gets conditional 7th charsheet tab (only appears when character has one)
-- Spec dependency rule: data shapes before the phase that writes to them, UI specs can wait
+### Decisions Made (Session 33)
+- TTS uses free Web Speech API (Law 5), ElevenLabs is future upgrade path
+- Firebase sync is reactive with 3s debounce, not on every state change
+- Drift detector warns but doesn't block — player sees yellow pills
+- Rewind reverses mechanics but keeps the message visible (crossed out)
+- Compendium is lazy-loaded tab in Journal, not a separate nav item
+- Combat overlay appears automatically when combatState.active = true
 
 ### Known Issues
-- Journal data shapes are skeletal — quests, NPCs, locations, consequences, secrets, town rep all need full field specs before Phase 1 mechanics handlers can be built
-- User plans to ask v1 for actual tracked data (mechanic keys, real save objects, organic fields) to inform the spec
+- QuickActions.jsx still a stub (short rest/long rest buttons not built)
+- Scene transition confirmation not yet implemented (Law 2: "require player confirmation")
+- Gate 5 unmentioned PC detection not built
+- "Previously On" session recap not built
+- No push notifications
+- ElevenLabs TTS not integrated (free tier only for now)
+- Setup mode (SessionZero, CharCreate) still unbuilt
+- Nav badges for state changes in other modes not built
 
 ### In Progress
-- Nothing code-wise — planning/spec phase
+- Nothing mid-task — clean stopping point
 
 ### Next Up
-1. **Ask v1** for every mechanic key + real quest/NPC/location objects from live saves + organically added fields
-2. **Spec Journal data shapes** using v1's real data as reference — before Phase 1
-3. **Phase 0: Foundation** — Vite + SolidJS scaffold, state store, Firebase, color themes (safe to build now, no spec gaps)
-4. Then Phase 1: Core Loop MVP (after Journal data shapes are specced)
+1. **QuickActions** — short rest / long rest buttons in play UI (most impactful next)
+2. **Scene transition confirmation** — Law 2 gate: AI location change requires player OK
+3. **Previously On** — session recap when resuming play
+4. **Setup mode** — SessionZero wizard, CharCreate flow
+5. **Nav badges** — show state changes happened in other modes
 
 ### Branch State
-- Branch: `claude/transfer-v2-planning-docs-hlibvu` on xiateas-source/V2
-- Last commit: b3d10c7
-- All planning docs committed and pushed
+- Branch: `claude/session-start-protocol-o8jf7j`
+- Last commit: 436033c
+- All code committed and pushed
 - Not merged to main
+- 10 commits on branch total (5 from this session)
