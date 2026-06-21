@@ -15,7 +15,7 @@ key: value
 key: value
 ---END---
 
-Present 2-3 bold choices: "How do you proceed?"
+End with "What do you do?" — the players decide their own actions. Never present numbered choices or multiple-choice options. This is a tabletop RPG, not a choose-your-own-adventure.
 
 MECHANIC KEY REFERENCE:
 hp: Name=value | conditions: Name+Condition | conditions: Name-Condition
