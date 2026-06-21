@@ -529,7 +529,12 @@ body {
   margin-bottom: 4px;
   border: 1px solid #2a3a4a;
 }
-.familiar-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.familiar-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
 .familiar-icon {
   width: 32px;
   height: 32px;
@@ -542,11 +547,86 @@ body {
 }
 .familiar-name { font-size: 13px; font-weight: 600; color: #fff; }
 .familiar-type { font-size: 10px; color: #6a6a7a; }
-.familiar-stats { display: flex; gap: 10px; }
+.familiar-summary { display: flex; gap: 10px; margin-left: auto; }
 .familiar-stat { display: flex; align-items: center; gap: 3px; font-size: 11px; color: #8a8a9a; }
 .familiar-stat .val { color: #fff; font-weight: 600; }
-.familiar-hp-bar { flex: 1; height: 3px; background: #2a2a4a; border-radius: 2px; overflow: hidden; margin-left: 6px; }
-.familiar-hp-fill { height: 100%; background: #2ecc71; width: 100%; border-radius: 2px; }
+.familiar-expand { font-size: 10px; color: #4a4a5a; margin-left: 4px; }
+.familiar-status {
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-weight: 600;
+  margin-left: auto;
+}
+.familiar-status.active { background: #1a3a2a; color: #2ecc71; }
+.familiar-status.dismissed { background: #3a3a2a; color: #f1c40f; }
+.familiar-status.dead { background: #3a1a1a; color: #e74c3c; }
+
+.familiar-detail {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #2a2a4a;
+}
+.familiar-vitals {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.familiar-vital-box {
+  flex: 1;
+  text-align: center;
+  background: #0d0d1a;
+  border-radius: 6px;
+  padding: 6px 4px;
+}
+.familiar-vital-box .label { font-size: 9px; color: #6a6a7a; text-transform: uppercase; }
+.familiar-vital-box .val { font-size: 14px; font-weight: 700; color: #fff; }
+.familiar-vital-box .val.hp-ok { color: #2ecc71; }
+.familiar-abilities {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.familiar-ability {
+  text-align: center;
+  background: #0d0d1a;
+  border-radius: 4px;
+  padding: 4px 2px;
+}
+.familiar-ability .ab-label { font-size: 8px; color: #6a6a7a; }
+.familiar-ability .ab-score { font-size: 13px; font-weight: 700; color: #e0dcd0; }
+.familiar-ability .ab-mod { font-size: 10px; color: #8a8a9a; }
+.familiar-senses, .familiar-specials {
+  font-size: 11px;
+  color: #8a8a9a;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+.familiar-senses .sense-label, .familiar-specials .special-label {
+  font-weight: 600;
+  color: #aaa;
+  font-size: 10px;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.familiar-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.familiar-action-btn {
+  flex: 1;
+  text-align: center;
+  padding: 6px;
+  border-radius: 6px;
+  background: #2a2a4a;
+  color: #8a8a9a;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #3a3a4a;
+}
 
 /* ── SPELLS TAB ── */
 .spellcasting-stats { display: flex; gap: 6px; margin-bottom: 10px; }
@@ -1049,15 +1129,67 @@ body {
     </div>
 
     <div class="section-label">Familiar <span class="ownership-tag ai">AI</span></div>
-    <div class="familiar-card">
-      <div class="familiar-header">
+    <!-- Collapsed: tap header to expand full stat block -->
+    <div class="familiar-card" id="familiar-card">
+      <div class="familiar-header" onclick="document.getElementById('familiar-detail').style.display = document.getElementById('familiar-detail').style.display === 'none' ? 'block' : 'none'; this.querySelector('.familiar-expand').textContent = document.getElementById('familiar-detail').style.display === 'none' ? '▼' : '▲'">
         <div class="familiar-icon">&#128056;</div>
-        <div><div class="familiar-name">Quill</div><div class="familiar-type">Owl &middot; Find Familiar</div></div>
+        <div>
+          <div class="familiar-name">Quill</div>
+          <div class="familiar-type">Owl &middot; Fey Spirit &middot; Find Familiar</div>
+        </div>
+        <span class="familiar-status active">ACTIVE</span>
+        <div class="familiar-summary">
+          <div class="familiar-stat">HP <span class="val">1/1</span></div>
+          <div class="familiar-stat">AC <span class="val">11</span></div>
+        </div>
+        <span class="familiar-expand">&#9660;</span>
       </div>
-      <div class="familiar-stats">
-        <div class="familiar-stat">HP <span class="val">1/1</span><div class="familiar-hp-bar"><div class="familiar-hp-fill"></div></div></div>
-        <div class="familiar-stat">AC <span class="val">11</span></div>
-        <div class="familiar-stat">Fly <span class="val">60ft</span></div>
+
+      <div class="familiar-detail" id="familiar-detail" style="display:none">
+        <div class="familiar-vitals">
+          <div class="familiar-vital-box"><div class="label">HP</div><div class="val hp-ok">1/1</div></div>
+          <div class="familiar-vital-box"><div class="label">AC</div><div class="val">11</div></div>
+          <div class="familiar-vital-box"><div class="label">Walk</div><div class="val">5 ft</div></div>
+          <div class="familiar-vital-box"><div class="label">Fly</div><div class="val">60 ft</div></div>
+          <div class="familiar-vital-box"><div class="label">Size</div><div class="val">Tiny</div></div>
+        </div>
+
+        <div class="familiar-abilities">
+          <div class="familiar-ability"><div class="ab-label">STR</div><div class="ab-score">3</div><div class="ab-mod">-4</div></div>
+          <div class="familiar-ability"><div class="ab-label">DEX</div><div class="ab-score">13</div><div class="ab-mod">+1</div></div>
+          <div class="familiar-ability"><div class="ab-label">CON</div><div class="ab-score">8</div><div class="ab-mod">-1</div></div>
+          <div class="familiar-ability"><div class="ab-label">INT</div><div class="ab-score">2</div><div class="ab-mod">-4</div></div>
+          <div class="familiar-ability"><div class="ab-label">WIS</div><div class="ab-score">12</div><div class="ab-mod">+1</div></div>
+          <div class="familiar-ability"><div class="ab-label">CHA</div><div class="ab-score">7</div><div class="ab-mod">-2</div></div>
+        </div>
+
+        <div class="familiar-senses">
+          <div class="sense-label">Senses</div>
+          Darkvision 120 ft &middot; Passive Perception 13
+        </div>
+
+        <div class="familiar-senses">
+          <div class="sense-label">Skills</div>
+          Perception +3 &middot; Stealth +3
+        </div>
+
+        <div class="familiar-specials">
+          <div class="special-label">Special Abilities</div>
+          <strong>Flyby</strong> — Doesn't provoke opportunity attacks when flying out of enemy reach.<br>
+          <strong>Keen Hearing &amp; Sight</strong> — Advantage on Perception checks using hearing or sight.<br>
+          <strong>Telepathic Bond</strong> — Communicate telepathically within 100 ft. Can see through familiar's eyes as an action.
+        </div>
+
+        <div class="familiar-specials">
+          <div class="special-label">Familiar Actions</div>
+          Can take the <strong>Help</strong> action in combat (gives ally advantage). Can deliver <strong>touch spells</strong> cast by master. Cannot attack.
+        </div>
+
+        <div class="familiar-actions">
+          <div class="familiar-action-btn">&#128065; See Through Eyes</div>
+          <div class="familiar-action-btn">&#128164; Dismiss</div>
+          <div class="familiar-action-btn">&#128260; Resummon (10gp)</div>
+        </div>
       </div>
     </div>
 
