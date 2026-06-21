@@ -3,6 +3,17 @@ import { store } from '../state/index.js';
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
+const GEMINI_FALLBACK_ORDER = [
+  'gemini-3.1-flash-lite',
+  'gemini-2.5-flash-lite',
+  'gemini-2.5-flash',
+  'gemini-3.5-flash',
+  'gemini-3-flash-preview',
+];
+
+const MAX_RETRIES = 3;
+const RETRY_DELAYS = [2000, 4000, 8000];
+
 function getProviderConfig() {
   const { providers } = store.system;
   return {
@@ -56,11 +67,20 @@ function buildOpenRouterBody(messages, systemPrompt) {
   };
 }
 
-async function* streamGemini(messages, systemPrompt, signal) {
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function getFallbackModels(primaryModel) {
+  const idx = GEMINI_FALLBACK_ORDER.indexOf(primaryModel);
+  if (idx === -1) return GEMINI_FALLBACK_ORDER;
+  return [...GEMINI_FALLBACK_ORDER.slice(idx + 1), ...GEMINI_FALLBACK_ORDER.slice(0, idx)];
+}
+
+async function* streamGemini(messages, systemPrompt, signal, model) {
   const config = getProviderConfig();
   if (!config.geminiKey) throw new Error('Gemini API key not set');
 
-  const url = `${GEMINI_BASE}/${config.geminiModel}:streamGenerateContent?key=${config.geminiKey}&alt=sse`;
+  const useModel = model || config.geminiModel;
+  const url = `${GEMINI_BASE}/${useModel}:streamGenerateContent?key=${config.geminiKey}&alt=sse`;
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -70,13 +90,17 @@ async function* streamGemini(messages, systemPrompt, signal) {
 
   if (!res.ok) {
     const errText = await res.text().catch(() => res.statusText);
-    let msg = `Gemini ${res.status}`;
-    if (res.status === 429) msg = 'Gemini rate limit hit — wait a moment and try again';
-    else if (res.status === 403) msg = 'Gemini API key invalid or disabled';
-    else {
-      try { msg = `Gemini: ${JSON.parse(errText).error?.message || errText}`; } catch { msg += `: ${errText.slice(0, 120)}`; }
+    const err = new Error();
+    err.status = res.status;
+    if (res.status === 429) {
+      err.message = `Gemini rate limit (${useModel})`;
+      err.retryable = true;
+    } else if (res.status === 403) {
+      err.message = 'Gemini API key invalid or disabled';
+    } else {
+      try { err.message = `Gemini: ${JSON.parse(errText).error?.message || errText}`; } catch { err.message = `Gemini ${res.status}: ${errText.slice(0, 120)}`; }
     }
-    throw new Error(msg);
+    throw err;
   }
 
   const reader = res.body.getReader();
@@ -149,6 +173,44 @@ async function* streamOpenRouter(messages, systemPrompt, signal) {
   }
 }
 
+async function* geminiWithRetryAndFallback(messages, systemPrompt, signal) {
+  const config = getProviderConfig();
+  if (!config.geminiKey) throw new Error('Gemini API key not set');
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const stream = streamGemini(messages, systemPrompt, signal);
+      for await (const chunk of stream) {
+        yield chunk;
+      }
+      return;
+    } catch (e) {
+      if (e.name === 'AbortError') throw e;
+      if (!e.retryable || attempt === MAX_RETRIES) {
+        if (e.retryable) break;
+        throw e;
+      }
+      await sleep(RETRY_DELAYS[attempt]);
+    }
+  }
+
+  const fallbacks = getFallbackModels(config.geminiModel);
+  for (const model of fallbacks) {
+    try {
+      const stream = streamGemini(messages, systemPrompt, signal, model);
+      for await (const chunk of stream) {
+        yield chunk;
+      }
+      return;
+    } catch (e) {
+      if (e.name === 'AbortError') throw e;
+      if (!e.retryable) throw e;
+    }
+  }
+
+  throw new Error('All Gemini models rate limited — wait a minute and try again');
+}
+
 export async function* callProvider(messages, systemPrompt, signal) {
   const config = getProviderConfig();
   const providers = config.primary === 'openrouter'
@@ -164,7 +226,7 @@ export async function* callProvider(messages, systemPrompt, signal) {
 
     try {
       const stream = provider === 'gemini'
-        ? streamGemini(messages, systemPrompt, signal)
+        ? geminiWithRetryAndFallback(messages, systemPrompt, signal)
         : streamOpenRouter(messages, systemPrompt, signal);
 
       for await (const chunk of stream) {

@@ -24,7 +24,8 @@ slot_use: Name=level | slot_restore: Name=level
 resource_use: Name,ResourceName | resource_restore: Name=all
 xp: Name+amount | xp: party+amount
 gp: +amount | income: amount, category, desc | expense: amount, desc
-item_add: PCname, itemname, type, attunement | item_add: itemname, type, attunement (wagon default) | item_remove: target, name, qty
+item_add: PCname, itemname, type, attunement | item_add: itemname, type (no PC = wagon) | item_remove: target, name, qty
+  Types: weapon, armor, potion, wondrous, gear, consumable, ammo, food, trade. Attunement: attuned or none.
 location: Name | time: value | weather: value | loc_desc: text
 quest_add: text | quest_done: name | quest_fail: name | quest_update: name|notes
 primary_mission: text | npc_add: name, disposition, details | npc_mood: name=mood
