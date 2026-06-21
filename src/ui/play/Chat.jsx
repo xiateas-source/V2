@@ -1,5 +1,6 @@
 import { createSignal, createEffect, For, Show } from 'solid-js';
 import { store } from '../../state/index.js';
+import { isSending } from '../../ai/engine.js';
 import InputBar from './InputBar.jsx';
 import RollBar from './RollBar.jsx';
 import CharTiles from './CharTiles.jsx';
@@ -9,6 +10,7 @@ import SituationBar from './SituationBar.jsx';
 export default function Chat() {
   const [tab, setTab] = createSignal('narrative');
   let chatEnd;
+  let messagesDiv;
 
   const messages = () => {
     const key = tab();
@@ -17,7 +19,13 @@ export default function Chat() {
 
   createEffect(() => {
     messages();
-    setTimeout(() => chatEnd?.scrollIntoView({ behavior: 'smooth' }), 50);
+    const sending = isSending();
+    void sending;
+    setTimeout(() => {
+      if (messagesDiv) {
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      }
+    }, 50);
   });
 
   return (
@@ -41,7 +49,7 @@ export default function Chat() {
         </button>
       </div>
 
-      <div class="chat-messages">
+      <div class="chat-messages" ref={messagesDiv}>
         <For each={messages()}>
           {(msg) => (
             <div class={`msg msg-${msg.role}`}>
@@ -55,6 +63,15 @@ export default function Chat() {
             </div>
           )}
         </For>
+        <Show when={isSending()}>
+          <div class="msg msg-typing">
+            <div class="typing-indicator">
+              <span class="typing-dot" />
+              <span class="typing-dot" />
+              <span class="typing-dot" />
+            </div>
+          </div>
+        </Show>
         <div ref={chatEnd} />
       </div>
 

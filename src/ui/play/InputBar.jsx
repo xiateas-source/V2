@@ -179,6 +179,7 @@ export default function InputBar(props) {
   const [text, setText] = createSignal('');
   const [showTest, setShowTest] = createSignal(false);
   const [testMode, setTestMode] = createSignal('scenarios');
+  const [sentPrompts, setSentPrompts] = createSignal(new Set());
   let inputRef;
 
   async function handleSend() {
@@ -194,6 +195,22 @@ export default function InputBar(props) {
       e.preventDefault();
       handleSend();
     }
+  }
+
+  async function handleScenarioPrompt(scenarioIdx, promptIdx, promptText) {
+    if (isSending()) return;
+    const key = `${scenarioIdx}-${promptIdx}`;
+    setSentPrompts(prev => new Set([...prev, key]));
+    await runScenarioPrompt(promptText);
+  }
+
+  function isPromptSent(scenarioIdx, promptIdx) {
+    return sentPrompts().has(`${scenarioIdx}-${promptIdx}`);
+  }
+
+  function isNextPrompt(scenarioIdx, promptIdx) {
+    if (promptIdx === 0) return !isPromptSent(scenarioIdx, 0);
+    return isPromptSent(scenarioIdx, promptIdx - 1) && !isPromptSent(scenarioIdx, promptIdx);
   }
 
   return (
@@ -234,20 +251,21 @@ export default function InputBar(props) {
 
             {testMode() === 'scenarios' && (
               <div class="test-scenarios">
-                {SCENARIOS.map(s => (
-                  <div class="scenario-card">
+                {SCENARIOS.map((s, si) => (
+                  <div class={`scenario-card ${SCENARIOS[si].prompts.every((_, pi) => isPromptSent(si, pi)) ? 'scenario-done' : ''}`}>
                     <div class="scenario-header">
                       <span class="scenario-label">{s.label}</span>
                       <span class="scenario-desc">{s.desc}</span>
                     </div>
                     <div class="scenario-prompts">
-                      {s.prompts.map((p, i) => (
+                      {s.prompts.map((p, pi) => (
                         <button
-                          class="btn-scenario-prompt"
-                          onClick={() => runScenarioPrompt(p)}
-                          disabled={isSending()}
+                          class={`btn-scenario-prompt ${isPromptSent(si, pi) ? 'prompt-sent' : ''} ${isNextPrompt(si, pi) ? 'prompt-next' : ''}`}
+                          onClick={() => handleScenarioPrompt(si, pi, p)}
+                          disabled={isSending() || isPromptSent(si, pi)}
                         >
-                          {i + 1}. {p.length > 60 ? p.slice(0, 60) + '...' : p}
+                          <span class="prompt-status">{isPromptSent(si, pi) ? '✓' : isNextPrompt(si, pi) ? '▸' : ' '}</span>
+                          {p.length > 55 ? p.slice(0, 55) + '...' : p}
                         </button>
                       ))}
                     </div>

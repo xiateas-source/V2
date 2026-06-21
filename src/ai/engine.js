@@ -1,3 +1,4 @@
+import { createSignal } from 'solid-js';
 import { store, setStore } from '../state/index.js';
 import { buildPrompt, buildAskDmPrompt } from './prompt.js';
 import { callProvider } from './providers.js';
@@ -6,21 +7,21 @@ import { ASK_DM_SYSTEM } from './contracts.js';
 import { pruneIfNeeded } from './memory.js';
 
 let activeController = null;
-let sending = false;
+const [sending, setSending] = createSignal(false);
 
-export function isSending() { return sending; }
+export function isSending() { return sending(); }
 
 export function stopGeneration() {
   if (activeController) {
     activeController.abort();
     activeController = null;
   }
-  sending = false;
+  setSending(false);
 }
 
 export async function sendMsg(text, options = {}) {
-  if (sending) return;
-  sending = true;
+  if (sending()) return;
+  setSending(true);
 
   const { tab = 'narrative', contextInject = '', onChunk } = options;
 
@@ -75,7 +76,7 @@ export async function sendMsg(text, options = {}) {
     setStore('campaign', 'narrative', [...store.campaign.narrative, errMsg]);
     throw e;
   } finally {
-    sending = false;
+    setSending(false);
     activeController = null;
   }
 }
