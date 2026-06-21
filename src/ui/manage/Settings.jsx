@@ -1,10 +1,18 @@
 import { createSignal } from 'solid-js';
 import { store, setStore } from '../../state/index.js';
-import { saveKeys as persistKeys, loadKeys } from '../../data/keys.js';
+import { saveKeys as persistKeys, saveProviderSettings } from '../../data/keys.js';
+
+const GEMINI_MODELS = [
+  { id: 'gemini-2.0-flash-lite', label: '2.0 Flash Lite (free, fast)' },
+  { id: 'gemini-2.0-flash', label: '2.0 Flash' },
+  { id: 'gemini-1.5-flash', label: '1.5 Flash' },
+  { id: 'gemini-2.5-flash', label: '2.5 Flash' },
+];
 
 export default function Settings() {
   const [gemKey, setGemKey] = createSignal(store.system.providers.geminiKey);
   const [orKey, setOrKey] = createSignal(store.system.providers.openrouterKey);
+  const [model, setModel] = createSignal(store.system.providers.geminiModel || 'gemini-2.0-flash-lite');
   const [saved, setSaved] = createSignal(false);
 
   function saveKeys() {
@@ -12,7 +20,9 @@ export default function Settings() {
     const ok = orKey().trim();
     setStore('system', 'providers', 'geminiKey', gk);
     setStore('system', 'providers', 'openrouterKey', ok);
+    setStore('system', 'providers', 'geminiModel', model());
     persistKeys(gk, ok);
+    saveProviderSettings(model());
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
@@ -39,7 +49,19 @@ export default function Settings() {
       <h2 class="settings-heading">Settings</h2>
 
       <section class="settings-section">
-        <h3 class="settings-label">AI Provider Keys</h3>
+        <h3 class="settings-label">AI Provider</h3>
+        <div class="field-group">
+          <label class="field-label">Gemini Model</label>
+          <select
+            class="field-input"
+            value={model()}
+            onChange={(e) => setModel(e.target.value)}
+          >
+            <For each={GEMINI_MODELS}>
+              {(m) => <option value={m.id}>{m.label}</option>}
+            </For>
+          </select>
+        </div>
         <div class="field-group">
           <label class="field-label">Gemini API Key</label>
           <input
@@ -61,7 +83,7 @@ export default function Settings() {
           />
         </div>
         <button class="btn-save" onClick={saveKeys}>
-          {saved() ? 'Saved' : 'Save Keys'}
+          {saved() ? 'Saved' : 'Save'}
         </button>
       </section>
 
@@ -79,4 +101,8 @@ export default function Settings() {
       </section>
     </div>
   );
+}
+
+function For(props) {
+  return props.each.map(props.children);
 }

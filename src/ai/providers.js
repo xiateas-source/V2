@@ -1,12 +1,13 @@
 import { store } from '../state/index.js';
 
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent';
+const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 function getProviderConfig() {
   const { providers } = store.system;
   return {
     primary: providers.primary,
+    geminiModel: providers.geminiModel || 'gemini-2.0-flash-lite',
     geminiKey: providers.geminiKey,
     openrouterKey: providers.openrouterKey,
     health: providers.health,
@@ -59,7 +60,7 @@ async function* streamGemini(messages, systemPrompt, signal) {
   const config = getProviderConfig();
   if (!config.geminiKey) throw new Error('Gemini API key not set');
 
-  const url = `${GEMINI_URL}?key=${config.geminiKey}&alt=sse`;
+  const url = `${GEMINI_BASE}/${config.geminiModel}:streamGenerateContent?key=${config.geminiKey}&alt=sse`;
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
