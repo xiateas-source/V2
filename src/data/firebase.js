@@ -35,16 +35,19 @@ export async function initFirebase() {
     connected = snap.val() === true;
   });
 
-  await new Promise((resolve, reject) => {
-    const unsub = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        uid = user.uid;
-        unsub();
-        resolve();
-      }
-    });
-    signInAnonymously(auth).catch(reject);
-  });
+  await Promise.race([
+    new Promise((resolve) => {
+      const unsub = onAuthStateChanged(auth, (user) => {
+        if (user) {
+          uid = user.uid;
+          unsub();
+          resolve();
+        }
+      });
+      signInAnonymously(auth).catch(() => { console.warn('Firebase auth failed — continuing offline'); resolve(); });
+    }),
+    new Promise(resolve => setTimeout(() => { console.warn('Firebase auth timeout — continuing offline'); resolve(); }, 5000)),
+  ]);
 
   return { app, auth, db, uid };
 }
