@@ -43,14 +43,14 @@ Free APIs, free hosting, free sync. Never depend on a single provider. The syste
 ## Session Start Protocol
 1. Read `.claude/session-log.md` — handoff from last session
 2. Read `.claude/workboard.md` — active work, queued items, specs
-3. Read `.claude/architecture-v2.md` — five pieces, module map, data tiers, engine pipeline
-4. Read `.claude/decisions-v2.md` — design choices already made (don't re-litigate)
+3. Read `.claude/architecture.md` — five pieces, module map, data tiers, engine pipeline
+4. Read `.claude/decisions.md` — design choices already made (don't re-litigate)
 5. **Vision check** — flag any tension with the Five Laws. State it once, briefly.
 6. `git branch` + `git log --oneline -5` — confirm branch and recent commits
 7. Greet user with one-line summary from session log
 
 Deep reference (read on demand, not every session):
-- `.claude/prime-directive-v2.md` — full vision, V1 lessons, cross-law alignment
+- `.claude/prime-directive.md` — full vision, V1 lessons, cross-law alignment
 - `.claude/ai-failures.md` — Law 2 audit trail, every documented AI failure
 
 **After a few sessions**, ask the developer: "Does reading 4 files at startup feel heavy? Want me to drop architecture and decisions to on-demand?" Tune the protocol based on experience.
@@ -62,7 +62,7 @@ Deep reference (read on demand, not every session):
 2. **Push** the feature branch: `git push -u origin <current-branch>`
 3. If user says "go live": merge to main and push
 4. **Update `.claude/workboard.md`** — mark completed items, add new items
-5. **Update `.claude/decisions-v2.md`** — if design choices were made this session
+5. **Update `.claude/decisions.md`** — if design choices were made this session
 6. **Write `.claude/session-log.md`** — overwrite with fresh handoff:
    - Session date and number (increment from last)
    - Shipped — what was built
