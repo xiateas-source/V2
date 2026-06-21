@@ -2,6 +2,7 @@ import { createSignal, Show } from 'solid-js';
 import { store } from '../state/index.js';
 import { loadDemoCampaign } from '../data/demo.js';
 import Chat from './play/Chat.jsx';
+import Settings from './manage/Settings.jsx';
 
 export default function App() {
   const [mode, setMode] = createSignal('play');
@@ -23,7 +24,10 @@ export default function App() {
           <Show when={mode() === 'play'}>
             <Chat />
           </Show>
-          <Show when={mode() !== 'play'}>
+          <Show when={mode() === 'manage'}>
+            <Settings />
+          </Show>
+          <Show when={mode() !== 'play' && mode() !== 'manage'}>
             <div class="mode-placeholder">
               <p>{mode()} mode</p>
             </div>
