@@ -449,9 +449,16 @@ const DISPATCH = {
   item_add(value) {
     const parts = value.split(',').map(s => s.trim());
     const pcIdx = findPCIndex(parts[0]);
+    const STORAGE_TARGETS = ['wagon', 'cargo', 'hoard', 'party'];
+    const isStorage = STORAGE_TARGETS.includes(parts[0].toLowerCase());
     let target, name, type, attunement;
     if (pcIdx >= 0) {
       target = parts[0];
+      name = parts[1] || 'item';
+      type = parts[2] || 'item';
+      attunement = parts[3] || 'none';
+    } else if (isStorage) {
+      target = parts[0].toLowerCase();
       name = parts[1] || 'item';
       type = parts[2] || 'item';
       attunement = parts[3] || 'none';
@@ -463,10 +470,12 @@ const DISPATCH = {
     }
     const item = { name, qty: 1, type, attunement, weight: 0 };
 
-    if (target.toLowerCase() === 'wagon') {
+    if (target === 'wagon' || target === 'cargo') {
       setStore('campaign', 'inventory', 'wagon', [...store.campaign.inventory.wagon, item]);
-    } else if (target.toLowerCase() === 'hoard') {
+    } else if (target === 'hoard') {
       setStore('campaign', 'inventory', 'hoard', [...store.campaign.inventory.hoard, item]);
+    } else if (target === 'party') {
+      setStore('campaign', 'inventory', 'wagon', [...store.campaign.inventory.wagon, item]);
     } else {
       const pc = findPC(target);
       const key = pc ? pc.id : 'party';
@@ -478,9 +487,19 @@ const DISPATCH = {
 
   item_remove(value) {
     const parts = value.split(',').map(s => s.trim());
-    const [target, name, qtyStr] = parts;
-    const qty = parseInt(qtyStr, 10) || 1;
+    const pcIdx = findPCIndex(parts[0]);
+    let target, name, qty;
+    if (pcIdx >= 0) {
+      target = parts[0];
+      name = parts[1];
+      qty = parseInt(parts[2], 10) || 1;
+    } else {
+      target = parts[0]?.toLowerCase() || 'wagon';
+      name = parts[1];
+      qty = parseInt(parts[2], 10) || 1;
+    }
     const lower = name?.toLowerCase();
+    if (!lower) return;
 
     function removeFrom(arr) {
       const idx = arr.findIndex(i => i.name.toLowerCase().includes(lower));
@@ -491,10 +510,16 @@ const DISPATCH = {
       return updated;
     }
 
-    if (target?.toLowerCase() === 'wagon') {
+    if (target === 'wagon' || target === 'cargo' || target === 'party') {
       setStore('campaign', 'inventory', 'wagon', removeFrom(store.campaign.inventory.wagon));
-    } else if (target?.toLowerCase() === 'hoard') {
+    } else if (target === 'hoard') {
       setStore('campaign', 'inventory', 'hoard', removeFrom(store.campaign.inventory.hoard));
+    } else if (pcIdx >= 0) {
+      const pc = store.campaign.characters[pcIdx];
+      const key = pc.id;
+      const carried = { ...store.campaign.inventory.carried };
+      carried[key] = removeFrom(carried[key] || []);
+      setStore('campaign', 'inventory', 'carried', carried);
     }
   },
 
