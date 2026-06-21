@@ -152,6 +152,8 @@ export async function* callProvider(messages, systemPrompt, signal) {
 
   for (const provider of providers) {
     if (!isHealthy(provider)) continue;
+    const hasKey = provider === 'gemini' ? config.geminiKey : config.openrouterKey;
+    if (!hasKey) continue;
 
     try {
       const stream = provider === 'gemini'
@@ -169,7 +171,7 @@ export async function* callProvider(messages, systemPrompt, signal) {
     }
   }
 
-  throw lastError || new Error('No AI providers available');
+  throw lastError || new Error('No API key set. Go to Settings and add your Gemini key.');
 }
 
 export function estimateTokens(text) {

@@ -1,5 +1,6 @@
 import { createSignal } from 'solid-js';
 import { store, setStore } from '../../state/index.js';
+import { saveKeys as persistKeys, loadKeys } from '../../data/keys.js';
 
 export default function Settings() {
   const [gemKey, setGemKey] = createSignal(store.system.providers.geminiKey);
@@ -7,8 +8,11 @@ export default function Settings() {
   const [saved, setSaved] = createSignal(false);
 
   function saveKeys() {
-    setStore('system', 'providers', 'geminiKey', gemKey().trim());
-    setStore('system', 'providers', 'openrouterKey', orKey().trim());
+    const gk = gemKey().trim();
+    const ok = orKey().trim();
+    setStore('system', 'providers', 'geminiKey', gk);
+    setStore('system', 'providers', 'openrouterKey', ok);
+    persistKeys(gk, ok);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
