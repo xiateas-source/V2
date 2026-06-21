@@ -2,7 +2,7 @@ import { createSignal } from 'solid-js';
 import { store, setStore } from '../state/index.js';
 import { buildPrompt, buildAskDmPrompt } from './prompt.js';
 import { callProvider } from './providers.js';
-import { extractMechanics, validateMechanics, applyMechanics, buildMechReceipt } from './mechanics.js';
+import { extractMechanics, validateMechanics, applyMechanics, buildMechReceipt, getPendingConcentrationInfo } from './mechanics.js';
 import { ASK_DM_SYSTEM } from './contracts.js';
 import { pruneIfNeeded } from './memory.js';
 
@@ -61,9 +61,15 @@ export async function sendMsg(text, options = {}) {
     if (mechanics.length > 0) {
       const { valid, rejected } = validateMechanics(mechanics);
       const applied = applyMechanics(valid);
+
+      const { drops, saves } = getPendingConcentrationInfo();
+      for (const save of saves) {
+        applied.push({ key: 'roll_request', value: `Constitution|${save.dc}|${save.pc}`, target: '', applied: true });
+      }
+
       const mechReceipt = buildMechReceipt(applied.filter(m => m.applied), rejected);
 
-      if (mechReceipt) {
+      if (mechReceipt || drops.length) {
         setStore('campaign', 'narrative', assistantIdx, 'mechReceipt', mechReceipt);
         setStore('campaign', 'narrative', assistantIdx, 'mechanics', { applied, rejected });
       }

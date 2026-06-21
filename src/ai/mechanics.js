@@ -1,5 +1,16 @@
 import { store, setStore, aiSet } from '../state/index.js';
 
+let pendingConcentrationDrops = [];
+let pendingConcentrationSaves = [];
+
+export function getPendingConcentrationInfo() {
+  const drops = [...pendingConcentrationDrops];
+  const saves = [...pendingConcentrationSaves];
+  pendingConcentrationDrops = [];
+  pendingConcentrationSaves = [];
+  return { drops, saves };
+}
+
 const KNOWN_KEYS = new Set([
   'hp', 'hp_max', 'conditions', 'concentration', 'location', 'time', 'weather',
   'travel_note', 'loc_desc', 'gp', 'sp', 'cp', 'ep', 'pp', 'item_add', 'item_remove',
@@ -172,7 +183,12 @@ const DISPATCH = {
       if (idx === -1) continue;
       const pc = store.campaign.characters[idx];
       const clamped = Math.max(0, Math.min(hp, pc.hpMax));
+      const damage = pc.hp - clamped;
       setStore('campaign', 'characters', idx, 'hp', clamped);
+      if (damage > 0 && pc.concentration) {
+        const dc = Math.max(10, Math.floor(damage / 2));
+        pendingConcentrationSaves.push({ pc: pc.name, spell: pc.concentration.spell, dc });
+      }
     }
   },
 
@@ -205,8 +221,15 @@ const DISPATCH = {
     const [name, spell] = value.split('=').map(s => s.trim());
     const idx = findPCIndex(name);
     if (idx === -1) return;
-    setStore('campaign', 'characters', idx, 'concentration',
-      spell.toLowerCase() === 'none' ? null : { spell, since: store.campaign.combatState.round || '' });
+    if (spell.toLowerCase() === 'none') {
+      setStore('campaign', 'characters', idx, 'concentration', null);
+    } else {
+      const pc = store.campaign.characters[idx];
+      if (pc.concentration && pc.concentration.spell) {
+        pendingConcentrationDrops.push({ pc: pc.name, dropped: pc.concentration.spell, newSpell: spell });
+      }
+      setStore('campaign', 'characters', idx, 'concentration', { spell, since: store.campaign.combatState.round || '' });
+    }
   },
 
   location(value) {
@@ -658,7 +681,19 @@ const DISPATCH = {
     setStore('campaign', 'moduleProgress', progress);
   },
 
-  short_rest() {},
+  short_rest(value) {
+    const name = value.trim();
+    const idx = findPCIndex(name);
+    if (idx === -1) return;
+    const pc = store.campaign.characters[idx];
+    for (const res of pc.resources) {
+      if (res.restoresOn === 'short' || res.restoresOn === 'short_rest') {
+        const resIdx = pc.resources.indexOf(res);
+        setStore('campaign', 'characters', idx, 'resources', resIdx, 'current', res.max);
+      }
+    }
+  },
+
   save_game() {},
   save() {},
   none() {},
@@ -671,10 +706,66 @@ const DISPATCH = {
   wagon_hp() {},
   ox_hp() {},
   ox_condition() {},
-  familiar_hp() {},
-  animal_hp() {},
-  animal_condition() {},
-  spell_add() {},
+
+  familiar_hp(value) {
+    const [name, hpStr] = value.split('|').map(s => s.trim());
+    const hp = parseInt(hpStr, 10);
+    if (isNaN(hp)) return;
+    for (let i = 0; i < store.campaign.characters.length; i++) {
+      const pc = store.campaign.characters[i];
+      if (pc.familiar && pc.familiar.name?.toLowerCase() === name.toLowerCase()) {
+        const clamped = Math.max(0, Math.min(hp, pc.familiar.hpMax));
+        setStore('campaign', 'characters', i, 'familiar', 'hp', clamped);
+        return;
+      }
+    }
+  },
+
+  animal_hp(value) {
+    const [name, hpStr] = value.split('=').map(s => s.trim());
+    const hp = parseInt(hpStr, 10);
+    if (isNaN(hp)) return;
+    const animals = store.campaign.wagonState.animals;
+    const idx = animals.findIndex(a => a.name?.toLowerCase() === name.toLowerCase());
+    if (idx !== -1) {
+      const clamped = Math.max(0, Math.min(hp, animals[idx].hpMax));
+      setStore('campaign', 'wagonState', 'animals', idx, 'hp', clamped);
+    }
+  },
+
+  animal_condition(value) {
+    const [name, condition] = value.split('=').map(s => s.trim());
+    const animals = store.campaign.wagonState.animals;
+    const idx = animals.findIndex(a => a.name?.toLowerCase() === name.toLowerCase());
+    if (idx !== -1) {
+      setStore('campaign', 'wagonState', 'animals', idx, 'condition', condition);
+    }
+  },
+  spell_add(value) {
+    // Format: PC|Name|Level|CastTime|Range|Duration|Components|Desc
+    const parts = value.split('|').map(s => s.trim());
+    if (parts.length < 3) return;
+    const [pcName, spellName, levelStr] = parts;
+    const idx = findPCIndex(pcName);
+    if (idx === -1) return;
+    const pc = store.campaign.characters[idx];
+    const level = parseInt(levelStr, 10);
+
+    if (level === 0) {
+      const cantrips = [...(pc.cantrips || [])];
+      if (!cantrips.some(s => s.toLowerCase() === spellName.toLowerCase())) {
+        cantrips.push(spellName);
+        setStore('campaign', 'characters', idx, 'cantrips', cantrips);
+      }
+    } else {
+      const known = [...(pc.knownSpells || [])];
+      if (!known.some(s => s.toLowerCase() === spellName.toLowerCase())) {
+        known.push(spellName);
+        setStore('campaign', 'characters', idx, 'knownSpells', known);
+      }
+    }
+  },
+
   pc_update() {},
   pc_add() {},
   pc_delete() {},

@@ -13,7 +13,8 @@ export function genLedger(mode = 'compact') {
     lines.push('');
 
     for (const pc of c.characters) {
-      const parts = [`${pc.name} (${pc.race} ${pc.class}${pc.subclass ? ` (${pc.subclass})` : ''} Lv${pc.level})`];
+      const profBonus = Math.floor((pc.level - 1) / 4) + 2;
+      const parts = [`${pc.name} (${pc.race} ${pc.class}${pc.subclass ? ` (${pc.subclass})` : ''} Lv${pc.level} Prof+${profBonus})`];
       parts.push(`HP ${pc.hp}/${pc.hpMax}`);
       parts.push(`AC ${pc.ac}`);
 
@@ -30,6 +31,11 @@ export function genLedger(mode = 'compact') {
         slotParts.push(`L${lvl}:${current}/${max}`);
       }
       if (slotParts.length) parts.push(`Slots: ${slotParts.join(' ')}`);
+
+      if (pc.knownSpells?.length || pc.cantrips?.length) {
+        const spells = [...(pc.cantrips || []), ...(pc.knownSpells || [])];
+        parts.push(`Spells: ${spells.join(', ')}`);
+      }
 
       lines.push(parts.join(' | '));
     }
