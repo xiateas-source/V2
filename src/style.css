@@ -617,6 +617,7 @@ body {
   background: var(--color-surface-alt);
   border-top: 2px solid var(--color-accent);
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .roll-info {
@@ -711,6 +712,57 @@ body {
 
 .roll-total.roll-fail {
   color: #e74c3c;
+}
+
+.roll-progress {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.roll-result-display {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.roll-summary {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.roll-summary-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-size-sm);
+}
+
+.roll-summary-name {
+  font-weight: 600;
+  min-width: 60px;
+  color: var(--color-text);
+}
+
+.roll-summary-skill {
+  color: var(--color-text-muted);
+  flex: 1;
+}
+
+.roll-summary-total {
+  font-weight: 700;
+  min-width: 24px;
+  text-align: center;
+}
+
+.roll-summary-dc {
+  font-size: 10px;
+  color: var(--color-text-muted);
 }
 
 /* --- INPUT BAR --- */
