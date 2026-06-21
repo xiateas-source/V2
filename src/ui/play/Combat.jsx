@@ -1,5 +1,6 @@
 import { For, Show, createMemo } from 'solid-js';
 import { store, setStore } from '../../state/index.js';
+import { validateMechanics, applyMechanics } from '../../ai/mechanics.js';
 
 export default function Combat() {
   const combat = () => store.campaign.combatState;
@@ -37,6 +38,12 @@ export default function Combat() {
     }
   }
 
+  function endCombat() {
+    const mechanics = [{ key: 'combat_end', value: 'Manual end', target: '', applied: false }];
+    const { valid } = validateMechanics(mechanics);
+    applyMechanics(valid);
+  }
+
   return (
     <Show when={active()}>
       <div class="combat-overlay">
@@ -44,6 +51,7 @@ export default function Combat() {
           <span class="combat-round">Round {combat().round}</span>
           <span class="combat-turn">{currentName()}'s turn</span>
           <button class="btn-advance" onClick={advanceTurn}>Next</button>
+          <button class="btn-end-combat" onClick={endCombat}>End</button>
         </div>
 
         <div class="combat-initiative">

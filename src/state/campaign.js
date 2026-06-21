@@ -46,6 +46,8 @@ export const DEFAULT_CAMPAIGN = {
     zones: {},
   },
 
+  pendingLocation: null,
+
   narrative: [],
   ooc: [],
 

@@ -194,6 +194,18 @@ export function applyMechanics(mechanics) {
   return results;
 }
 
+export function confirmLocation() {
+  const pending = store.campaign.pendingLocation;
+  if (!pending) return;
+  setStore('campaign', 'location', pending.value);
+  setStore('campaign', 'travelLog', [...store.campaign.travelLog, { from: pending.from, to: pending.value, note: '', gameTs: store.campaign.time }]);
+  setStore('campaign', 'pendingLocation', null);
+}
+
+export function rejectLocation() {
+  setStore('campaign', 'pendingLocation', null);
+}
+
 function dispatch(mech) {
   const handler = DISPATCH[mech.key];
   if (handler) handler(mech.value);
@@ -298,10 +310,12 @@ const DISPATCH = {
   },
 
   location(value) {
+    const newLoc = value.trim();
     const prev = store.campaign.location;
-    setStore('campaign', 'location', value.trim());
-    if (prev) {
-      setStore('campaign', 'travelLog', [...store.campaign.travelLog, { from: prev, to: value.trim(), note: '', gameTs: store.campaign.time }]);
+    if (prev && prev.toLowerCase() !== newLoc.toLowerCase()) {
+      setStore('campaign', 'pendingLocation', { value: newLoc, from: prev, ts: Date.now() });
+    } else {
+      setStore('campaign', 'location', newLoc);
     }
   },
 

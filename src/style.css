@@ -1123,6 +1123,57 @@ body {
 
 /* --- CONTEXT BANNER --- */
 
+.scene-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: #f39c1222;
+  border-bottom: 2px solid #f39c12;
+  flex-shrink: 0;
+  animation: scene-pulse 2s ease-in-out infinite;
+}
+
+@keyframes scene-pulse {
+  0%, 100% { background: #f39c1218; }
+  50% { background: #f39c1230; }
+}
+
+.scene-confirm-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #f39c12;
+}
+
+.scene-confirm-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.scene-confirm-go {
+  padding: 6px 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: #27ae60;
+  color: white;
+  font-weight: 600;
+  font-size: 0.8rem;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.scene-confirm-stay {
+  padding: 6px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 0.8rem;
+  min-height: 32px;
+  cursor: pointer;
+}
+
 .context-banner {
   display: flex;
   align-items: center;
@@ -1527,6 +1578,19 @@ body {
   min-height: 32px;
   cursor: pointer;
 }
+
+.btn-end-combat {
+  background: none;
+  border: 1px solid #e74c3c;
+  border-radius: var(--radius-sm);
+  color: #e74c3c;
+  font-size: var(--font-size-sm);
+  padding: 4px 12px;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.btn-end-combat:active { background: #e74c3c; color: white; }
 
 .combat-initiative {
   display: flex;
