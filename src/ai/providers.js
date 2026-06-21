@@ -1,6 +1,6 @@
 import { store } from '../state/index.js';
 
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent';
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 function getProviderConfig() {
@@ -68,8 +68,14 @@ async function* streamGemini(messages, systemPrompt, signal) {
   });
 
   if (!res.ok) {
-    const err = await res.text().catch(() => res.statusText);
-    throw new Error(`Gemini ${res.status}: ${err}`);
+    const errText = await res.text().catch(() => res.statusText);
+    let msg = `Gemini ${res.status}`;
+    if (res.status === 429) msg = 'Gemini rate limit hit — wait a moment and try again';
+    else if (res.status === 403) msg = 'Gemini API key invalid or disabled';
+    else {
+      try { msg = `Gemini: ${JSON.parse(errText).error?.message || errText}`; } catch { msg += `: ${errText.slice(0, 120)}`; }
+    }
+    throw new Error(msg);
   }
 
   const reader = res.body.getReader();
