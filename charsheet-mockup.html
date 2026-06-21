@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V2 Character Sheet Mockup</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #1a1a2e;
+  color: #e0dcd0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.phone {
+  width: 375px;
+  height: 812px;
+  background: #16213e;
+  border-radius: 40px;
+  overflow: hidden;
+  border: 3px solid #333;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.overlay-handle {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a1a2e;
+  border-bottom: 1px solid #2a2a4a;
+}
+.overlay-handle .bar {
+  width: 40px;
+  height: 4px;
+  background: #555;
+  border-radius: 2px;
+}
+
+.sheet-header {
+  padding: 12px 16px 8px;
+  background: #1a1a2e;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pc-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #4a9eff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+.pc-info { flex: 1; }
+.pc-name { font-size: 18px; font-weight: 700; color: #fff; }
+.pc-subtitle { font-size: 13px; color: #8a8a9a; margin-top: 2px; }
+.hp-mini {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #2a2a4a;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.hp-mini .heart { color: #e74c3c; }
+
+.tab-bar {
+  display: flex;
+  background: #1a1a2e;
+  border-bottom: 2px solid #2a2a4a;
+  padding: 0 4px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.tab-bar::-webkit-scrollbar { display: none; }
+.tab {
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6a6a7a;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.tab.active {
+  color: #4a9eff;
+  border-bottom-color: #4a9eff;
+}
+.tab:hover { color: #aaa; }
+
+.tab-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: none;
+}
+.tab-content.active { display: block; }
+
+/* Field styles */
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #6a6a7a;
+  margin-bottom: 8px;
+  margin-top: 16px;
+}
+.section-label:first-child { margin-top: 0; }
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: #1a1a2e;
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+.stat-row .label { font-size: 14px; color: #ccc; }
+.stat-row .value { font-size: 14px; font-weight: 600; color: #fff; }
+.stat-row .modifier {
+  font-size: 12px;
+  color: #4a9eff;
+  margin-left: 6px;
+}
+.stat-row.tappable { cursor: pointer; }
+.stat-row.tappable::after {
+  content: '>';
+  color: #4a4a5a;
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+.ability-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.ability-box {
+  background: #1a1a2e;
+  border-radius: 10px;
+  padding: 10px 8px;
+  text-align: center;
+  cursor: pointer;
+}
+.ability-box .abbr {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6a6a7a;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.ability-box .score {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  margin: 4px 0 2px;
+}
+.ability-box .mod {
+  font-size: 13px;
+  color: #4a9eff;
+  font-weight: 600;
+}
+
+.skill-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: #1a1a2e;
+  border-radius: 6px;
+  margin-bottom: 3px;
+  cursor: pointer;
+  gap: 8px;
+}
+.skill-row .prof-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3a3a4a;
+  flex-shrink: 0;
+}
+.skill-row .prof-dot.proficient { background: #4a9eff; }
+.skill-row .prof-dot.expertise { background: #f1c40f; }
+.skill-row .name { flex: 1; font-size: 13px; color: #ccc; }
+.skill-row .bonus { font-size: 13px; font-weight: 600; color: #4a9eff; }
+.skill-row .ability-tag { font-size: 10px; color: #555; }
+
+.save-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: #1a1a2e;
+  border-radius: 6px;
+  margin-bottom: 3px;
+  cursor: pointer;
+  gap: 8px;
+}
+.save-row .prof-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3a3a4a;
+  flex-shrink: 0;
+}
+.save-row .prof-dot.proficient { background: #4a9eff; }
+.save-row .name { flex: 1; font-size: 13px; color: #ccc; }
+.save-row .bonus { font-size: 13px; font-weight: 600; color: #4a9eff; }
+
+/* Combat tab */
+.ac-block {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #1a1a2e;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 8px;
+}
+.ac-shield {
+  width: 56px;
+  height: 64px;
+  background: #2a2a4a;
+  border-radius: 8px 8px 8px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #4a9eff;
+}
+.ac-shield .number { font-size: 24px; font-weight: 700; color: #fff; }
+.ac-shield .label { font-size: 9px; color: #6a6a7a; text-transform: uppercase; letter-spacing: 1px; }
+.ac-details { flex: 1; }
+.ac-details .line { font-size: 13px; color: #aaa; margin-bottom: 4px; }
+
+.attack-card {
+  background: #1a1a2e;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+.attack-icon {
+  font-size: 18px;
+  width: 36px;
+  text-align: center;
+}
+.attack-info { flex: 1; }
+.attack-name { font-size: 14px; font-weight: 600; color: #fff; }
+.attack-stats { font-size: 12px; color: #8a8a9a; margin-top: 2px; }
+.attack-stats span { color: #4a9eff; font-weight: 600; }
+
+.hp-section {
+  background: #1a1a2e;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 8px;
+}
+.hp-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.hp-numbers {
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+}
+.hp-numbers .slash { color: #555; margin: 0 2px; }
+.hp-numbers .max { color: #888; }
+.hp-bar {
+  flex: 1;
+  height: 8px;
+  background: #2a2a4a;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.hp-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #e74c3c, #2ecc71);
+  border-radius: 4px;
+  width: 73%;
+}
+.hp-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+.hp-btn {
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+}
+.hp-btn.minus { background: #4a1a1a; color: #e74c3c; }
+.hp-btn.plus { background: #1a4a1a; color: #2ecc71; }
+.hp-btn.custom { background: #2a2a4a; color: #aaa; }
+.hp-temp {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #2a2a4a;
+  font-size: 13px;
+  color: #8a8a9a;
+}
+.hp-temp .value { color: #3498db; font-weight: 600; }
+
+.hit-dice-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1a1a2e;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 6px;
+}
+.dice-pips {
+  display: flex;
+  gap: 4px;
+}
+.dice-pip {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #4a9eff;
+  cursor: pointer;
+}
+.dice-pip.used { background: #2a2a4a; border-color: #3a3a4a; }
+.dice-pip.available { background: #4a9eff; }
+
+.death-saves {
+  display: flex;
+  gap: 16px;
+  background: #1a1a2e;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 6px;
+}
+.ds-group { display: flex; align-items: center; gap: 6px; }
+.ds-label { font-size: 12px; color: #8a8a9a; }
+.ds-pips { display: flex; gap: 4px; }
+.ds-pip {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+}
+.ds-pip.success { border: 2px solid #2ecc71; color: #2ecc71; }
+.ds-pip.success.filled { background: #2ecc71; color: #fff; }
+.ds-pip.fail { border: 2px solid #e74c3c; color: #e74c3c; }
+.ds-pip.fail.filled { background: #e74c3c; color: #fff; }
+
+.condition-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.condition-chip {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.condition-chip.active { background: #4a1a3a; color: #e74c3c; }
+.condition-chip.conc { background: #1a3a4a; color: #3498db; }
+
+.exhaustion-pips {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #1a1a2e;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 6px;
+}
+.exh-pip {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  border: 2px solid #3a3a4a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #555;
+  cursor: pointer;
+}
+.exh-pip.filled { background: #4a3a1a; border-color: #f39c12; color: #f39c12; }
+
+/* Spells tab */
+.slot-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #1a1a2e;
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+.slot-level { font-size: 13px; color: #8a8a9a; width: 50px; }
+.slot-pips { display: flex; gap: 4px; flex: 1; }
+.slot-pip {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #9b59b6;
+  cursor: pointer;
+}
+.slot-pip.available { background: #9b59b6; }
+.slot-pip.used { background: transparent; }
+
+.spell-card {
+  background: #1a1a2e;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.spell-level-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #2a2a4a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #9b59b6;
+  flex-shrink: 0;
+}
+.spell-level-badge.cantrip { color: #2ecc71; }
+.spell-info { flex: 1; }
+.spell-name { font-size: 13px; font-weight: 600; color: #e0dcd0; }
+.spell-meta { font-size: 11px; color: #6a6a7a; margin-top: 2px; }
+
+/* Features tab */
+.feature-card {
+  background: #1a1a2e;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+.feature-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.feature-name { font-size: 14px; font-weight: 600; color: #fff; }
+.feature-source { font-size: 11px; color: #6a6a7a; }
+.feature-desc {
+  font-size: 12px;
+  color: #8a8a9a;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.resource-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #1a1a2e;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 4px;
+}
+.resource-name { font-size: 13px; color: #ccc; }
+.resource-pips { display: flex; gap: 3px; }
+.resource-pip {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #f1c40f;
+  cursor: pointer;
+}
+.resource-pip.available { background: #f1c40f; }
+
+/* Equipment tab */
+.equip-section {
+  margin-bottom: 12px;
+}
+.equip-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #1a1a2e;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 4px;
+  cursor: pointer;
+}
+.equip-icon { font-size: 16px; width: 24px; text-align: center; }
+.equip-info { flex: 1; }
+.equip-name { font-size: 13px; font-weight: 600; color: #e0dcd0; }
+.equip-detail { font-size: 11px; color: #6a6a7a; }
+.equip-qty {
+  font-size: 12px;
+  color: #8a8a9a;
+  background: #2a2a4a;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.weight-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #1a1a2e;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.weight-label { font-size: 12px; color: #8a8a9a; }
+.weight-track {
+  flex: 1;
+  height: 6px;
+  background: #2a2a4a;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.weight-fill {
+  height: 100%;
+  background: #4a9eff;
+  border-radius: 3px;
+  width: 45%;
+}
+.weight-nums { font-size: 12px; color: #aaa; font-weight: 600; }
+
+/* Bio tab */
+.bio-section {
+  background: #1a1a2e;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+.bio-section .title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #6a6a7a;
+  margin-bottom: 6px;
+}
+.bio-section .text {
+  font-size: 13px;
+  color: #ccc;
+  line-height: 1.5;
+}
+.bio-field-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid #2a2a4a;
+}
+.bio-field-row:last-child { border-bottom: none; }
+.bio-field-row .label { font-size: 13px; color: #8a8a9a; }
+.bio-field-row .value { font-size: 13px; color: #e0dcd0; font-weight: 500; }
+.bio-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.bio-tag {
+  padding: 3px 8px;
+  background: #2a2a4a;
+  border-radius: 10px;
+  font-size: 11px;
+  color: #aaa;
+}
+.edit-hint {
+  font-size: 11px;
+  color: #4a9eff;
+  text-align: right;
+  margin-top: 4px;
+  cursor: pointer;
+}
+.race-card {
+  background: #1a1a2e;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-left: 3px solid #4a9eff;
+}
+.race-card .race-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 6px;
+}
+.race-traits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+.race-trait {
+  padding: 3px 8px;
+  background: #2a3a4a;
+  border-radius: 10px;
+  font-size: 11px;
+  color: #4a9eff;
+}
+
+.ownership-tag {
+  display: inline-block;
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+.ownership-tag.ai { background: #2a1a3a; color: #9b59b6; }
+.ownership-tag.system { background: #1a2a3a; color: #3498db; }
+.ownership-tag.player { background: #1a3a2a; color: #2ecc71; }
+
+.lock-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 16px;
+  background: #1a1a2e;
+  border-bottom: 1px solid #2a2a4a;
+  font-size: 11px;
+  color: #6a6a7a;
+}
+.lock-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  color: #4a9eff;
+  font-weight: 600;
+}
+
+.inspiration-star {
+  font-size: 20px;
+  cursor: pointer;
+  margin-left: 8px;
+}
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="overlay-handle"><div class="bar"></div></div>
+
+  <div class="sheet-header">
+    <div class="pc-avatar">V</div>
+    <div class="pc-info">
+      <div class="pc-name">Valenns Vogelsang <span class="inspiration-star">☆</span></div>
+      <div class="pc-subtitle">Half-Elf Wizard 5 (Illusionist)</div>
+    </div>
+    <div class="hp-mini"><span class="heart">&#9829;</span> 33/45</div>
+  </div>
+
+  <div class="lock-bar">
+    <span>Fields locked during play</span>
+    <span class="lock-toggle">&#128274; Unlock</span>
+  </div>
+
+  <div class="tab-bar" id="tabBar">
+    <div class="tab active" data-tab="stats">Stats</div>
+    <div class="tab" data-tab="combat">Combat</div>
+    <div class="tab" data-tab="spells">Spells</div>
+    <div class="tab" data-tab="features">Features</div>
+    <div class="tab" data-tab="equipment">Equipment</div>
+    <div class="tab" data-tab="bio">Bio</div>
+  </div>
+
+  <!-- STATS TAB -->
+  <div class="tab-content active" id="tab-stats">
+    <div class="section-label">Ability Scores <span class="ownership-tag system">system</span></div>
+    <div class="ability-grid">
+      <div class="ability-box">
+        <div class="abbr">STR</div>
+        <div class="score">10</div>
+        <div class="mod">+0</div>
+      </div>
+      <div class="ability-box">
+        <div class="abbr">DEX</div>
+        <div class="score">14</div>
+        <div class="mod">+2</div>
+      </div>
+      <div class="ability-box">
+        <div class="abbr">CON</div>
+        <div class="score">13</div>
+        <div class="mod">+1</div>
+      </div>
+      <div class="ability-box">
+        <div class="abbr">INT</div>
+        <div class="score">18</div>
+        <div class="mod">+4</div>
+      </div>
+      <div class="ability-box">
+        <div class="abbr">WIS</div>
+        <div class="score">12</div>
+        <div class="mod">+1</div>
+      </div>
+      <div class="ability-box">
+        <div class="abbr">CHA</div>
+        <div class="score">11</div>
+        <div class="mod">+0</div>
+      </div>
+    </div>
+
+    <div class="section-label">Saving Throws <span class="ownership-tag system">system</span></div>
+    <div class="save-row">
+      <div class="prof-dot proficient"></div>
+      <div class="name">Intelligence</div>
+      <div class="bonus">+7</div>
+    </div>
+    <div class="save-row">
+      <div class="prof-dot proficient"></div>
+      <div class="name">Wisdom</div>
+      <div class="bonus">+4</div>
+    </div>
+    <div class="save-row">
+      <div class="prof-dot"></div>
+      <div class="name">Strength</div>
+      <div class="bonus">+0</div>
+    </div>
+    <div class="save-row">
+      <div class="prof-dot"></div>
+      <div class="name">Dexterity</div>
+      <div class="bonus">+2</div>
+    </div>
+    <div class="save-row">
+      <div class="prof-dot"></div>
+      <div class="name">Constitution</div>
+      <div class="bonus">+1</div>
+    </div>
+    <div class="save-row">
+      <div class="prof-dot"></div>
+      <div class="name">Charisma</div>
+      <div class="bonus">+0</div>
+    </div>
+
+    <div class="section-label">Skills <span class="ownership-tag system">system</span> <span style="font-size:10px;color:#555;text-transform:none;letter-spacing:0">tap to roll</span></div>
+    <div class="skill-row">
+      <div class="prof-dot proficient"></div>
+      <div class="name">Arcana</div>
+      <div class="ability-tag">INT</div>
+      <div class="bonus">+7</div>
+    </div>
+    <div class="skill-row">
+      <div class="prof-dot proficient"></div>
+      <div class="name">History</div>
+      <div class="ability-tag">INT</div>
+      <div class="bonus">+7</div>
+    </div>
+    <div class="skill-row">
+      <div class="prof-dot proficient"></div>
+      <div class="name">Investigation</div>
+      <div class="ability-tag">INT</div>
+      <div class="bonus">+7</div>
+    </div>
+    <div class="skill-row">
+      <div class="prof-dot"></div>
+      <div class="name">Perception</div>
+      <div class="ability-tag">WIS</div>
+      <div class="bonus">+1</div>
+    </div>
+    <div class="skill-row">
+      <div class="prof-dot"></div>
+      <div class="name">Stealth</div>
+      <div class="ability-tag">DEX</div>
+      <div class="bonus">+2</div>
+    </div>
+    <div class="skill-row">
+      <div class="prof-dot"></div>
+      <div class="name">Persuasion</div>
+      <div class="ability-tag">CHA</div>
+      <div class="bonus">+0</div>
+    </div>
+
+    <div class="stat-row" style="margin-top:12px">
+      <div class="label">Proficiency Bonus</div>
+      <div class="value">+3</div>
+    </div>
+    <div class="stat-row">
+      <div class="label">Speed</div>
+      <div class="value">30 ft</div>
+    </div>
+    <div class="stat-row">
+      <div class="label">Passive Perception</div>
+      <div class="value">11</div>
+    </div>
+  </div>
+
+  <!-- COMBAT TAB -->
+  <div class="tab-content" id="tab-combat">
+    <div class="section-label">Hit Points <span class="ownership-tag ai">AI + override</span></div>
+    <div class="hp-section">
+      <div class="hp-bar-container">
+        <div class="hp-numbers">33<span class="slash">/</span><span class="max">45</span></div>
+        <div class="hp-bar"><div class="hp-bar-fill"></div></div>
+      </div>
+      <div class="hp-buttons">
+        <button class="hp-btn minus">-5</button>
+        <button class="hp-btn minus">-1</button>
+        <button class="hp-btn custom">+/-</button>
+        <button class="hp-btn plus">+1</button>
+        <button class="hp-btn plus">+5</button>
+      </div>
+      <div class="hp-temp">
+        <span>Temp HP</span>
+        <span class="value">0</span>
+      </div>
+    </div>
+
+    <div class="section-label">Armor Class <span class="ownership-tag system">system</span></div>
+    <div class="ac-block">
+      <div class="ac-shield">
+        <div class="number">15</div>
+        <div class="label">AC</div>
+      </div>
+      <div class="ac-details">
+        <div class="line">Mage Armor (13 + DEX)</div>
+        <div class="line" style="font-size:11px;color:#666">No armor equipped</div>
+      </div>
+    </div>
+
+    <div class="section-label">Attacks <span class="ownership-tag system">system</span></div>
+    <div class="attack-card">
+      <div class="attack-icon">&#9876;</div>
+      <div class="attack-info">
+        <div class="attack-name">Dagger</div>
+        <div class="attack-stats"><span>+5</span> to hit | <span>1d4+2</span> piercing</div>
+      </div>
+    </div>
+    <div class="attack-card">
+      <div class="attack-icon">&#10040;</div>
+      <div class="attack-info">
+        <div class="attack-name">Fire Bolt</div>
+        <div class="attack-stats"><span>+7</span> to hit | <span>2d10</span> fire | 120ft</div>
+      </div>
+    </div>
+
+    <div class="section-label">Conditions <span class="ownership-tag ai">AI</span></div>
+    <div class="condition-chips">
+      <div class="condition-chip conc">&#9679; Mage Armor <span style="font-size:10px;opacity:0.7">[end]</span></div>
+      <div style="font-size:12px;color:#555;padding:4px">No active conditions</div>
+    </div>
+
+    <div class="section-label">Hit Dice <span class="ownership-tag system">system</span></div>
+    <div class="hit-dice-row">
+      <span style="font-size:13px;color:#8a8a9a;width:40px">d6</span>
+      <div class="dice-pips">
+        <div class="dice-pip available"></div>
+        <div class="dice-pip available"></div>
+        <div class="dice-pip available"></div>
+        <div class="dice-pip used"></div>
+        <div class="dice-pip used"></div>
+      </div>
+      <span style="font-size:12px;color:#4a9eff;margin-left:auto">3/5</span>
+      <span style="font-size:11px;color:#555;margin-left:4px">tap to heal ~d6+1</span>
+    </div>
+
+    <div class="section-label">Death Saves <span class="ownership-tag ai">AI</span></div>
+    <div class="death-saves">
+      <div class="ds-group">
+        <div class="ds-label">&#9829;</div>
+        <div class="ds-pips">
+          <div class="ds-pip success">&#9829;</div>
+          <div class="ds-pip success">&#9829;</div>
+          <div class="ds-pip success">&#9829;</div>
+        </div>
+      </div>
+      <div class="ds-group">
+        <div class="ds-label">&#9760;</div>
+        <div class="ds-pips">
+          <div class="ds-pip fail">&#9760;</div>
+          <div class="ds-pip fail">&#9760;</div>
+          <div class="ds-pip fail">&#9760;</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Exhaustion <span class="ownership-tag ai">AI</span></div>
+    <div class="exhaustion-pips">
+      <div class="exh-pip">1</div>
+      <div class="exh-pip">2</div>
+      <div class="exh-pip">3</div>
+      <div class="exh-pip">4</div>
+      <div class="exh-pip">5</div>
+      <div class="exh-pip">6</div>
+      <span style="font-size:12px;color:#555;margin-left:auto">None</span>
+    </div>
+  </div>
+
+  <!-- SPELLS TAB -->
+  <div class="tab-content" id="tab-spells">
+    <div class="section-label">Spell Slots <span class="ownership-tag system">system</span></div>
+    <div class="slot-bar">
+      <div class="slot-level">1st</div>
+      <div class="slot-pips">
+        <div class="slot-pip available"></div>
+        <div class="slot-pip available"></div>
+        <div class="slot-pip used"></div>
+        <div class="slot-pip used"></div>
+      </div>
+      <span style="font-size:12px;color:#8a8a9a">2/4</span>
+    </div>
+    <div class="slot-bar">
+      <div class="slot-level">2nd</div>
+      <div class="slot-pips">
+        <div class="slot-pip available"></div>
+        <div class="slot-pip available"></div>
+        <div class="slot-pip available"></div>
+      </div>
+      <span style="font-size:12px;color:#8a8a9a">3/3</span>
+    </div>
+    <div class="slot-bar">
+      <div class="slot-level">3rd</div>
+      <div class="slot-pips">
+        <div class="slot-pip available"></div>
+        <div class="slot-pip available"></div>
+      </div>
+      <span style="font-size:12px;color:#8a8a9a">2/2</span>
+    </div>
+
+    <div class="section-label">Cantrips</div>
+    <div class="spell-card">
+      <div class="spell-level-badge cantrip">C</div>
+      <div class="spell-info">
+        <div class="spell-name">Fire Bolt</div>
+        <div class="spell-meta">Evocation | 1 action | 120 ft</div>
+      </div>
+    </div>
+    <div class="spell-card">
+      <div class="spell-level-badge cantrip">C</div>
+      <div class="spell-info">
+        <div class="spell-name">Prestidigitation</div>
+        <div class="spell-meta">Transmutation | 1 action | 10 ft</div>
+      </div>
+    </div>
+    <div class="spell-card">
+      <div class="spell-level-badge cantrip">C</div>
+      <div class="spell-info">
+        <div class="spell-name">Mending</div>
+        <div class="spell-meta">Transmutation | 1 minute | Touch</div>
+      </div>
+    </div>
+
+    <div class="section-label">Known Spells</div>
+    <div class="spell-card">
+      <div class="spell-level-badge">1</div>
+      <div class="spell-info">
+        <div class="spell-name">Shield</div>
+        <div class="spell-meta">Abjuration | 1 reaction | Self</div>
+      </div>
+    </div>
+    <div class="spell-card">
+      <div class="spell-level-badge">1</div>
+      <div class="spell-info">
+        <div class="spell-name">Magic Missile</div>
+        <div class="spell-meta">Evocation | 1 action | 120 ft</div>
+      </div>
+    </div>
+    <div class="spell-card">
+      <div class="spell-level-badge">1</div>
+      <div class="spell-info">
+        <div class="spell-name">Mage Armor</div>
+        <div class="spell-meta">Abjuration | 1 action | Touch</div>
+      </div>
+    </div>
+    <div class="spell-card">
+      <div class="spell-level-badge">2</div>
+      <div class="spell-info">
+        <div class="spell-name">Misty Step</div>
+        <div class="spell-meta">Conjuration | 1 bonus | Self</div>
+      </div>
+    </div>
+    <div class="spell-card">
+      <div class="spell-level-badge">3</div>
+      <div class="spell-info">
+        <div class="spell-name">Fireball</div>
+        <div class="spell-meta">Evocation | 1 action | 150 ft</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEATURES TAB -->
+  <div class="tab-content" id="tab-features">
+    <div class="section-label">Class Features <span class="ownership-tag system">system</span></div>
+    <div class="feature-card">
+      <div class="feature-header">
+        <div class="feature-name">Arcane Recovery</div>
+        <div class="feature-source">Wizard 1</div>
+      </div>
+      <div class="feature-desc">Once per day during a short rest, recover spell slots with combined level equal to half your wizard level (rounded up).</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-header">
+        <div class="feature-name">Improved Minor Illusion</div>
+        <div class="feature-source">Illusionist 2</div>
+      </div>
+      <div class="feature-desc">When you cast Minor Illusion, you can create both a sound and an image with a single casting.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-header">
+        <div class="feature-name">Malleable Illusions</div>
+        <div class="feature-source">Illusionist 6</div>
+      </div>
+      <div class="feature-desc">When you cast an illusion spell with a duration of 1 minute or longer, you can use your action to change the nature of that illusion.</div>
+    </div>
+
+    <div class="section-label">Racial Traits <span class="ownership-tag system">system</span></div>
+    <div class="feature-card">
+      <div class="feature-header">
+        <div class="feature-name">Darkvision</div>
+        <div class="feature-source">Half-Elf</div>
+      </div>
+      <div class="feature-desc">See in dim light within 60 feet as if bright light, and in darkness as if dim light.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-header">
+        <div class="feature-name">Fey Ancestry</div>
+        <div class="feature-source">Half-Elf</div>
+      </div>
+      <div class="feature-desc">Advantage on saving throws against being charmed, and magic can't put you to sleep.</div>
+    </div>
+
+    <div class="section-label">Resources</div>
+    <div class="resource-row">
+      <div class="resource-name">Arcane Recovery</div>
+      <div class="resource-pips">
+        <div class="resource-pip available"></div>
+      </div>
+    </div>
+
+    <div class="section-label">Feats</div>
+    <div class="feature-card">
+      <div class="feature-header">
+        <div class="feature-name">War Caster</div>
+        <div class="feature-source">Feat (Lvl 4)</div>
+      </div>
+      <div class="feature-desc">Advantage on CON saves for concentration. Can cast spells as opportunity attacks. Somatic components with hands full.</div>
+    </div>
+
+    <div class="section-label">Proficiencies <span class="ownership-tag system">system</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;">
+      <div class="bio-tag">Daggers</div>
+      <div class="bio-tag">Darts</div>
+      <div class="bio-tag">Slings</div>
+      <div class="bio-tag">Quarterstaffs</div>
+      <div class="bio-tag">Light Crossbows</div>
+    </div>
+  </div>
+
+  <!-- EQUIPMENT TAB -->
+  <div class="tab-content" id="tab-equipment">
+    <div class="weight-bar">
+      <div class="weight-label">Carry</div>
+      <div class="weight-track"><div class="weight-fill"></div></div>
+      <div class="weight-nums">67 / 150 lb</div>
+    </div>
+
+    <div class="section-label">Equipped</div>
+    <div class="equip-section">
+      <div class="equip-card">
+        <div class="equip-icon">&#128481;</div>
+        <div class="equip-info">
+          <div class="equip-name">Dagger</div>
+          <div class="equip-detail">1d4 piercing | Finesse, Light, Thrown</div>
+        </div>
+        <div class="equip-qty">x2</div>
+      </div>
+      <div class="equip-card">
+        <div class="equip-icon">&#128144;</div>
+        <div class="equip-info">
+          <div class="equip-name">Arcane Focus (Crystal)</div>
+          <div class="equip-detail">Spellcasting focus</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Carried</div>
+    <div class="equip-section">
+      <div class="equip-card">
+        <div class="equip-icon">&#128218;</div>
+        <div class="equip-info">
+          <div class="equip-name">Spellbook</div>
+          <div class="equip-detail">3 lb</div>
+        </div>
+      </div>
+      <div class="equip-card">
+        <div class="equip-icon">&#127890;</div>
+        <div class="equip-info">
+          <div class="equip-name">Explorer's Pack</div>
+          <div class="equip-detail">Bedroll, mess kit, tinderbox, torches, rations, waterskin</div>
+        </div>
+      </div>
+      <div class="equip-card">
+        <div class="equip-icon">&#129497;</div>
+        <div class="equip-info">
+          <div class="equip-name">Component Pouch</div>
+          <div class="equip-detail">Spell components</div>
+        </div>
+      </div>
+      <div class="equip-card">
+        <div class="equip-icon">&#128176;</div>
+        <div class="equip-info">
+          <div class="equip-name">Potion of Healing</div>
+          <div class="equip-detail">2d4+2 HP | Consumable</div>
+        </div>
+        <div class="equip-qty">x3</div>
+      </div>
+    </div>
+
+    <div style="text-align:center;padding:16px;color:#555;font-size:12px;">
+      Tap item for details | Wagon & Hoard in Cargo tab
+    </div>
+  </div>
+
+  <!-- BIO TAB -->
+  <div class="tab-content" id="tab-bio">
+    <div class="race-card">
+      <div class="race-name">Half-Elf</div>
+      <div class="bio-section" style="background:transparent;padding:0;margin:0">
+        <div class="text" style="font-size:12px;">Walking in two worlds but truly belonging to neither, half-elves combine what some say are the best qualities of their elf and human parents: human curiosity, inventiveness, and ambition tempered by the refined senses, love of nature, and artistic tastes of the elves.</div>
+      </div>
+      <div class="race-traits">
+        <div class="race-trait">Darkvision 60ft</div>
+        <div class="race-trait">Fey Ancestry</div>
+        <div class="race-trait">Skill Versatility</div>
+        <div class="race-trait">Size: Medium</div>
+        <div class="race-trait">Speed: 30ft</div>
+        <div class="race-trait">Age: 180 years</div>
+      </div>
+    </div>
+
+    <div class="section-label">Identity <span class="ownership-tag system">system</span></div>
+    <div class="bio-section">
+      <div class="bio-field-row">
+        <div class="label">Background</div>
+        <div class="value">Sage</div>
+      </div>
+      <div class="bio-field-row">
+        <div class="label">Alignment</div>
+        <div class="value">Chaotic Good</div>
+      </div>
+      <div class="bio-field-row">
+        <div class="label">Languages</div>
+        <div class="value">
+          <div class="bio-tags" style="justify-content:flex-end">
+            <div class="bio-tag">Common</div>
+            <div class="bio-tag">Elvish</div>
+            <div class="bio-tag">Draconic</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Appearance <span class="ownership-tag player">player</span></div>
+    <div class="bio-section">
+      <div class="text">Tall and lean with sharp features softened by an easy smile. Silver-streaked dark hair pulled back in a loose ponytail. Pale green eyes that seem to glow faintly when casting. Wears a deep blue traveling cloak over simple scholar's robes.</div>
+      <div class="edit-hint">&#9998; tap to edit</div>
+    </div>
+
+    <div class="section-label">Personality <span class="ownership-tag player">player</span></div>
+    <div class="bio-section">
+      <div class="text">Endlessly curious and slightly absent-minded. Collects odd trinkets and scribbles notes in margins. Speaks to his familiar more than to people. Genuinely kind but can be oblivious to social cues when deep in thought.</div>
+      <div class="edit-hint">&#9998; tap to edit</div>
+    </div>
+
+    <div class="section-label">Backstory <span class="ownership-tag player">player</span></div>
+    <div class="bio-section">
+      <div class="text">Raised in a wizard's library in Waterdeep, Valenns grew up surrounded by books and magic but starved for adventure. When a merchant caravan needed a guard who could also identify magical artifacts, he jumped at the chance. Three years on the road later, he's seen more of the world than most scholars dream of...</div>
+      <div class="edit-hint">&#9998; tap to edit</div>
+    </div>
+
+    <div class="section-label">Notes <span class="ownership-tag player">player</span></div>
+    <div class="bio-section">
+      <div class="text" style="color:#888;font-style:italic">No notes yet. Tap to add.</div>
+      <div class="edit-hint">&#9998; tap to edit</div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+</script>
+
+</body>
+</html>
