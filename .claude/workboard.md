@@ -21,7 +21,7 @@
 | Phase | Must be specced first | Status | Can wait until display phase |
 |-------|----------------------|--------|------------------------------|
 | **Phase 0: Foundation** | Campaign data shape, system data shape, color themes | ✅ All done | — |
-| **Phase 1: Core Loop** | All mechanic target data shapes — quest, NPC, location, item, consequence, combat, economy. Chat messages. | ✅ Chat spec complete (`chat-system-spec-v2.md`). Characters ✅. **Journal data shapes now have real field specs from v1 engine dump** (`v1-engine-dump.md` Part 2). Ready to build. | Journal UI, Cargo UI, Treasury UI |
+| **Phase 1: Core Loop** | All mechanic target data shapes — quest, NPC, location, item, consequence, combat, economy. Chat messages. | ✅ All done. Chat spec (`chat-system-spec-v2.md`), characters, Journal data shapes (quests, NPCs, locations, consequences, secrets, townRep, chapters, moduleProgress) fully specced from v1 real data. | Journal UI, Cargo UI, Treasury UI |
 | **Phase 2: Gates** | Field ownership registry, validation rules per gate | ✅ Ownership done. Gate rules defined. | Gate UI (pills, overlays) |
 | **Phase 3: Play Mode UI** | Combat state shape, overlay behavior specs | ✅ Combat fully specced (`ui-specs-v2.md` §5). Overlays specced in `chat-system-spec-v2.md`. | — |
 | **Phase 4: Reference Mode** | Nothing new — reads existing state | ✅ All UI specs complete (`ui-specs-v2.md` §1–5). | Journal UI, Cargo UI, Treasury UI, CharSheet — all specced |
@@ -311,15 +311,142 @@ const DEFAULT_CAMPAIGN = {
   },
 
   // --- Story tracking (AI-owned) ---
-  // ⚠️ SKELETAL — need full field specs before Phase 1 mechanics handlers
-  quests: [],                 // [{ title, desc, status: 'active'|'done'|'failed', gameTs }]  ← needs: priority, giver NPC, rewards, location, completion criteria
-  primaryMission: '',         // main quest text
-  npcs: [],                   // [{ name, disposition, details, hp, alive: true }]  ← needs: race, role, location, relationship, last seen, portrait flag, dialogue notes
-  chapters: [],               // [{ title, content, gameTs }]
-  consequences: [],           // [{ text, type, resolved: false, gameTs }]  ← needs: deadline, urgency, trigger conditions, resolution options
-  townReputation: [],         // [{ town, status, notes }]  ← needs: numeric score, events log, faction ties
-  secrets: [],                // [{ text, playerKnown: false, aiOnly: true }]  ← needs: category, reveal trigger, source
-  moduleProgress: {},         // { moduleName, episodes: [{ num, status }] }  ← needs full episode tracking spec
+  // Full field specs derived from v1 real gameplay objects (v1-engine-dump.md Part 2)
+  // + mechanic key formats (v1-engine-reference.md)
+
+  quests: [
+    // Written by: quest_add, quest_done, quest_fail, quest_update mechanics
+    // Fuzzy dedup: first 30 chars of text matched against existing
+    {
+      id: '',                   // 'qst_' + Date.now() + random suffix
+      text: '',                 // quest description (from quest_add value)
+      status: 'active',        // 'active' | 'done' | 'failed'
+      location: '',            // auto-set to current location on creation (location anchoring)
+      giverNpc: '',            // NPC name who gave the quest (if identifiable from context)
+      notes: '',               // player/AI-appended notes (quest_update appends here)
+      chatMsgId: '',           // links to originating DM message for ⚔ chip display
+      discovery: {             // auto-extracted prose paragraph from AI response at creation
+        text: '',
+        ts: '',                // wall-clock ISO timestamp
+      },
+      gameTs: '',              // in-game time when quest was given
+      priority: 0,            // player-sortable (0 = default, higher = more urgent)
+    }
+  ],
+  primaryMission: '',          // main quest objective (primary_mission mechanic)
+
+  npcs: [
+    // Written by: npc_add, npc_mood mechanics
+    // npc_add updates existing if name matches (dedup by name)
+    // Also anchors NPC to current location's npcs[] array
+    {
+      id: '',                   // 'npc_' + Date.now() + random suffix
+      name: '',                 // NPC name (from npc_add: name, disposition, details)
+      disposition: 'Unknown',  // 'Friendly' | 'Neutral' | 'Hostile' | 'Unknown' (npc_mood updates)
+      details: '',             // description text (from npc_add)
+      status: 'active',       // 'active' | 'dead' | 'missing'
+      hp: null,               // tracked only for combatable NPCs, null otherwise
+      lastSeen: '',           // auto-set to current location on npc_add
+      race: '',               // e.g. "Human", "Dragonborn" — parsed from details or set manually
+      role: '',               // e.g. "governor", "merchant", "guard captain"
+      gameTs: '',             // in-game time when first encountered
+    }
+  ],
+
+  chapters: [
+    // Written by: chapter_add, chapter_update mechanics
+    // chapter_update fuzzy-matches by title
+    {
+      id: 0,                   // Date.now() at creation
+      title: '',               // chapter title (from chapter_add: Title|Content)
+      content: '',             // chapter prose/summary
+      gameTs: '',              // in-game time (e.g. "Day 1, Dusk")
+    }
+  ],
+
+  consequences: [
+    // Written by: consequence_add, consequence_resolve mechanics
+    // Fuzzy dedup: 60% word overlap against existing consequences
+    // consequence_resolve fuzzy-matches and sets resolved + resolvedTs
+    // Reputation ripple: town_rep changes to burned/fled auto-create a consequence
+    {
+      id: '',                   // 'csq_' + Date.now()
+      text: '',                 // consequence description (from consequence_add: text|type)
+      type: '',                 // 'background' | 'faction' | 'environmental' | 'threat'
+      resolved: false,
+      resolvedTs: null,        // ISO timestamp when resolved
+      gameTs: '',              // in-game time when created
+      location: '',            // auto-set to current location on creation
+      deadline: null,          // optional: in-game time string when this must be resolved
+      _ripple: false,          // true if auto-generated by reputation ripple system
+    }
+  ],
+
+  townReputation: [
+    // Written by: town_rep mechanic (upserts by town name)
+    // Reputation ripple: if status changes to burned/fled, auto-creates consequence
+    {
+      town: '',                // town/settlement name
+      status: 'neutral',      // 'neutral' | 'friendly' | 'hostile' | 'burned' | 'fled'
+      notes: '',              // context for current standing
+      gameTs: '',             // when last updated
+      history: [],            // [{ status, notes, gameTs }] — log of status changes over time
+    }
+  ],
+
+  secrets: [
+    // One home for all campaign secrets (Law 4: data has one home)
+    // playerKnown + aiOnly flags control visibility
+    {
+      id: '',                   // 'sec_' + Date.now()
+      text: '',                 // secret content
+      playerKnown: false,      // true = visible in Journal Secrets tab
+      aiOnly: true,            // true = injected into AI prompt, hidden from player UI
+      category: '',            // 'plot' | 'npc' | 'location' | 'item' | 'lore'
+      source: '',              // where/how the secret was learned (if revealed)
+      gameTs: '',              // when created or revealed
+    }
+  ],
+
+  moduleProgress: [
+    // Written by: module_episode mechanic
+    // Auto-completes all episodes before the newly activated one
+    // Content field holds episode text for buildPrompt injection (only active episode)
+    {
+      name: '',                // "Episode 1 — Greenest in Flames"
+      status: 'pending',      // 'pending' | 'active' | 'complete'
+      notes: '',              // player/DM notes
+      content: '',            // episode brief text (for AI context when active)
+    }
+  ],
+
+  locations: [
+    // Written by: location_add, location_visit, location_history, location_investment mechanics
+    // location_add updates existing if name matches
+    // Quest/NPC/consequence creation auto-anchors to current location
+    {
+      id: '',                   // 'loc_' + Date.now() + random suffix
+      name: '',                 // location name (from location_add: Name|Type|Description)
+      type: '',                 // 'waypoint' | 'town' | 'dungeon' | 'camp' | 'temple' | etc.
+      status: 'undiscovered',  // 'visited' | 'undiscovered' (location_visit updates)
+      firstVisited: '',        // in-game time string
+      lastVisited: '',         // in-game time string (updated by location_visit)
+      rep: {                   // location-specific reputation (mirrors townReputation entry)
+        disposition: '',       // 'Friendly' | 'Neutral' | 'Hostile'
+        notes: '',
+      },
+      npcs: [],                // NPC names anchored here (auto-populated by npc_add)
+      investments: [           // tracked by location_investment mechanic
+        // { desc: '', amount: 0, gameTs: '', notes: '' }
+      ],
+      history: [               // chronological event log (location_history mechanic)
+        // { gameTs: '', text: '', dmOnly: false }
+      ],
+      dmNotes: '',             // DM-only notes (hidden from player view)
+      playerNotes: '',         // player-editable notes
+      mapPos: null,            // { x, y } if placed on area map, null otherwise
+    }
+  ],
 
   // --- Combat (AI-owned, ephemeral during combat) ---
   combatState: {
