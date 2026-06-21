@@ -1,5 +1,6 @@
 import { createSignal, Show } from 'solid-js';
 import { store } from '../state/index.js';
+import { loadDemoCampaign } from '../data/demo.js';
 import Chat from './play/Chat.jsx';
 
 export default function App() {
@@ -13,6 +14,7 @@ export default function App() {
         <Show when={hasCampaign()} fallback={
           <div class="no-campaign">
             <p>No campaign found.</p>
+            <button class="btn-demo" onClick={loadDemoCampaign}>Load Demo Campaign</button>
             <p style={{ color: 'var(--color-text-muted)', 'font-size': 'var(--font-size-sm)' }}>
               Setup mode coming soon.
             </p>
