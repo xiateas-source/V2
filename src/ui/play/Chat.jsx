@@ -18,8 +18,11 @@ const [tooltip, setTooltip] = createSignal(null);
 
 export default function Chat() {
   const [tab, setTab] = createSignal('narrative');
+  const [newMsgCount, setNewMsgCount] = createSignal(0);
   let chatEnd;
   let messagesDiv;
+  let isAtBottom = true;
+  let lastMsgCount = 0;
 
   onMount(async () => {
     try {
@@ -60,12 +63,28 @@ export default function Chat() {
 
   let wasSending = false;
 
+  function checkIfAtBottom() {
+    if (!messagesDiv) return true;
+    return messagesDiv.scrollHeight - messagesDiv.scrollTop - messagesDiv.clientHeight < 100;
+  }
+
+  function scrollToBottom() {
+    if (messagesDiv) {
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      setNewMsgCount(0);
+    }
+  }
+
+  function onScroll() {
+    isAtBottom = checkIfAtBottom();
+    if (isAtBottom) setNewMsgCount(0);
+  }
+
   createEffect(() => {
-    messages();
+    const msgs = messages();
     const sending = isSending();
 
     if (wasSending && !sending && autoRead()) {
-      const msgs = messages();
       const last = msgs[msgs.length - 1];
       if (last && last.role === 'assistant') {
         speak(last.content);
@@ -73,11 +92,17 @@ export default function Chat() {
     }
     wasSending = sending;
 
-    setTimeout(() => {
-      if (messagesDiv) {
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    const count = msgs.length;
+    if (count > lastMsgCount && lastMsgCount > 0) {
+      if (isAtBottom) {
+        setTimeout(scrollToBottom, 50);
+      } else {
+        setNewMsgCount(prev => prev + (count - lastMsgCount));
       }
-    }, 50);
+    } else if (count > 0 && lastMsgCount === 0) {
+      setTimeout(scrollToBottom, 50);
+    }
+    lastMsgCount = count;
   });
 
   return (
@@ -112,7 +137,7 @@ export default function Chat() {
         </div>
       </Show>
 
-      <div class="chat-messages" ref={messagesDiv} onClick={handleChatClick}>
+      <div class="chat-messages" ref={messagesDiv} onClick={handleChatClick} onScroll={onScroll}>
         <For each={messages()}>
           {(msg) => (
             <div class={`msg msg-${msg.role}`}>
@@ -151,6 +176,12 @@ export default function Chat() {
         </Show>
         <div ref={chatEnd} />
       </div>
+
+      <Show when={newMsgCount() > 0}>
+        <button class="new-msg-indicator" onClick={scrollToBottom}>
+          &darr; {newMsgCount()} new message{newMsgCount() > 1 ? 's' : ''}
+        </button>
+      </Show>
 
       <Combat />
       <RollBar />

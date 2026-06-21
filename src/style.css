@@ -523,6 +523,22 @@ body {
   gap: var(--space-sm);
 }
 
+.new-msg-indicator {
+  position: sticky;
+  bottom: 0;
+  align-self: center;
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  z-index: 10;
+  margin-top: -36px;
+}
+
 .msg {
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-md);
