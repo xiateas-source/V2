@@ -3,6 +3,7 @@ import { sendMsg, isSending, stopGeneration } from '../../ai/engine.js';
 import { validateMechanics, applyMechanics } from '../../ai/mechanics.js';
 import { store, setStore } from '../../state/index.js';
 import DiceRoller from './DiceRoller.jsx';
+import QuickActions from './QuickActions.jsx';
 
 const SCENARIOS = [
   {
@@ -241,6 +242,7 @@ export default function InputBar(props) {
 
   return (
     <div class="input-bar">
+      <QuickActions tab={props.tab} onPrefill={(t) => { setText(t); inputRef?.focus(); }} />
       <div class="input-row">
         <textarea
           ref={inputRef}

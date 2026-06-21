@@ -11,6 +11,11 @@ export const DEFAULT_SYSTEM = {
     ttsVoice: null,
     pushEnabled: false,
     pushSubscription: null,
+    quickActions: {
+      active: ['short_rest', 'long_rest', 'dodge', 'dash', 'search', 'stealth'],
+      custom: [],
+      mode: 'instant',
+    },
   },
 
   providers: {

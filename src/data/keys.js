@@ -2,6 +2,7 @@ import { setStore } from '../state/index.js';
 
 const KEYS_STORAGE = 'tp2_provider_keys';
 const SETTINGS_STORAGE = 'tp2_provider_settings';
+const QA_STORAGE = 'tp2_quick_actions';
 
 export function saveKeys(geminiKey, openrouterKey) {
   try {
@@ -12,6 +13,20 @@ export function saveKeys(geminiKey, openrouterKey) {
 export function saveProviderSettings(geminiModel) {
   try {
     localStorage.setItem(SETTINGS_STORAGE, JSON.stringify({ geminiModel }));
+  } catch {}
+}
+
+export function saveQuickActions(config) {
+  try { localStorage.setItem(QA_STORAGE, JSON.stringify(config)); } catch {}
+}
+
+export function restoreQuickActions() {
+  try {
+    const raw = localStorage.getItem(QA_STORAGE);
+    if (raw) {
+      const config = JSON.parse(raw);
+      if (config) setStore('system', 'settings', 'quickActions', config);
+    }
   } catch {}
 }
 
