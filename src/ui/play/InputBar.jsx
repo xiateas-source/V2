@@ -78,6 +78,7 @@ function exportResults() {
     locations: c.locations,
     chapters: c.chapters,
     primaryMission: c.primaryMission,
+    narrative: c.narrative.map(m => ({ role: m.role, content: m.content?.slice(0, 500) })),
   };
   const text = JSON.stringify(out, null, 2);
   if (navigator.clipboard) {

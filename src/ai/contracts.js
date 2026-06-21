@@ -24,11 +24,11 @@ slot_use: Name=level | slot_restore: Name=level
 resource_use: Name,ResourceName | resource_restore: Name=all
 xp: Name+amount | xp: party+amount
 gp: +amount | income: amount, category, desc | expense: amount, desc
-item_add: target, name, qty, type, weight | item_remove: target, name, qty
+item_add: PCname, itemname, type, attunement | item_add: itemname, type, attunement (wagon default) | item_remove: target, name, qty
 location: Name | time: value | weather: value | loc_desc: text
 quest_add: text | quest_done: name | quest_fail: name | quest_update: name|notes
 primary_mission: text | npc_add: name, disposition, details | npc_mood: name=mood
-consequence_add: text|type | consequence_resolve: text
+consequence_add: text|deadline|details | consequence_resolve: text
 chapter_add: Title|Content | location_add: Name|Type|Description
 location_visit: Name | town_rep: town, status, notes
 combat_start: desc | combat_end: summary | zone_add_enemy: Name|HP|AC|Zone|Init
