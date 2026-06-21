@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>V2 Palette Sampler</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #111; color: #eee; padding: 16px; padding-bottom: 80px; }
+h1 { font-size: 1.2rem; text-align: center; margin-bottom: 8px; }
+.section-label { font-size: 1rem; font-weight: 700; text-align: center; margin: 24px 0 12px; padding: 8px; border-radius: 8px; }
+.dark-label { background: #222; color: #ccc; }
+.light-label { background: #e0e0e0; color: #333; }
+
+.palette-card {
+  border-radius: 16px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  transition: border-color 0.2s;
+}
+.palette-card.selected { border-color: #fff; }
+
+.palette-header {
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.palette-name { font-size: 0.9rem; font-weight: 700; }
+.palette-tag { font-size: 0.7rem; opacity: 0.6; }
+
+/* Mini chat mockup */
+.mini-chat {
+  padding: 8px 12px;
+}
+.mini-msg {
+  border-radius: 12px;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+.mini-msg.dm { margin-right: 40px; }
+.mini-msg.player { margin-left: 40px; text-align: right; }
+.mini-msg.system { text-align: center; font-size: 0.7rem; opacity: 0.7; margin: 4px 20px; }
+
+.mini-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin: 2px 2px;
+}
+
+/* Bottom bar mockup */
+.mini-bar {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 8px;
+}
+.mini-input {
+  flex: 1;
+  border-radius: 20px;
+  padding: 8px 14px;
+  font-size: 0.75rem;
+  border: 1px solid;
+}
+.mini-send {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+}
+
+/* Nav mockup */
+.mini-nav {
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 0;
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+.mini-nav span { opacity: 0.5; }
+.mini-nav span.active { opacity: 1; }
+
+/* Swatch strip */
+.swatch-strip {
+  display: flex;
+  height: 6px;
+}
+.swatch-strip div { flex: 1; }
+</style>
+</head>
+<body>
+
+<h1>V2 Palette Sampler</h1>
+<p style="text-align:center; font-size:0.75rem; opacity:0.5; margin-bottom:16px;">Tap to select favorites. Scroll to see all 20.</p>
+
+<div class="section-label dark-label">DARK MODES (10)</div>
+
+<div id="palettes"></div>
+
+<script>
+const palettes = [
+  // --- DARK MODES ---
+  {
+    name: "Obsidian",
+    tag: "Deep black, warm amber accents",
+    mode: "dark",
+    bg: "#0d0d0d",
+    surface: "#1a1a1a",
+    surfaceAlt: "#252525",
+    text: "#e8e8e8",
+    textMuted: "#888",
+    accent: "#e8a824",
+    accentDim: "#b8841c",
+    success: "#4ecca3",
+    warning: "#e8a824",
+    danger: "#e05555",
+    border: "#333",
+    inputBg: "#111",
+    dmBubble: "#1c1c1c",
+    playerBubble: "#2a2518",
+    navBg: "#0a0a0a",
+  },
+  {
+    name: "Dragonscale",
+    tag: "Dark teal, emerald glow",
+    mode: "dark",
+    bg: "#0a1a1a",
+    surface: "#0f2828",
+    surfaceAlt: "#143636",
+    text: "#d0e8e0",
+    textMuted: "#6a9a8a",
+    accent: "#2dd4a8",
+    accentDim: "#1fa882",
+    success: "#2dd4a8",
+    warning: "#f0c040",
+    danger: "#e06060",
+    border: "#1e3e3e",
+    inputBg: "#081414",
+    dmBubble: "#0e2424",
+    playerBubble: "#142e2a",
+    navBg: "#061212",
+  },
+  {
+    name: "Grimoire",
+    tag: "Dark purple, arcane violet",
+    mode: "dark",
+    bg: "#100e18",
+    surface: "#1a1628",
+    surfaceAlt: "#241e38",
+    text: "#e0dce8",
+    textMuted: "#8880a0",
+    accent: "#a87cff",
+    accentDim: "#8860d8",
+    success: "#5ce0a0",
+    warning: "#e8b040",
+    danger: "#e06080",
+    border: "#2e2844",
+    inputBg: "#0c0a14",
+    dmBubble: "#181428",
+    playerBubble: "#241c3a",
+    navBg: "#0a0810",
+  },
+  {
+    name: "Hearthstone",
+    tag: "Warm charcoal, copper glow",
+    mode: "dark",
+    bg: "#141210",
+    surface: "#1e1c18",
+    surfaceAlt: "#2a2620",
+    text: "#e8e0d4",
+    textMuted: "#9a8e7a",
+    accent: "#d4885c",
+    accentDim: "#b06c44",
+    success: "#6aba6a",
+    warning: "#d4a040",
+    danger: "#c85050",
+    border: "#3a3428",
+    inputBg: "#100e0c",
+    dmBubble: "#1c1a16",
+    playerBubble: "#2a2218",
+    navBg: "#0e0c0a",
+  },
+  {
+    name: "Midnight Blue",
+    tag: "Navy depths, cool blue accent",
+    mode: "dark",
+    bg: "#0a0e1a",
+    surface: "#101828",
+    surfaceAlt: "#182040",
+    text: "#d8e0f0",
+    textMuted: "#6880a8",
+    accent: "#4c8ce8",
+    accentDim: "#3870c8",
+    success: "#4ce0a0",
+    warning: "#e8b848",
+    danger: "#e06060",
+    border: "#1e2e4a",
+    inputBg: "#080c14",
+    dmBubble: "#0e1624",
+    playerBubble: "#141e38",
+    navBg: "#060a14",
+  },
+  {
+    name: "Blood Moon",
+    tag: "Near black, deep crimson",
+    mode: "dark",
+    bg: "#0e0808",
+    surface: "#1a1010",
+    surfaceAlt: "#281818",
+    text: "#e0d4d4",
+    textMuted: "#8a6a6a",
+    accent: "#c83838",
+    accentDim: "#a02828",
+    success: "#50b870",
+    warning: "#d8a040",
+    danger: "#c83838",
+    border: "#382020",
+    inputBg: "#0c0606",
+    dmBubble: "#180e0e",
+    playerBubble: "#281414",
+    navBg: "#080404",
+  },
+  {
+    name: "Ironwood",
+    tag: "Dark olive, forest tones",
+    mode: "dark",
+    bg: "#0c0e0a",
+    surface: "#161a14",
+    surfaceAlt: "#1e2418",
+    text: "#d4dcc8",
+    textMuted: "#7a8a6a",
+    accent: "#88b860",
+    accentDim: "#6a9848",
+    success: "#88b860",
+    warning: "#d4a840",
+    danger: "#c86050",
+    border: "#2a3020",
+    inputBg: "#0a0c08",
+    dmBubble: "#141812",
+    playerBubble: "#1c2216",
+    navBg: "#080a06",
+  },
+  {
+    name: "Duskfall",
+    tag: "Muted twilight, rose gold",
+    mode: "dark",
+    bg: "#12101a",
+    surface: "#1c1824",
+    surfaceAlt: "#262030",
+    text: "#e0dce4",
+    textMuted: "#8a8098",
+    accent: "#d4889c",
+    accentDim: "#b06880",
+    success: "#68c0a0",
+    warning: "#d8b060",
+    danger: "#d06060",
+    border: "#302838",
+    inputBg: "#0e0c14",
+    dmBubble: "#1a1620",
+    playerBubble: "#241c2c",
+    navBg: "#0a0810",
+  },
+  {
+    name: "Shadowfell",
+    tag: "Pure dark, icy silver",
+    mode: "dark",
+    bg: "#080808",
+    surface: "#121212",
+    surfaceAlt: "#1a1a1a",
+    text: "#c8c8c8",
+    textMuted: "#666",
+    accent: "#a0b8d0",
+    accentDim: "#7890a8",
+    success: "#60b880",
+    warning: "#c8a050",
+    danger: "#c06060",
+    border: "#282828",
+    inputBg: "#060606",
+    dmBubble: "#101010",
+    playerBubble: "#181820",
+    navBg: "#040404",
+  },
+  {
+    name: "Candlelight",
+    tag: "Dark with golden warmth",
+    mode: "dark",
+    bg: "#10100a",
+    surface: "#1a1810",
+    surfaceAlt: "#24201a",
+    text: "#e8e0c8",
+    textMuted: "#a0946a",
+    accent: "#f0c860",
+    accentDim: "#c8a440",
+    success: "#60c080",
+    warning: "#f0c860",
+    danger: "#d05050",
+    border: "#302a1a",
+    inputBg: "#0c0c06",
+    dmBubble: "#18160e",
+    playerBubble: "#221e14",
+    navBg: "#0a0a06",
+  },
+
+  // --- LIGHT MODES ---
+  {
+    name: "Parchment",
+    tag: "Warm cream, ink brown",
+    mode: "light",
+    bg: "#f5f0e6",
+    surface: "#ffffff",
+    surfaceAlt: "#ede6d6",
+    text: "#2a2420",
+    textMuted: "#7a6e5a",
+    accent: "#8b5e3c",
+    accentDim: "#6e4a2e",
+    success: "#3a8a5a",
+    warning: "#b88830",
+    danger: "#b84040",
+    border: "#d8d0c0",
+    inputBg: "#faf6ee",
+    dmBubble: "#f0ebe0",
+    playerBubble: "#e8e0d0",
+    navBg: "#ece6d8",
+  },
+  {
+    name: "Ivory Tower",
+    tag: "Clean white, slate blue",
+    mode: "light",
+    bg: "#f0f2f5",
+    surface: "#ffffff",
+    surfaceAlt: "#e8ecf2",
+    text: "#1a1e2a",
+    textMuted: "#6a7088",
+    accent: "#4060a8",
+    accentDim: "#304880",
+    success: "#2e8860",
+    warning: "#b08820",
+    danger: "#b04040",
+    border: "#d0d4e0",
+    inputBg: "#f8f9fc",
+    dmBubble: "#eef1f8",
+    playerBubble: "#e0e4f0",
+    navBg: "#e8ecf4",
+  },
+  {
+    name: "Meadow",
+    tag: "Soft green, natural tones",
+    mode: "light",
+    bg: "#eef4ec",
+    surface: "#ffffff",
+    surfaceAlt: "#e4ede2",
+    text: "#1e2a1e",
+    textMuted: "#5a7a58",
+    accent: "#3a8a50",
+    accentDim: "#2e6e3e",
+    success: "#3a8a50",
+    warning: "#a88820",
+    danger: "#b04848",
+    border: "#c8d8c6",
+    inputBg: "#f5faf4",
+    dmBubble: "#ebf4ea",
+    playerBubble: "#dce8da",
+    navBg: "#e2ede0",
+  },
+  {
+    name: "Sandstone",
+    tag: "Desert warmth, terracotta",
+    mode: "light",
+    bg: "#f5efe6",
+    surface: "#fffcf6",
+    surfaceAlt: "#ece4d6",
+    text: "#2e2418",
+    textMuted: "#8a7660",
+    accent: "#c06830",
+    accentDim: "#984e20",
+    success: "#4a8a5a",
+    warning: "#c08828",
+    danger: "#b84038",
+    border: "#dcd0be",
+    inputBg: "#faf6ee",
+    dmBubble: "#f2ece0",
+    playerBubble: "#e8dece",
+    navBg: "#ede6d8",
+  },
+  {
+    name: "Frost",
+    tag: "Cool ice, steel blue",
+    mode: "light",
+    bg: "#eef2f6",
+    surface: "#ffffff",
+    surfaceAlt: "#e0eaf4",
+    text: "#182030",
+    textMuted: "#607898",
+    accent: "#3878b8",
+    accentDim: "#285a90",
+    success: "#2e8868",
+    warning: "#a89028",
+    danger: "#b04848",
+    border: "#c8d8e8",
+    inputBg: "#f5f8fc",
+    dmBubble: "#e8f0f8",
+    playerBubble: "#dae6f2",
+    navBg: "#e2ecf6",
+  },
+  {
+    name: "Rosewood",
+    tag: "Blush pink, warm mauve",
+    mode: "light",
+    bg: "#f6f0f0",
+    surface: "#fffafa",
+    surfaceAlt: "#f0e4e4",
+    text: "#2a1e20",
+    textMuted: "#907078",
+    accent: "#b05068",
+    accentDim: "#8a3a50",
+    success: "#408a60",
+    warning: "#b88a30",
+    danger: "#b04848",
+    border: "#e0d0d4",
+    inputBg: "#fcf6f6",
+    dmBubble: "#f4ecec",
+    playerBubble: "#ebe0e2",
+    navBg: "#f0e8ea",
+  },
+  {
+    name: "Daybreak",
+    tag: "Warm white, golden amber",
+    mode: "light",
+    bg: "#f8f4ec",
+    surface: "#ffffff",
+    surfaceAlt: "#f0e8d8",
+    text: "#28241a",
+    textMuted: "#8a7e60",
+    accent: "#c89030",
+    accentDim: "#a07420",
+    success: "#3e8858",
+    warning: "#c89030",
+    danger: "#b84040",
+    border: "#dcd4c0",
+    inputBg: "#fcf8f0",
+    dmBubble: "#f4ede0",
+    playerBubble: "#ece2d0",
+    navBg: "#f0eadc",
+  },
+  {
+    name: "Lavender",
+    tag: "Soft purple, gentle violet",
+    mode: "light",
+    bg: "#f2f0f6",
+    surface: "#fefefe",
+    surfaceAlt: "#e8e4f0",
+    text: "#201e2a",
+    textMuted: "#7870a0",
+    accent: "#7050b8",
+    accentDim: "#583c98",
+    success: "#3a886a",
+    warning: "#a89030",
+    danger: "#a84848",
+    border: "#d4d0e0",
+    inputBg: "#f8f6fc",
+    dmBubble: "#eeeaf6",
+    playerBubble: "#e2ddf0",
+    navBg: "#eae6f2",
+  },
+  {
+    name: "Driftwood",
+    tag: "Gray-beige, understated",
+    mode: "light",
+    bg: "#f0eeea",
+    surface: "#fafaf8",
+    surfaceAlt: "#e6e2dc",
+    text: "#2a2824",
+    textMuted: "#807a70",
+    accent: "#6a6058",
+    accentDim: "#504840",
+    success: "#4a886a",
+    warning: "#a89040",
+    danger: "#a84848",
+    border: "#d4d0c8",
+    inputBg: "#f6f4f0",
+    dmBubble: "#eceae4",
+    playerBubble: "#e2e0d8",
+    navBg: "#e8e6e0",
+  },
+  {
+    name: "Sea Glass",
+    tag: "Aqua tint, coastal calm",
+    mode: "light",
+    bg: "#ecf4f4",
+    surface: "#ffffff",
+    surfaceAlt: "#e0eeed",
+    text: "#1a2828",
+    textMuted: "#5a8888",
+    accent: "#2a8888",
+    accentDim: "#1e6a6a",
+    success: "#2e8a6a",
+    warning: "#a89030",
+    danger: "#a84848",
+    border: "#c4dada",
+    inputBg: "#f4fafa",
+    dmBubble: "#e8f2f2",
+    playerBubble: "#daeaea",
+    navBg: "#e2f0f0",
+  },
+];
+
+function renderPalette(p, index) {
+  const isLight = p.mode === 'light';
+  return `
+    <div class="palette-card" id="pal-${index}" onclick="this.classList.toggle('selected')" style="background:${p.bg}">
+      <div class="swatch-strip">
+        <div style="background:${p.bg}"></div>
+        <div style="background:${p.surface}"></div>
+        <div style="background:${p.surfaceAlt}"></div>
+        <div style="background:${p.accent}"></div>
+        <div style="background:${p.success}"></div>
+        <div style="background:${p.warning}"></div>
+        <div style="background:${p.danger}"></div>
+      </div>
+      <div class="palette-header" style="color:${p.text}">
+        <span class="palette-name">${index + 1}. ${p.name}</span>
+        <span class="palette-tag" style="color:${p.textMuted}">${p.tag}</span>
+      </div>
+      <div class="mini-chat" style="background:${p.bg}">
+        <div class="mini-msg dm" style="background:${p.dmBubble}; color:${p.text}">
+          The ancient door groans open. Flickering torchlight reveals a chamber lined with crumbling bookshelves.
+          <div style="margin-top:4px;">
+            <span class="mini-pill" style="background:${p.danger}22; color:${p.danger}">hp: -5</span>
+            <span class="mini-pill" style="background:${p.success}22; color:${p.success}">item_add</span>
+            <span class="mini-pill" style="background:${p.accent}22; color:${p.accent}">quest_add</span>
+          </div>
+        </div>
+        <div class="mini-msg player" style="background:${p.playerBubble}; color:${p.text}">
+          Valenns searches the bookshelves for anything magical.
+        </div>
+        <div class="mini-msg system" style="color:${p.textMuted}">
+          Roll Request: Investigation (Valenns) | DC 14
+        </div>
+        <div class="mini-msg dm" style="background:${p.dmBubble}; color:${p.text}">
+          <span style="color:${p.accent}; font-weight:600;">DM:</span> Roll your Investigation check, Valenns. The shelves are packed tight with dust and debris.
+        </div>
+      </div>
+      <div class="mini-bar" style="background:${p.surface}">
+        <div class="mini-input" style="background:${p.inputBg}; color:${p.textMuted}; border-color:${p.border}">What do you do?</div>
+        <div class="mini-send" style="background:${p.accent}; color:${isLight ? '#fff' : p.bg}">&#9889;</div>
+      </div>
+      <div class="mini-nav" style="background:${p.navBg}; color:${p.text}">
+        <span class="active" style="color:${p.accent}">Cargo</span>
+        <span>Journal</span>
+        <span>Settings</span>
+      </div>
+    </div>
+  `;
+}
+
+const container = document.getElementById('palettes');
+let html = '';
+const darks = palettes.filter(p => p.mode === 'dark');
+const lights = palettes.filter(p => p.mode === 'light');
+
+darks.forEach((p, i) => { html += renderPalette(p, i); });
+html += '<div class="section-label light-label">LIGHT MODES (10)</div>';
+lights.forEach((p, i) => { html += renderPalette(p, i + 10); });
+
+container.innerHTML = html;
+</script>
+
+</body>
+</html>
