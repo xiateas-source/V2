@@ -702,7 +702,7 @@ body {
 .test-controls {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-xs);
   flex-wrap: wrap;
 }
 
@@ -716,11 +716,105 @@ body {
   cursor: pointer;
 }
 
+.btn-test-export {
+  background: var(--color-surface);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  color: var(--color-accent);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.test-panel {
+  width: 100%;
+  max-height: 50vh;
+  overflow-y: auto;
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-xs);
+  margin-top: var(--space-xs);
+}
+
+.test-mode-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: var(--space-sm);
+}
+
+.test-mode-tab {
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+
+.test-mode-tab.active {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border-color: var(--color-accent);
+}
+
+.test-scenarios {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.scenario-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
+  background: var(--color-surface-alt);
+}
+
+.scenario-header {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: var(--space-xs);
+}
+
+.scenario-label {
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  color: var(--color-accent);
+}
+
+.scenario-desc {
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.scenario-prompts {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.btn-scenario-prompt {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 11px;
+  padding: 6px 8px;
+  cursor: pointer;
+  text-align: left;
+  min-height: 32px;
+}
+
+.btn-scenario-prompt:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .test-buttons {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
-  flex: 1;
 }
 
 .btn-test {
@@ -738,13 +832,6 @@ body {
   background: var(--color-accent);
   color: var(--color-bg);
   border-color: var(--color-accent);
-  font-weight: 600;
-}
-
-.btn-test-export {
-  background: var(--color-surface);
-  border-color: var(--color-accent);
-  color: var(--color-accent);
   font-weight: 600;
 }
 
