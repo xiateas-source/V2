@@ -1,80 +1,63 @@
 # Session Log — Handoff Note
 
-## Session 33 · 2026-06-21
+## Session 34 · 2026-06-21
 
 ### Shipped
-- **Combat overlay** (`Combat.jsx`) — initiative order, HP bars, zone map, turn advancement button
-- **Rewind/Undo** (`Rewind.jsx`) — reverses all mechanics from last AI response (Law 2 enforcement)
-- **Character sheet overlay** (`CharSheet.jsx`) — full sheet: abilities, attacks, slots, spells, features, resources, inventory, proficiencies
-- **Drift detector** (`drift.js`) — flags AI narrating state without emitting mechanics (gold, items, NPCs, HP, rolls in prose)
-- **Browser TTS** (`browserTTS.js`, `TTS.jsx`) — Web Speech API, auto-read mode for hands-free play
-- **Firebase sync** (`sync.js`) — reactive 3s debounced sync, offline-first with localStorage fallback
-- **Dice roller** (`DiceRoller.jsx`) — quick d4-d100 buttons with nat 20/1 styling
-- **Compendium browser** (`Compendium.jsx`) — searchable spells/rules/glossary from IndexedDB, lazy-loaded in Journal
-- **Temp HP mechanic** — absorbs damage first, doesn't stack, cleared on long rest
-- **Hit dice spending** — HD use mechanic with CON mod healing
-- **Inspiration mechanic** — grant/remove via mechanics pipeline
-- **Exhaustion penalties** — disadvantage on ability checks at level 1+
-- **Death save tracking** in mechanics pipeline
-- **Long rest** — full HP, slot recovery, HD refresh (half), clear temp/exhaustion
-- **Combat initiative** — sorted by roll, round/turn tracking, round_advance mechanic
-- **Enhanced memory** — summaries preserve mechanics, 16 event retention
-- **CharTiles enhanced** — spell slot pips, exhaustion, death saves, temp HP, tap-to-source
-- **Combat prompt** — sorted initiative with >>> marker and [DOWN] status
+- **QuickActions** (`QuickActions.jsx`) — 22 presets across 5 categories, context-aware pill-bar, swipe-up drawer, full customization, instant/prefill modes, localStorage persistence
+- **DevTools extraction** (`DevTools.jsx`) — moved ~160 lines of test infra out of InputBar, added 5 new test batches (temp_hp, hit_dice_use, inspiration, death_save, round_advance), lazy-loaded with Suspense
+- **Combat end button** (`Combat.jsx`) — manual "End" button fires `combat_end` mechanic
+- **Scene transition confirmation** (`ContextBanner.jsx` + `mechanics.js`) — `pendingLocation` gate: AI location changes require player Go/Stay confirmation (Law 2)
+- **Previously On** (`PreviouslyOn.jsx`) — session recap when returning after >1hr idle, shows location/party/quests/consequences
+- **Nav badges** (`App.jsx`) — dot indicators on Cargo/Journal when state changes while on Play tab
+- **Unmentioned PC detection** (`drift.js` + `engine.js`) — drift warning when AI narrates actions for a PC the player didn't mention (Law 2, Gate 5)
+- **CharSheet manual override** (`CharSheet.jsx`) — tap HP to edit inline (clamped to 0–hpMax), tap conditions to remove, + button to add new conditions
+- **NPC name linking** (`Chat.jsx`) — NPC names in chat auto-link to NPC tracker, tap for details popup
+- **Glossary term linking** (`Chat.jsx`) — D&D terms auto-link from IndexedDB glossary, tap for definition popup
+- **Tooltip popup system** (`Chat.jsx` + CSS) — tap-to-dismiss overlay for NPC/term detail (Law 4: tap-to-source)
+- **Ask DM interception** (`engine.js`) — inventory/gold/spells/HP/location queries answered instantly from local state without API call (Law 5: zero cost)
+- **Level-up glow** (`CharTiles.jsx`) — tiles pulse green when XP >= next level threshold (character IS the notification)
+- **SituationBar enhanced** (`SituationBar.jsx`) — chips tappable with detail popups, consequences sorted by urgency, deadlined ones pulse
+- **Firebase auth fix** — 5s timeout prevents app hanging when offline
 
-### Decisions Made (Session 33)
-- TTS uses free Web Speech API (Law 5), ElevenLabs is future upgrade path
-- Firebase sync is reactive with 3s debounce, not on every state change
-- Drift detector warns but doesn't block — player sees yellow pills
-- Rewind reverses mechanics but keeps the message visible (crossed out)
-- Compendium is lazy-loaded tab in Journal, not a separate nav item
-- Combat overlay appears automatically when combatState.active = true
+### Decisions Made (Session 34)
+- QuickActions uses two-state pattern: collapsed pill-bar (always visible) + expanded drawer (swipe up)
+- "Say It" mode toggle: instant-fire vs pre-fill input bar for editing
+- Scene transition uses pending pattern — AI sets `pendingLocation`, UI confirms
+- Ask DM interception returns instant answers for factual state queries, passes complex questions through to AI
+- CharSheet HP edit is clamped (can't go below 0 or above hpMax) — prevents accidental invalid state
+- NPC/term linking uses delegated event handlers on chat container (no per-message listeners)
+- Glossary terms filtered to >3 chars to avoid false-positive linking on short words
+- Level-up detection uses inlined XP thresholds (small array, avoids async IndexedDB call)
 
 ### Known Issues
-- QuickActions.jsx still a stub (short rest/long rest buttons not built)
-- Scene transition confirmation not yet implemented (Law 2: "require player confirmation")
-- Gate 5 unmentioned PC detection not built
-- "Previously On" session recap not built
 - No push notifications
 - ElevenLabs TTS not integrated (free tier only for now)
 - Setup mode (SessionZero, CharCreate) still unbuilt
-- Nav badges for state changes in other modes not built
-
-### Technical Debt / Refactor Notes
-- **Test page is undocumented and lives in InputBar.jsx** — SCENARIOS array (8 scenarios) and DIRECT_TESTS array (9 batches) are hardcoded in the input component. Should be extracted to its own `DevTools.jsx` or `src/ui/manage/DevTools.jsx` and documented. Currently tests don't cover: `temp_hp`, `hit_dice_use`, `inspiration`, `death_save`, `round_advance` — all new mechanics from this session.
-- **InputBar.jsx is overloaded** — contains ~160 lines of test infrastructure (scenarios, direct tests, export) plus the actual input bar. Split into InputBar + DevPanel.
-- **CSS is one giant file** (`style.css`) — 786 lines added this session alone. No component scoping. Works but will get unwieldy.
-- **sync.js watches specific fields** — if new state fields are added (e.g. familiar, reputation), sync watchers need manual updating. Consider a more generic approach later.
-- **Rewind only undoes the last message** — doesn't support multi-step undo. Fine for now but players may want deeper history.
-- **Drift detector is regex-based** — catches obvious cases but can false-positive on creative narration. May need tuning after real gameplay.
-- **Combat.jsx has no end-combat UI** — relies on AI emitting `combat_end` mechanic. Player should have a manual "end combat" button.
-- **CharSheet is read-only** — no Manual Override / editing yet (specced in workboard as future work)
-
-### Architecture Notes for Next Session
-- All new mechanics follow the pattern in `mechanics.js`: handler in `HANDLERS` map → validates → mutates store → returns applied flag
-- Drift detector (`drift.js`) exports `detectDrift(narrative, mechanics)` → returns array of `{type, text}` warnings
-- TTS (`browserTTS.js`) exports signals: `speaking()`, `autoRead()`, and functions: `speak(text)`, `stop()`, `toggleAutoRead()`
-- Firebase sync (`sync.js`) exports: `initSync()` (called in main.jsx), `forceSyncNow()`, `loadCampaignFromCloud()`
-- Combat overlay visibility is purely reactive: `<Show when={store.campaign.combatState.active}>`
-- CharSheet opens via CharTiles tap → sets a signal → renders sheet-panel overlay
-- Compendium reads from IndexedDB stores: 'spells', 'glossary', 'compendium' (seeded by content pipeline)
-- Memory pruning (`memory.js`): 12K token threshold → prune to 8K → keep min 4 messages → local summary replaces old messages
+- No multi-player mode toggle (single player only currently)
+- Gate 1 (Roll confirmation) not built
+- Gate 2 (Combat turn enforcement) not built
+- Gate 6 (Spell validation) not built
+- Gate 7 (Skill check requirement) not built
+- Gate 8 (XP audit) not built
+- Gate 9 (Income/loot reconciliation) not built
+- Citation linking (PHB page references) not built
+- Term glossary linking may false-positive on creative NPC dialogue
+- No scroll-position-aware auto-scroll or "new messages" indicator yet
 
 ### In Progress
 - Nothing mid-task — clean stopping point
 
 ### Next Up
-1. **QuickActions** — short rest / long rest buttons in play UI (most impactful next)
-2. **Scene transition confirmation** — Law 2 gate: AI location change requires player OK
-3. **Previously On** — session recap when resuming play
-4. **Extract DevTools** — move test page out of InputBar, add missing mechanic tests
-5. **Setup mode** — SessionZero wizard, CharCreate flow
-6. **Nav badges** — show state changes happened in other modes
-7. **Combat end button** — manual override for ending combat without AI mechanic
+1. **Enforcement gates** — Gate 1 (roll confirmation) and Gate 2 (combat turns) are highest priority for play quality
+2. **Multi-player toggle** — mode switch + Previously On handoff trigger
+3. **Setup mode** — SessionZero wizard for new campaigns
+4. **Push notifications** — Web Push for multi-player awareness
+5. **Scroll behavior** — conditional auto-scroll + "N new messages" indicator
+6. **Citation linking** — auto-link PHB references to compendium
 
 ### Branch State
 - Branch: `claude/session-start-protocol-o8jf7j`
-- Last commit: ab6f70a
+- Last commit: 4877685
 - All code committed and pushed
 - Not merged to main
-- 11 commits on branch total (6 from this session)
+- 4 commits this session (on top of 3 from earlier this session + previous sessions)
