@@ -137,8 +137,10 @@ V2/
 Every field in the store has exactly one owner. The store enforces this — attempting to write a field from the wrong owner throws an error.
 
 ```
-AI-owned (via mechanics pipeline only):
-  characters[].hp, characters[].conditions, characters[].concentration
+AI-owned (via mechanics pipeline, player override with audit log):
+  characters[].hp, characters[].hpTemp, characters[].conditions,
+  characters[].concentration, characters[].exhaustion,
+  characters[].inspiration
   gold (pp/gp/ep/sp/cp), incomeLog[], expenseLog[]
   quests[], npcs[], location, weather, time, locDesc
   townReputation[], secrets[], consequences[], combatState
@@ -157,7 +159,9 @@ System-owned (via wizards only):
   characters[].resources[], characters[].proficiencies[],
   characters[].savingThrows[], characters[].skills{},
   characters[].abilityScores{}, characters[].race, characters[].ac,
-  characters[].hitDice, characters[].speed, characters[].xp
+  characters[].hitDice, characters[].speed, characters[].xp,
+  characters[].background, characters[].alignment,
+  characters[].languages[], characters[].attacks[], characters[].color
 ```
 
 #### Setter pattern
@@ -231,11 +235,19 @@ const DEFAULT_CAMPAIGN = {
       spellSlots: {},         // { 1: 4, 2: 3, 3: 2 }  — max per level
       currentSlots: {},       // { 1: 3, 2: 1, 3: 2 }  — remaining
       resources: [],          // [{ name: 'Superiority Dice', max: 4, current: 4, die: 'd8' }]
+      background: '',         // "Sage" — chosen at creation
+      alignment: '',          // "Chaotic Good"
+      languages: [],          // ['Common', 'Elvish', 'Draconic']
+      attacks: [],            // [{ name: 'Shortsword', bonus: '+5', damage: '1d6+3', type: 'slashing' }]
+      color: '#4a9eff',       // PC accent color for tokens, borders, name displays
 
-      // AI-owned (via mechanics pipeline)
+      // AI-owned (via mechanics pipeline, player override with audit log)
       hp: 0,
-      conditions: [],         // ['poisoned', 'frightened']
-      concentration: null,    // 'Shield' or null
+      hpTemp: 0,              // temporary HP — stacks separately
+      conditions: [],         // [{ name: 'poisoned', duration: null }] — optional round counter
+      concentration: null,    // { spell: 'Shield', since: 'round 3' } or null
+      exhaustion: 0,          // 0-6 scale
+      inspiration: false,     // ☆/⭐ toggle
       deathSaves: { successes: 0, failures: 0 },
 
       // Familiar/mount (if any)
@@ -959,6 +971,7 @@ Full specs for each gate: `.claude/enforcement-spec.md`
 - [ ] **Ask DM interception layer** — Before Ask DM sends to the AI, pattern-match the question for app issues. "Can't modify/change/edit [X]" → route to relevant editor/wizard. "What's in my inventory" → open Cargo. "How much gold" → open Treasury. "What are my spells" → open CharSheet Spells tab. Detection patterns: "can't/won't/how do I" + field name → system tool. Only questions the app can't answer directly hit the AI. Saves API calls, gives better answers.
 - [ ] **Ask DM data injection** — Before Ask DM prompt goes out, detect what the question is about and pull relevant data from IndexedDB/state. Spell questions → pull spell entries. Feat questions → pull feat data. NPC questions → pull NPC tracker entries. Class feature questions → pull class progression data. Grounds AI answers in actual app data, not training data. Especially important for homebrew content the AI has never seen.
 - [ ] **Citation linking** — Auto-link rules references in AI responses (spell names, feat names, conditions, PHB citations) to compendium entries when content is imported. Same auto-linking tech as term glossary, extended to Ask DM and Narrative responses. AI cites "PHB 182" → tappable link to travel pace rules in compendium. Tap-to-source for AI knowledge.
+- [ ] **Inline NPC name linking** — Auto-link NPC names in chat messages to NPC tracker entries in Journal. Same tech as term glossary + citation linking. Tap NPC name → navigate to NPC detail. From player-requests: requested, designed in v1, never built.
 - [ ] **Push notifications** — Web Push API (free, works on Android Chrome + iOS Safari 16.4+). Fires for ALL OOC messages (not just Ask DM), Narrative responses on other player's device, state changes needing attention, combat turn prompts. Player opts in during onboarding. Pairs with Firebase Cloud Messaging. Needed from day one for 2-player — without it, OOC is dead (v1 problem: no notifications meant no one checked OOC). Full notification table in chat spec "Push notifications — scope" section.
 
 ### Quick Actions — design needed
@@ -1032,6 +1045,8 @@ v1 Quick Actions was a FAB with common play actions. Carried forward but needs r
 - [ ] **JSON import** — `jsonParser.js`. Structured data from any LLM. Spell lists, class data, adventure outlines. Schema validation.
 - [ ] **Normalizer** — `normalizer.js`. All inputs → common schema per content type. Spell schema, class schema, feat schema, monster schema, module schema. One format for the engine regardless of source.
 - [?] **Episode/module tracking** — How the AI knows where the party is in the story. See spec below.
+- [ ] **Spell DB expansion** — Current seed data only covers cantrips through Level 2. Characters past level 5 get empty spell pickers without imports. Need L3+ for all caster classes. Either: expand seed JSON, or provide pre-built class progression downloads as JSON files players can import. From player-requests.
+- [ ] **Pre-built class progression downloads** — Ready-made JSON files for common class/subclass combos (e.g., "Bard L1-20 complete"). Hosted or generated by LLM. Eliminates the gap between seed data and full content pipeline. From player-requests.
 - [ ] **Shared bundles** — `bundles.js`. Generate content pack from one player's IndexedDB. Import on another device. Reusable (supports mid-game joins). Firebase carries "has pack X" flag.
 
 ### Episode/module tracking — design needed
@@ -1060,7 +1075,7 @@ v1 Quick Actions was a FAB with common play actions. Carried forward but needs r
 - [ ] **Firebase real-time sync** — Multi-device state sync. Clock-independent chat merge (v1's proven approach). Conflict resolution for concurrent writes. Connection status indicator.
 - [ ] **Shared content bundles** — Generate + import flow. Content packs reusable across players. "Has pack X" flag in Firebase.
 - [ ] **Combat phase 2** — Visual tile map. Tappable grid. Terrain backgrounds. Token movement. Mobile VTT inspired. Evolves from phase 1 zone grid — same state, richer UI.
-- [ ] **Three color modes** — Default, light, night. CSS custom property swap. Palette TBD.
+- [x] **20 color themes** — 10 dark + 10 light. CSS custom property swap. Palette defined in Phase 0. Spec complete.
 - [?] **Child-friendly view** — `AppSimple.jsx`. Same state/engine, simplified UI. Separate URL entry point. See spec below.
 - [ ] **Data migration** — `migrate.js`. State version tracking. Automatic migration on load when schema changes.
 
@@ -1085,7 +1100,7 @@ v1 Quick Actions was a FAB with common play actions. Carried forward but needs r
 
 | Question | Context | Blocking |
 |----------|---------|----------|
-| Color palette | Three modes needed. Soft Autumn cut. Design session with UI visible. Blocks all UI work (placeholders until decided). | Phase 3–6 (visual only) |
+| ~~Color palette~~ | **Decided: 20 themes (10 dark + 10 light).** Defined in palette-sampler.html. Spec in Phase 0. | Resolved |
 | Child-friendly view target age | 7-16 is wide. What simplification scope? | Phase 8 |
 | Episode/module tracking triggers | Location-based? Quest-based? AI-detected? | Phase 7 |
 | Quick Actions action list | What actions, system vs AI directed, FAB ergonomics | Phase 3 |
@@ -1133,7 +1148,7 @@ v1 Quick Actions was a FAB with common play actions. Carried forward but needs r
 > Noted, not planned. Revisit when core is solid.
 
 - **Plugin system** — Accidental v1 feature (superpowers). Could support game-system plugins (Pathfinder, homebrew rules). Not v2 priority.
-- **Encounter preset import** — Design encounters externally, import JSON. Never used in v1. Could tie into content pipeline.
+- **Encounter presets** — Save/load enemy groups for fast combat setup. Built and used in v1. Cut initially for v2 but player-requests confirm value. Could return via content pipeline JSON import or as a combat QoL feature.
 - **Desktop layout** — Law 3 says no. But if demand appears, the component architecture supports it.
 
 ---

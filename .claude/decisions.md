@@ -128,7 +128,7 @@
 | Suggestion chips | Didn't earn their place | 30 |
 | `//` command system | Patched broken mechanics — v2 pipeline should handle it | 30 |
 | Relationships array | Redundant with NPC dispositions | 30 |
-| Encounter presets (as built) | Never used. Import path could exist someday via content pipeline | 30 |
+| Encounter presets (as built) | ~~Never used~~ Player-requests say they were built and used. Moved to icebox — could return via content pipeline JSON import. | 30→31 |
 | AI DM button / tab | Never used in v1 | 30 |
 | Clear character button | Never used, but might need rethinking | 30 |
 | Scenes / snippets | Being phased out — replaced by content import pipeline | 30 |
@@ -180,10 +180,24 @@
 | Race/species reference data in CharSheet Bio tab | Pulled from compendium: physical description, traits, age range, lore summary. Player shouldn't need to ask the AI about their own character's species. From v1 OOC: player asked "describe a black dragonborn" — should be on the sheet. | 31 |
 | Push notifications from day one | Web Push API + FCM. OOC messages, Narrative turns, state changes that need attention. V1 OOC had no notifications → no one checked it. Needed for 2-player, critical for 6-7. | 31 |
 
+## Conflict Resolutions (v1 agent specs vs v2 specs)
+
+| Conflict | Resolution | Session |
+|----------|------------|---------|
+| Suggestion chips (✅ in player-requests, cut in decisions) | Stay cut. Quick Actions FAB + Ask DM replace the need. | 31 |
+| `//` command system (✅ in player-requests, cut in decisions) | Stay cut. v2 mechanics pipeline + system operations UI replace them. | 31 |
+| `//explain` help system (✅ in player-requests, cut with `//`) | Stay cut. Help moves to onboarding tooltips + Ask DM interception layer. | 31 |
+| Encounter presets (✅ in player-requests, cut in decisions) | Moved to icebox. Player-requests say they were built and used. Could return via content pipeline. | 31 |
+| Context strip carousel (✅ in player-requests) | Superseded by Situation Bar + Context Banner. Better design: tappable, always visible, urgency-sorted. | 31 |
+| Character sheet tab names (Core/Skills/Combat/Spells/Gear/Features vs Stats/Combat/Spells/Features/Equipment/Bio) | Use v2 spec: Stats/Combat/Spells/Features/Equipment/Bio. "Stats" clearer than "Core." Bio is new (race reference + backstory). Skills fold into Stats. | 31 |
+| `race` ownership (system vs player) | System-owned. Race is mechanical (chosen at creation, affects bonuses). Bio tab displays race reference data from compendium (read-only). | 31 |
+| `hp` dual ownership (AI writes via mechanics, player needs manual +/-) | AI-owned with player override. Normal: AI writes via `hp:` mechanic. Override: player inline +/- calls `aiSet()` with `player_override` flag, logged for audit trail. | 31 |
+| Missing character fields (background, alignment, languages, exhaustion, hp_temp, inspiration, attacks, color) | Added to campaign data shape. Real gameplay fields from v1. | 31 |
+| Customizable header shortcuts (✅ in player-requests, not in v2) | Evaluate in Phase 3. v2 mode-based nav may make this unnecessary. Added as Quick Actions open question. | 31 |
+
 ## Open Questions (not yet decided)
 
 - **Child-friendly view target age** — 7-16 is wide. What's the actual simplification scope?
 - **Episode/module tracking system** — How does the AI know where the party is in the story? What triggers chapter progression? Workboard spec needed.
-- **Quick Actions redesign** — Kept from v1 but needs improvement. What actions? How presented?
-- **Encounter preset import** — Design encounter externally, import JSON. Never used in v1 but could tie into content pipeline.
+- **Quick Actions redesign** — Kept from v1 but needs improvement. What actions? How presented? Consider whether customizable header shortcuts (v1 feature) belong here.
 - **Plugin system application** — Game-system swappable rules? Custom mechanic handlers? Icebox until core is solid.
