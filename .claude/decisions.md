@@ -165,10 +165,17 @@
 | System operations need dedicated UI, not AI chat | "Reset HP" sent through chat → AI narrates it but may not emit mechanics. HP reset, stat corrections, rest operations are system actions — need one-tap access from character sheet or manage mode. | 30 |
 | Level-up wizard needs re-entry / edit mode | Player couldn't fix expertise after missing the Bard 3 choice. Once system-owned fields are set, there's no way back. Wizard needs "redo level N choices" or manage-mode manual override. | 30 |
 | OOC/Rules channels serve different purposes (partially resolved) | OOC export shows players use Rules chat for two things: actual rules questions AND app bug reports. AI can't help with app issues. Needs: either smart routing (detect "I can't edit X" → system help) or a non-AI path for sheet corrections. | 30 |
+| Two tabs: Narrative + OOC. Rules tab eliminated | V1 Rules and OOC described the same function. V2: Narrative (full AI, emits mechanics) + OOC (player text + Ask DM button). Ask DM gets full situation context from both Narrative and OOC history, but is advisory-only (no mechanics, no state changes). Rules interpretation and theorycrafting go through Ask DM. Rules lookups go through reference mode (free). | 31 |
+| Ask DM gets situation from both Narrative AND OOC | Ask DM needs narrative context for theorycrafting ("what if I cast Silence here?") and OOC history for follow-ups. Full situation awareness, advisory-only behavior. | 31 |
+| Ask DM interception layer for app issues | Before Ask DM hits the AI, pattern-match for app issues ("can't modify," "how do I change"). Route to system tools instead. Saves API calls, gives better answers. From v1 OOC export: player typed "can't modify expertise" → AI lectured about PHB p.54 instead of opening the wizard. | 31 |
+| Ask DM data injection from IndexedDB | Ask DM pulls relevant compendium entries (spells, feats, class features) into prompt based on question topic. Grounds AI answers in actual app data, not training data. Critical for homebrew content. | 31 |
+| Citation linking in AI responses | Auto-link spell names, feat names, conditions, PHB references to compendium entries. Same tech as term glossary. Tap-to-source for AI knowledge. | 31 |
+| Travel calculator in Journal | Tap a known destination → distance, travel time at party speed, encounter risk. Math is free (Law 5). AI handles judgment calls via Ask DM. | 31 |
+| Stop generation button | Cancel AI streaming mid-response. Keep text received, discard partial mechanics. Works in Narrative and Ask DM. | 31 |
+| Fresh start — no v1 data migration | V1 stays live for reference. V2 launches with a new campaign. No migration code needed. | 31 |
 
 ## Open Questions (not yet decided)
 
-- **OOC & Rules channel context** — Do they share narrative AI context? Does Rules build its own prompt? Does OOC need AI at all? *Partially answered: Rules chat is used for both rules questions and app issues. The app issue path shouldn't go through AI at all.*
 - **Child-friendly view target age** — 7-16 is wide. What's the actual simplification scope?
 - **Episode/module tracking system** — How does the AI know where the party is in the story? What triggers chapter progression? Workboard spec needed.
 - **Quick Actions redesign** — Kept from v1 but needs improvement. What actions? How presented?

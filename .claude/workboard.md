@@ -145,7 +145,7 @@ function setField(path, value, owner) {
 - [ ] **Provider abstraction** — `src/ai/providers.js`. Gemini free tier primary. OpenRouter fallback. Shared interface: `callProvider(messages, systemPrompt, options) → response`. Retry with backoff. Provider health tracking. API key storage in system state.
 - [ ] **Prompt builder** — `src/ai/prompt.js`. `buildPrompt(state, contracts, ledger, consequences)` assembles system prompt. `genLedger(state)` compiles compact state summary (v1 format preserved — see v1-engine-reference.md). Prompt budget tracking (token estimate). Active consequences with timers injected.
 - [ ] **Mechanics pipeline** — `src/ai/mechanics.js`. Dispatch table registry. `extractMechanics(response)` parses mechanics block. `validateMechanics(changes, state)` checks ownership + basic validity. `applyMechanics(valid, state)` writes through owned setters. Start with the v1 mechanic keys (all 65 from v1-engine-reference.md).
-- [ ] **Engine orchestrator** — `src/ai/engine.js`. `sendMsg()` runs the full loop. `callAI()` handles retry + fallback. Double-send guard. Context injection for corrections.
+- [ ] **Engine orchestrator** — `src/ai/engine.js`. `sendMsg()` runs the full loop. `callAI()` handles retry + fallback with streaming. Double-send guard. Context injection for corrections. **Stop generation:** cancel button on input bar during AI streaming. Stops the stream, keeps text received so far, discards any partial mechanics block (incomplete mechanics never apply). Works in both Narrative and Ask DM.
 - [ ] **Chat UI** — `src/ui/play/Chat.jsx`. Message list (player + AI). Markdown rendering in AI responses. Mechanics block parsed into mechanic pills (tappable, but tap targets come later). Auto-scroll. `src/ui/play/InputBar.jsx` — text input + send button.
 - [ ] **App shell** — `src/ui/App.jsx`. Mode routing (setup/play/reference/manage). Bottom nav stub (Cargo / Journal / Settings). Play mode as default after campaign exists.
 - [ ] **Contracts loader** — `src/ai/contracts.js`. Load contracts from state. Inject into buildPrompt. v1 contract format preserved (see v1-contract-reference.md). Default contracts seeded from v1.
@@ -233,6 +233,10 @@ Full specs for each gate: `.claude/enforcement-spec.md`
 - [?] **Quick Actions** — `QuickActions.jsx`. Floating action button. Needs redesign from v1. See spec below.
 - [ ] **Combat overlay** — `Combat.jsx`. Phase 1: zone grid (Frontline/Backline/Flanks). Initiative strip. Token chips per PC/NPC. Appears when `combat.active = true`, disappears when combat ends.
 - [ ] **Nav badges** — Dot badges on bottom nav when state changes in other modes. In-chat alerts for important state changes.
+- [ ] **OOC tab** — Player text by default, no AI. Ask DM button injects an AI response into the OOC stream. Ask DM prompt includes: current situation from Narrative history + OOC history + character data + relevant compendium data pulled from IndexedDB. System instruction: "advisory only — answer the question, don't emit mechanics, don't advance the game." Two tabs total: Narrative (the game) and OOC (everything else).
+- [ ] **Ask DM interception layer** — Before Ask DM sends to the AI, pattern-match the question for app issues. "Can't modify/change/edit [X]" → route to relevant editor/wizard. "What's in my inventory" → open Cargo. "How much gold" → open Treasury. "What are my spells" → open CharSheet Spells tab. Detection patterns: "can't/won't/how do I" + field name → system tool. Only questions the app can't answer directly hit the AI. Saves API calls, gives better answers.
+- [ ] **Ask DM data injection** — Before Ask DM prompt goes out, detect what the question is about and pull relevant data from IndexedDB/state. Spell questions → pull spell entries. Feat questions → pull feat data. NPC questions → pull NPC tracker entries. Class feature questions → pull class progression data. Grounds AI answers in actual app data, not training data. Especially important for homebrew content the AI has never seen.
+- [ ] **Citation linking** — Auto-link rules references in AI responses (spell names, feat names, conditions, PHB citations) to compendium entries when content is imported. Same auto-linking tech as term glossary, extended to Ask DM and Narrative responses. AI cites "PHB 182" → tappable link to travel pace rules in compendium. Tap-to-source for AI knowledge.
 
 ### Quick Actions — design needed
 
@@ -262,6 +266,7 @@ v1 Quick Actions was a FAB with common play actions. Carried forward but needs r
 - [ ] **Character sheet** — `CharSheet.jsx`. 6-tab overlay: Stats, Combat, Spells, Features, Equipment, Bio. System-owned fields read-only during play. Player-owned fields (name, backstory, appearance, personality, notes) editable. Familiar/mount section tied to specific PC, gets own combat token.
 - [ ] **Journal** — `Journal.jsx`. Sections: Quests, Locations, NPCs, Travel Log, Consequences, Town Reputation, Secrets. All AI-owned via mechanics. Secrets consolidated to one home with `playerKnown` / `aiOnly` flags. Quests show status (active/completed/failed). Locations show discovered/undiscovered. NPCs show disposition.
 - [ ] **Cargo** — `Cargo.jsx`. Three containers: Carried (per-PC), Wagon (party shared), Hoard (stored/stashed). Items from `item_add` mechanics. Weight tracking (encumbrance). AI-generated items (Firebase) vs compendium items (IndexedDB) display the same.
+- [ ] **Travel calculator** — In Journal's locations section. Tap a known destination → see distance, estimated travel time at current party speed (accounts for slowest member — mounts, oxen, vehicles), encounter risk level. Math is free (Law 5). AI handles "should we go?" judgment via Ask DM — app handles "how long will it take?" Depends on locations tracked in Journal state with distance/terrain data.
 - [ ] **Treasury** — `Treasury.jsx`. PP/GP/EP/SP/CP tracked separately. Income/expense log (every `income:` / `expense:` mechanic). Lifestyle tracker. Business profile (if applicable). All AI-owned via mechanics.
 - [ ] **Compendium** — `Compendium.jsx`. Spell browser, feat browser, item browser. Data from IndexedDB (imported content). Search + filter. Spell details include: level, school, casting time, range, components, duration, description. Populated by content pipeline, not hardcoded.
 - [ ] **Glossary** — `Glossary.jsx`. D&D term definitions. Seed data from v1 (97 terms in v1-seed-data.md). Expandable. Same data that powers auto-linking in chat.
@@ -361,16 +366,31 @@ v1 Quick Actions was a FAB with common play actions. Carried forward but needs r
 | Episode/module tracking triggers | Location-based? Quest-based? AI-detected? | Phase 7 |
 | Quick Actions action list | What actions, system vs AI directed, FAB ergonomics | Phase 3 |
 | ~~V1 data migration~~ | **Decided: fresh start.** V1 stays live for reference. V2 launches with a new campaign. No migration code needed. | Resolved |
+| ~~OOC & Rules channels~~ | **Decided: two tabs.** Narrative (full AI) + OOC (player text + Ask DM button). Rules tab eliminated. See design below. | Resolved |
 
-### OOC & Rules channels — design needed
+### OOC & Rules channels — DECIDED
 
-**The problem from v1:** Three chat modes existed — Narrative (AI, in-character), Rules (AI, mechanical questions), OOC (player-to-player). But players used Rules chat for two different things: actual rules questions ("can I use Sneak Attack here?") AND app bug reports ("I can't edit my spells"). The AI can't help with app issues.
+**V1 had three channels** — Narrative (always AI), Rules (always AI), OOC (player text + Ask DM button). In practice, Rules and OOC described the same function. Players used both for rules questions. OOC was also used for app issues the AI couldn't fix.
 
-**Questions to resolve:**
-1. **Does Rules share narrative context?** If a player asks "can Slasher use Mend?" the AI needs to know Slasher's class/level/cantrip list. That's game state, not narrative history. Rules probably needs the ledger but not the full chat history.
-2. **Does OOC need AI at all?** In a 2-player family game, OOC is just "hey, are you ready?" — no AI needed. With more players it could be useful. For now: OOC is a plain text channel, no AI, no prompt cost.
-3. **How do app issues get handled?** Smart routing (detect "I can't..." / "the app..." → system help panel) or a dedicated non-AI help path. The answer is probably: system operations UI (Phase 6) handles what players were trying to do through Rules chat.
-4. **Are these tabs within the chat canvas, or separate screens?** Architecture says tabs within chat (shared canvas, separate contexts). That means the chat component manages multiple message streams.
+**V2 design: two tabs.**
+
+**Narrative tab** — The game. Full AI context (ledger + chat history + contracts + module content). Emits mechanics, advances the story. This is the play session.
+
+**OOC tab** — Everything else. Player text by default (no AI cost). Ask DM button for on-demand AI:
+- Gets full situation context: Narrative history + OOC history + character data + compendium data pulled from IndexedDB
+- System instruction: "advisory only — answer the question, don't emit mechanics, don't advance the game state"
+- Handles: rules interpretation, theorycrafting ("what would happen if..."), rules lookups the compendium can't answer alone
+- Ask DM interception layer catches app issues ("can't modify expertise") and routes to system tools before hitting AI
+- Ask DM data injection pulls relevant compendium entries into prompt so answers are grounded in actual app data
+- Citation linking auto-links spell names, feat names, PHB references to compendium entries
+
+**What moved where:**
+- Rules lookup ("what does Mending do?") → reference mode / compendium (free, no AI)
+- State lookup ("what's in my inventory?") → reference mode / Cargo (free, no AI)
+- App issues ("can't edit expertise") → Ask DM interception → system tools (no AI)
+- Rules interpretation ("can Slasher sneak attack with a thrown handaxe?") → Ask DM (AI, advisory only)
+- Theorycrafting ("what if we cast Silence on the lair?") → Ask DM (AI, advisory only, situation-aware)
+- Player chat ("everyone ready?") → OOC text (no AI)
 
 **Proposed design (pending confirmation):**
 - **Narrative tab** — Full AI context (ledger + chat history + contracts + module content). The main play experience.
