@@ -2,6 +2,8 @@ import { createSignal, For, Show } from 'solid-js';
 import { store } from '../../state/index.js';
 import CharSheet from '../reference/CharSheet.jsx';
 
+const XP_THRESHOLDS = [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000];
+
 export default function CharTiles() {
   const [sheetOpen, setSheetOpen] = createSignal(false);
   const [sheetPC, setSheetPC] = createSignal(0);
@@ -20,6 +22,11 @@ export default function CharTiles() {
             {(pc, idx) => {
               const hpPct = () => pc.hpMax ? Math.round((pc.hp / pc.hpMax) * 100) : 100;
               const hpColor = () => hpPct() > 50 ? 'var(--color-success)' : hpPct() > 25 ? 'var(--color-warning)' : 'var(--color-danger)';
+              const canLevelUp = () => {
+                const nextLevel = pc.level;
+                if (nextLevel >= 20) return false;
+                return pc.xp >= XP_THRESHOLDS[nextLevel];
+              };
 
               const slotDisplay = () => {
                 const entries = Object.entries(pc.spellSlots || {});
@@ -33,7 +40,7 @@ export default function CharTiles() {
               const hasDeathSaves = () => pc.hp === 0 && (pc.deathSaves.successes > 0 || pc.deathSaves.failures > 0);
 
               return (
-                <div class="char-tile" style={{ 'border-left': `3px solid ${pc.color || 'var(--color-accent)'}` }} onClick={() => openSheet(idx())}>
+                <div class={`char-tile${canLevelUp() ? ' tile-levelup' : ''}`} style={{ 'border-left': `3px solid ${pc.color || 'var(--color-accent)'}` }} onClick={() => openSheet(idx())}>
                   <div class="tile-top">
                     <span class="tile-name">{pc.name}</span>
                     <span class="tile-class">{pc.class} {pc.level}</span>

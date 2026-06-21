@@ -1309,6 +1309,73 @@ body {
   color: var(--color-text);
 }
 
+.sit-chip { cursor: pointer; }
+
+.sit-urgent {
+  animation: urgentPulse 2s ease-in-out infinite;
+}
+
+@keyframes urgentPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.sit-detail-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 800;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md);
+}
+
+.sit-detail-popup {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  max-width: 320px;
+  width: 100%;
+}
+
+.sit-detail-title {
+  font-weight: 700;
+  color: var(--color-accent);
+  margin-bottom: var(--spacing-sm);
+}
+
+.sit-detail-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  line-height: 1.5;
+  margin-bottom: var(--spacing-sm);
+}
+
+.sit-detail-meta {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+
+.sit-detail-deadline {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.sit-detail-close {
+  margin-top: var(--spacing-sm);
+  width: 100%;
+  min-height: var(--touch-target);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
 /* --- MECH PILLS --- */
 
 .mech-pills {
@@ -2131,6 +2198,16 @@ body {
 
 .char-tile {
   cursor: pointer;
+}
+
+.tile-levelup {
+  animation: levelGlow 2s ease-in-out infinite;
+  border-color: var(--color-success) !important;
+}
+
+@keyframes levelGlow {
+  0%, 100% { box-shadow: 0 0 4px var(--color-success); }
+  50% { box-shadow: 0 0 12px var(--color-success), 0 0 24px rgba(78, 204, 163, 0.3); }
 }
 
 /* --- TTS --- */
