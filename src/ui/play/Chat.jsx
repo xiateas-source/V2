@@ -1,6 +1,7 @@
 import { createSignal, createEffect, For, Show } from 'solid-js';
 import { store } from '../../state/index.js';
 import InputBar from './InputBar.jsx';
+import RollBar from './RollBar.jsx';
 import CharTiles from './CharTiles.jsx';
 import ContextBanner from './ContextBanner.jsx';
 import SituationBar from './SituationBar.jsx';
@@ -57,6 +58,7 @@ export default function Chat() {
         <div ref={chatEnd} />
       </div>
 
+      <RollBar />
       <InputBar tab={tab()} />
     </div>
   );

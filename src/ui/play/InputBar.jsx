@@ -41,6 +41,12 @@ const TEST_BATCHES = [
       { key: 'chapter_add', value: 'The Road to Thornvale|The party arrived after a day of travel', target: '', applied: false },
     ]
   },
+  {
+    label: 'Roll',
+    mechanics: [
+      { key: 'roll_request', value: 'Persuasion|14|Ivy', target: '', applied: false },
+    ]
+  },
 ];
 
 function runTestBatch(batch) {
