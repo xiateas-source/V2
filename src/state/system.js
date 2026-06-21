@@ -15,7 +15,7 @@ export const DEFAULT_SYSTEM = {
 
   providers: {
     primary: 'gemini',
-    geminiModel: 'gemini-2.0-flash-lite',
+    geminiModel: 'gemini-3.1-flash-lite',
     geminiKey: '',
     openrouterKey: '',
     lastProvider: '',

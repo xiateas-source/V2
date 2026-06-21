@@ -7,7 +7,7 @@ function getProviderConfig() {
   const { providers } = store.system;
   return {
     primary: providers.primary,
-    geminiModel: providers.geminiModel || 'gemini-2.0-flash-lite',
+    geminiModel: providers.geminiModel || 'gemini-3.1-flash-lite',
     geminiKey: providers.geminiKey,
     openrouterKey: providers.openrouterKey,
     health: providers.health,
