@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinklepebble V2 — Architecture</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #0f0a07;
+  --surface: #1a1008;
+  --surface2: #2c1a10;
+  --surface3: #3c2618;
+  --gold: #b05830;
+  --gold-dim: #70381a;
+  --gold-bright: #d07845;
+  --red: #8b3a2a;
+  --green: #5a8a55;
+  --blue: #4a7a9a;
+  --purple: #7a5a8a;
+  --text: #c4a88a;
+  --text-bright: #e8d9c4;
+  --text-dim: #8a6b50;
+  --line: #4c3222;
+}
+html, body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 20px;
+}
+h1 {
+  color: var(--gold-bright);
+  font-size: 22px;
+  margin-bottom: 4px;
+  text-align: center;
+}
+.subtitle {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 12px;
+  margin-bottom: 30px;
+}
+
+/* === TABS === */
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.tab {
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: var(--surface2);
+  color: var(--text-dim);
+  border: 1px solid var(--surface3);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+.tab:hover { background: var(--surface3); color: var(--text); }
+.tab.active {
+  background: var(--gold-dim);
+  color: var(--text-bright);
+  border-color: var(--gold);
+}
+
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* === DIAGRAM CONTAINERS === */
+.diagram {
+  max-width: 800px;
+  margin: 0 auto;
+}
+.section-title {
+  color: var(--gold-bright);
+  font-size: 16px;
+  font-weight: 600;
+  margin: 24px 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--surface3);
+}
+.section-title:first-child { margin-top: 0; }
+
+/* === BOXES === */
+.box-grid {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.box-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+.box-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+.box-grid.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+.box-grid.cols-5 { grid-template-columns: repeat(5, 1fr); }
+
+.box {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+  position: relative;
+  transition: all 0.2s;
+}
+.box:hover {
+  border-color: var(--gold);
+  transform: translateY(-1px);
+}
+.box.highlight {
+  border-color: var(--gold);
+  box-shadow: 0 0 12px rgba(176, 88, 48, 0.2);
+}
+.box .icon {
+  font-size: 20px;
+  margin-bottom: 6px;
+}
+.box .title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-bright);
+  margin-bottom: 4px;
+}
+.box .desc {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+.box .tag {
+  display: inline-block;
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-top: 6px;
+  margin-right: 3px;
+}
+.tag.ai { background: var(--purple); color: #ddd; }
+.tag.player { background: var(--green); color: #ddd; }
+.tag.system { background: var(--blue); color: #ddd; }
+.tag.firebase { background: #7a4a2a; color: #ddd; }
+.tag.local { background: #3a5a3a; color: #ddd; }
+.tag.bundle { background: #3a4a6a; color: #ddd; }
+
+/* === FLOW ARROWS === */
+.flow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  margin: 20px 0;
+}
+.flow-step {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 20px;
+  width: 100%;
+  max-width: 500px;
+  position: relative;
+}
+.flow-step .step-num {
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: var(--bg);
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.flow-step .fn {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  color: var(--gold-bright);
+  margin-bottom: 2px;
+}
+.flow-step .detail {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.flow-arrow {
+  width: 2px;
+  height: 20px;
+  background: var(--gold-dim);
+  position: relative;
+}
+.flow-arrow::after {
+  content: '▼';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 8px;
+  color: var(--gold-dim);
+}
+.flow-step.gate {
+  border-color: var(--red);
+  background: rgba(139, 58, 42, 0.1);
+}
+.flow-step.gate .fn { color: #d06050; }
+
+/* === GATE GRID === */
+.gate-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin: 12px 0;
+}
+.gate-chip {
+  background: rgba(139, 58, 42, 0.15);
+  border: 1px solid var(--red);
+  border-radius: 6px;
+  padding: 8px 10px;
+  text-align: center;
+}
+.gate-chip .gate-name {
+  font-size: 11px;
+  color: #d06050;
+  font-weight: 600;
+}
+.gate-chip .gate-desc {
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* === DATA TIER === */
+.tier-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin: 16px 0;
+}
+.tier-box {
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+}
+.tier-box .tier-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tier-box .tier-items {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+.tier-box.fb { border-color: #7a4a2a; }
+.tier-box.fb .tier-title { color: #d09050; }
+.tier-box.idb { border-color: #3a6a3a; }
+.tier-box.idb .tier-title { color: #70aa60; }
+.tier-box.bun { border-color: #3a4a7a; }
+.tier-box.bun .tier-title { color: #70a0d0; }
+
+/* === LAWS BANNER === */
+.laws {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin: 16px 0;
+}
+.law {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 8px;
+  text-align: center;
+}
+.law .num {
+  font-size: 18px;
+  color: var(--gold-bright);
+  font-weight: 700;
+}
+.law .short {
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-top: 4px;
+  line-height: 1.3;
+}
+
+/* === FILE TREE === */
+.tree {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  line-height: 1.8;
+  overflow-x: auto;
+}
+.tree .dir { color: var(--gold-bright); }
+.tree .file { color: var(--text-dim); }
+.tree .comment { color: var(--surface3); font-style: italic; }
+
+/* === OWNERSHIP TABLE === */
+.own-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 12px;
+}
+.own-table th {
+  text-align: left;
+  padding: 8px 12px;
+  background: var(--surface2);
+  color: var(--text-bright);
+  border-bottom: 1px solid var(--line);
+}
+.own-table td {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--surface2);
+  color: var(--text-dim);
+}
+.own-table tr:hover td { background: var(--surface); }
+.own-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+.own-dot.ai { background: var(--purple); }
+.own-dot.player { background: var(--green); }
+.own-dot.system { background: var(--blue); }
+
+/* === SYNC DIAGRAM === */
+.sync-flow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 20px 0;
+  flex-wrap: wrap;
+}
+.sync-node {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 16px;
+  text-align: center;
+  font-size: 12px;
+}
+.sync-node .node-title {
+  font-weight: 600;
+  color: var(--text-bright);
+  font-size: 11px;
+}
+.sync-node .node-sub {
+  font-size: 9px;
+  color: var(--text-dim);
+}
+.sync-arrow {
+  color: var(--gold-dim);
+  font-size: 18px;
+}
+
+/* === MODE DIAGRAM === */
+.mode-map {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: stretch;
+  margin: 16px 0;
+  flex-wrap: wrap;
+}
+.mode-box {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+  flex: 1;
+  min-width: 160px;
+  max-width: 200px;
+}
+.mode-box .mode-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gold-bright);
+  margin-bottom: 6px;
+}
+.mode-box .mode-list {
+  font-size: 10px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+.mode-box.active-mode {
+  border-color: var(--gold);
+  box-shadow: 0 0 8px rgba(176, 88, 48, 0.15);
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 600px) {
+  .box-grid.cols-3 { grid-template-columns: 1fr 1fr; }
+  .box-grid.cols-4 { grid-template-columns: 1fr 1fr; }
+  .box-grid.cols-5 { grid-template-columns: 1fr 1fr; }
+  .laws { grid-template-columns: repeat(3, 1fr); }
+  .tier-row { grid-template-columns: 1fr; }
+  .gate-grid { grid-template-columns: 1fr 1fr; }
+  .mode-map { flex-direction: column; align-items: center; }
+  .tab { font-size: 11px; padding: 6px 12px; }
+}
+</style>
+</head>
+<body>
+
+<h1>Tinklepebble V2</h1>
+<p class="subtitle">Architecture Overview — tap tabs to explore</p>
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <div class="tab active" onclick="showPanel('overview')">Overview</div>
+  <div class="tab" onclick="showPanel('engine')">Engine Pipeline</div>
+  <div class="tab" onclick="showPanel('state')">State & Ownership</div>
+  <div class="tab" onclick="showPanel('data')">Data Tiers</div>
+  <div class="tab" onclick="showPanel('modes')">Modes & UI</div>
+  <div class="tab" onclick="showPanel('files')">File Map</div>
+</div>
+
+<!-- ==================== OVERVIEW PANEL ==================== -->
+<div class="panel active" id="panel-overview">
+<div class="diagram">
+
+  <div class="section-title">The Five Laws</div>
+  <div class="laws">
+    <div class="law"><div class="num">1</div><div class="short">Sacred Core Loop</div></div>
+    <div class="law"><div class="num">2</div><div class="short">Container is Contract</div></div>
+    <div class="law"><div class="num">3</div><div class="short">Mobile Only</div></div>
+    <div class="law"><div class="num">4</div><div class="short">One Experience</div></div>
+    <div class="law"><div class="num">5</div><div class="short">Zero Cost</div></div>
+  </div>
+
+  <div class="section-title">The Five Pieces</div>
+  <div class="box-grid cols-5">
+    <div class="box highlight">
+      <div class="icon">📱</div>
+      <div class="title">UI</div>
+      <div class="desc">Screens by mode. Mobile only, portrait, one-handed.</div>
+    </div>
+    <div class="box highlight">
+      <div class="icon">🧠</div>
+      <div class="title">Engine</div>
+      <div class="desc">AI brain. Prompt → call → extract → validate → apply.</div>
+    </div>
+    <div class="box highlight">
+      <div class="icon">⚡</div>
+      <div class="title">State</div>
+      <div class="desc">SolidJS signals. Single truth. Ownership enforced.</div>
+    </div>
+    <div class="box highlight">
+      <div class="icon">💾</div>
+      <div class="title">Data</div>
+      <div class="desc">Firebase + IndexedDB + Bundles. Three tiers.</div>
+    </div>
+    <div class="box highlight">
+      <div class="icon">📚</div>
+      <div class="title">Content</div>
+      <div class="desc">Import pipeline. Any format → normalize → IndexedDB.</div>
+    </div>
+  </div>
+
+  <div class="section-title">How They Connect</div>
+  <div class="sync-flow">
+    <div class="sync-node">
+      <div class="node-title">Player</div>
+      <div class="node-sub">taps send</div>
+    </div>
+    <span class="sync-arrow">→</span>
+    <div class="sync-node">
+      <div class="node-title">Engine</div>
+      <div class="node-sub">prompt + call AI</div>
+    </div>
+    <span class="sync-arrow">→</span>
+    <div class="sync-node">
+      <div class="node-title">Mechanics</div>
+      <div class="node-sub">extract + validate</div>
+    </div>
+    <span class="sync-arrow">→</span>
+    <div class="sync-node">
+      <div class="node-title">State</div>
+      <div class="node-sub">signals update</div>
+    </div>
+    <span class="sync-arrow">→</span>
+    <div class="sync-node">
+      <div class="node-title">UI</div>
+      <div class="node-sub">reacts</div>
+    </div>
+    <span class="sync-arrow">→</span>
+    <div class="sync-node">
+      <div class="node-title">Firebase</div>
+      <div class="node-sub">syncs</div>
+    </div>
+  </div>
+
+  <div class="section-title">Key Numbers</div>
+  <div class="box-grid cols-4">
+    <div class="box">
+      <div class="title" style="font-size:24px;color:var(--gold-bright)">65</div>
+      <div class="desc">Mechanic keys (hp, gold, quest, condition...)</div>
+    </div>
+    <div class="box">
+      <div class="title" style="font-size:24px;color:var(--red)">9</div>
+      <div class="desc">Enforcement gates (roll, combat, drift...)</div>
+    </div>
+    <div class="box">
+      <div class="title" style="font-size:24px;color:var(--green)">20</div>
+      <div class="desc">Color themes (10 dark + 10 light)</div>
+    </div>
+    <div class="box">
+      <div class="title" style="font-size:24px;color:var(--blue)">3</div>
+      <div class="desc">Data tiers (Firebase, IndexedDB, Bundles)</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ==================== ENGINE PANEL ==================== -->
+<div class="panel" id="panel-engine">
+<div class="diagram">
+
+  <div class="section-title">Engine Pipeline — Per Message</div>
+  <div class="flow">
+    <div class="flow-step">
+      <div class="step-num">1</div>
+      <div class="fn">buildPrompt(state, contracts, ledger, consequences)</div>
+      <div class="detail">Assembles system prompt from live state snapshot, AI contracts, compact ledger, active consequences with timers, and module context</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-step">
+      <div class="step-num">2</div>
+      <div class="fn">callAI(messages, systemPrompt)</div>
+      <div class="detail">Provider abstraction: Gemini (primary) → OpenRouter (fallback) → error. Retry + timeout handling. Never depends on one provider.</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-step">
+      <div class="step-num">3</div>
+      <div class="fn">extractMechanics(response)</div>
+      <div class="detail">Parses 65 mechanic keys from AI text. Pattern matching + dispatch table. Each key has registered handler.</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-step gate">
+      <div class="step-num">4</div>
+      <div class="fn">validateMechanics(changes, state) — LAW 2</div>
+      <div class="detail">9 enforcement gates. Rejects invalid changes. Clamps bounds. Checks ownership. Flags drift.</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-step">
+      <div class="step-num">5</div>
+      <div class="fn">applyMechanics(validChanges, state)</div>
+      <div class="detail">Writes to SolidJS signals → UI reacts → Firebase syncs → checkpoint if significant</div>
+    </div>
+  </div>
+
+  <div class="section-title">The 9 Enforcement Gates</div>
+  <div class="gate-grid">
+    <div class="gate-chip">
+      <div class="gate-name">Roll Confirm</div>
+      <div class="gate-desc">No player roll submitted? Reject mechanic.</div>
+    </div>
+    <div class="gate-chip">
+      <div class="gate-name">Combat Turn</div>
+      <div class="gate-desc">Wrong entity's turn? Reject action.</div>
+    </div>
+    <div class="gate-chip">
+      <div class="gate-name">Ownership</div>
+      <div class="gate-desc">AI writing system field? Blocked.</div>
+    </div>
+    <div class="gate-chip">
+      <div class="gate-name">Scene Transit</div>
+      <div class="gate-desc">Location/time change needs player confirm.</div>
+    </div>
+    <div class="gate-chip">
+      <div class="gate-name">PC Action</div>
+      <div class="gate-desc">AI acting for unmentioned PC? Flag.</div>
+    </div>
+    <div class="gate-chip">
+      <div class="gate-name">Drift Detect</div>
+      <div class="gate-desc">Narrated state change without mechanic? Flag.</div>
+    </div>
+    <div class="gate-chip">
+      <div class="gate-name">Concentration</div>
+      <div class="gate-desc">Damage taken → auto-trigger save check.</div>
+    </div>
+    <div class="gate-chip">
+      <div class="gate-name">Timer Enforce</div>
+      <div class="gate-desc">Consequence expired → flag for resolution.</div>
+    </div>
+    <div class="gate-chip">
+      <div class="gate-name">Clamp/Bounds</div>
+      <div class="gate-desc">HP ≤ max, gold ≥ 0, etc.</div>
+    </div>
+  </div>
+
+  <div class="section-title">Provider Fallback</div>
+  <div class="sync-flow">
+    <div class="sync-node" style="border-color:var(--green)">
+      <div class="node-title">Gemini</div>
+      <div class="node-sub">Primary (free)</div>
+    </div>
+    <span class="sync-arrow">timeout →</span>
+    <div class="sync-node" style="border-color:var(--gold)">
+      <div class="node-title">OpenRouter</div>
+      <div class="node-sub">Fallback (free tier)</div>
+    </div>
+    <span class="sync-arrow">timeout →</span>
+    <div class="sync-node" style="border-color:var(--red)">
+      <div class="node-title">Error</div>
+      <div class="node-sub">Retry or notify</div>
+    </div>
+  </div>
+
+  <div class="section-title">Sample Mechanic Keys (65 total)</div>
+  <div class="box-grid cols-3">
+    <div class="box">
+      <div class="title">Combat</div>
+      <div class="desc" style="font-family:monospace;font-size:10px">hp:-8<br>condition:poisoned<br>ac_temp:+2<br>initiative:15<br>death_save:success</div>
+    </div>
+    <div class="box">
+      <div class="title">World</div>
+      <div class="desc" style="font-family:monospace;font-size:10px">location:Greenest<br>weather:rain<br>time:dusk<br>npc_intro:Nighthill<br>quest:save_keep</div>
+    </div>
+    <div class="box">
+      <div class="title">Resources</div>
+      <div class="desc" style="font-family:monospace;font-size:10px">gold:+50<br>item_add:Longsword<br>slot_use:1<br>rest:long<br>xp:+200</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ==================== STATE PANEL ==================== -->
+<div class="panel" id="panel-state">
+<div class="diagram">
+
+  <div class="section-title">State Ownership — Who Can Write What</div>
+  <table class="own-table">
+    <thead>
+      <tr><th>Owner</th><th>Fields</th><th>Write Path</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="own-dot ai"></span>AI (via mechanics)</td>
+        <td>hp, conditions, gold, quests, npcs, location, weather, time, reputation, secrets</td>
+        <td>Engine pipeline only</td>
+      </tr>
+      <tr>
+        <td><span class="own-dot player"></span>Player (via editors)</td>
+        <td>name, backstory, appearance, personality, notes</td>
+        <td>UI editors in manage/setup</td>
+      </tr>
+      <tr>
+        <td><span class="own-dot system"></span>System (via wizards)</td>
+        <td>level, hp_max, class, features, spells, slots, resources</td>
+        <td>Level-up wizard only</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="section-title">Campaign vs System Data</div>
+  <div class="box-grid cols-2">
+    <div class="box" style="border-color:var(--gold-dim)">
+      <div class="title">Campaign Data (resets on swap)</div>
+      <div class="desc">
+        PCs &bull; worldData &bull; NPCs &bull; quests &bull; chatHistory &bull; combat &bull;
+        treasury &bull; consequences &bull; locations &bull; sessionArchive &bull; campaign contracts
+      </div>
+      <div class="tag firebase">Firebase synced</div>
+    </div>
+    <div class="box" style="border-color:var(--green)">
+      <div class="title">System Data (survives swap)</div>
+      <div class="desc">
+        Spell compendiums &bull; class progressions &bull; feat databases &bull; app settings &bull;
+        player preferences &bull; rules contracts
+      </div>
+      <div class="tag local">IndexedDB local</div>
+    </div>
+  </div>
+
+  <div class="section-title">Story Tracking Structures (8)</div>
+  <div class="box-grid cols-4">
+    <div class="box">
+      <div class="icon">⚔</div>
+      <div class="title">Quests</div>
+      <div class="desc">id, title, status, giver, steps[], rewards, location, notes</div>
+    </div>
+    <div class="box">
+      <div class="icon">👤</div>
+      <div class="title">NPCs</div>
+      <div class="desc">id, name, role, location, disposition, notes, alive, relationships[]</div>
+    </div>
+    <div class="box">
+      <div class="icon">📖</div>
+      <div class="title">Chapters</div>
+      <div class="desc">id, title, summary, discovered, scenes[], keyEvents[]</div>
+    </div>
+    <div class="box">
+      <div class="icon">⚡</div>
+      <div class="title">Consequences</div>
+      <div class="desc">id, trigger, effect, timer, resolved, severity, scope</div>
+    </div>
+    <div class="box">
+      <div class="icon">🏘</div>
+      <div class="title">Town Rep</div>
+      <div class="desc">townId, name, score, events[], disposition, services[]</div>
+    </div>
+    <div class="box">
+      <div class="icon">🔮</div>
+      <div class="title">Secrets</div>
+      <div class="desc">id, content, discovered, hint, linkedNpc, linkedQuest</div>
+    </div>
+    <div class="box">
+      <div class="icon">📋</div>
+      <div class="title">Module Progress</div>
+      <div class="desc">moduleId, currentChapter, chaptersDiscovered[], flags{}</div>
+    </div>
+    <div class="box">
+      <div class="icon">📍</div>
+      <div class="title">Locations</div>
+      <div class="desc">id, name, type, region, discovered, notes, npcsPresent[], connectedTo[]</div>
+    </div>
+  </div>
+
+  <div class="section-title">Checkpoint / Rewind (Law 2 Recovery)</div>
+  <div class="sync-flow">
+    <div class="sync-node">
+      <div class="node-title">Auto Snapshot</div>
+      <div class="node-sub">long rest, level-up, 0 HP, periodic</div>
+    </div>
+    <span class="sync-arrow">→</span>
+    <div class="sync-node">
+      <div class="node-title">Rewind Stack</div>
+      <div class="node-sub">accessible mid-session</div>
+    </div>
+    <span class="sync-arrow">→</span>
+    <div class="sync-node" style="border-color:var(--green)">
+      <div class="node-title">One-Tap Restore</div>
+      <div class="node-sub">full state rollback</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ==================== DATA PANEL ==================== -->
+<div class="panel" id="panel-data">
+<div class="diagram">
+
+  <div class="section-title">Three Data Tiers</div>
+  <div class="tier-row">
+    <div class="tier-box fb">
+      <div class="tier-title">🔥 Firebase (Synced)</div>
+      <div class="tier-items">
+        Game state that changes during play:<br><br>
+        &bull; HP, conditions, gold<br>
+        &bull; Quest status, NPC data<br>
+        &bull; Chat history<br>
+        &bull; Combat state<br>
+        &bull; Inventory / wagon<br>
+        &bull; World data (location, weather, time)<br>
+        &bull; Contracts<br>
+        &bull; Treasury<br>
+        &bull; Consequences<br><br>
+        <em>All devices see same state</em>
+      </div>
+    </div>
+    <div class="tier-box idb">
+      <div class="tier-title">💿 IndexedDB (Local)</div>
+      <div class="tier-items">
+        Reference content, never synced:<br><br>
+        &bull; Spell compendium<br>
+        &bull; Class progression data<br>
+        &bull; Feat database<br>
+        &bull; Monster data<br>
+        &bull; Module text / chapters<br>
+        &bull; Parsed books (PDF/epub)<br>
+        &bull; Web imports<br>
+        &bull; Map images<br>
+        &bull; Glossary (97 terms)<br><br>
+        <em>Same on all devices via import</em>
+      </div>
+    </div>
+    <div class="tier-box bun">
+      <div class="tier-title">📦 Shared Bundles</div>
+      <div class="tier-items">
+        Content packs for multiplayer:<br><br>
+        &bull; Generated by one player<br>
+        &bull; Shared via import link<br>
+        &bull; Others import as they join<br>
+        &bull; Reusable across campaigns<br><br>
+        Firebase only stores:<br>
+        <code style="color:var(--text)">"has_pack_X": true</code><br><br>
+        <em>Actual content lives in IndexedDB</em>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Sync Model</div>
+  <div class="box-grid cols-2">
+    <div class="box">
+      <div class="title">Normal Flow</div>
+      <div class="desc" style="font-family:monospace;font-size:11px">
+        State change<br>
+        &nbsp;&nbsp;→ SolidJS signal<br>
+        &nbsp;&nbsp;→ UI reacts<br>
+        &nbsp;&nbsp;→ Firebase.set()<br>
+        &nbsp;&nbsp;→ Other devices get .on()
+      </div>
+    </div>
+    <div class="box">
+      <div class="title">Offline Flow</div>
+      <div class="desc" style="font-family:monospace;font-size:11px">
+        State change<br>
+        &nbsp;&nbsp;→ SolidJS signal<br>
+        &nbsp;&nbsp;→ UI reacts<br>
+        &nbsp;&nbsp;→ localStorage queue<br>
+        &nbsp;&nbsp;→ reconnect → reconcile
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Conflict Resolution</div>
+  <div class="box-grid cols-2">
+    <div class="box">
+      <div class="title">Chat Messages</div>
+      <div class="desc">Clock-independent merge. Messages carry sequence IDs, not timestamps. Proven in v1.</div>
+    </div>
+    <div class="box">
+      <div class="title">State Fields</div>
+      <div class="desc">Last-write-wins for simple fields. Merge-on-reconnect for arrays (inventory, conditions).</div>
+    </div>
+  </div>
+
+  <div class="section-title">Multi-Player Model</div>
+  <div class="sync-flow">
+    <div class="sync-node" style="border-color:var(--green)">
+      <div class="node-title">Device A</div>
+      <div class="node-sub">"I am Aldric"</div>
+    </div>
+    <span class="sync-arrow">↔</span>
+    <div class="sync-node" style="border-color:var(--gold)">
+      <div class="node-title">Firebase</div>
+      <div class="node-sub">shared campaign</div>
+    </div>
+    <span class="sync-arrow">↔</span>
+    <div class="sync-node" style="border-color:var(--blue)">
+      <div class="node-title">Device B</div>
+      <div class="node-sub">"I am Mira"</div>
+    </div>
+  </div>
+  <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:8px">
+    No formal identity system — family shares informally. Device-local "which PC am I" setting.
+  </p>
+
+</div>
+</div>
+
+<!-- ==================== MODES PANEL ==================== -->
+<div class="panel" id="panel-modes">
+<div class="diagram">
+
+  <div class="section-title">Four Modes (Law 4: One Experience)</div>
+  <div class="mode-map">
+    <div class="mode-box">
+      <div class="mode-name">Setup</div>
+      <div class="mode-list">
+        &bull; Session Zero wizard<br>
+        &bull; Character creation<br>
+        &bull; Content import<br>
+        &bull; Campaign config<br>
+        &bull; API key entry<br>
+        &bull; Player onboarding<br><br>
+        <em style="color:var(--text-dim)">Locked after campaign starts</em>
+      </div>
+    </div>
+    <div class="mode-box active-mode">
+      <div class="mode-name">Play</div>
+      <div class="mode-list">
+        &bull; Chat canvas (always visible)<br>
+        &bull; Context banner<br>
+        &bull; Quest/situation bar<br>
+        &bull; Character tiles<br>
+        &bull; Combat overlay<br>
+        &bull; Quick actions FAB<br>
+        &bull; Dice roller<br>
+        &bull; Roll requests<br>
+        &bull; TTS toggle<br>
+        &bull; Rewind controls<br><br>
+        <em style="color:var(--gold-bright)">Primary mode during sessions</em>
+      </div>
+    </div>
+    <div class="mode-box">
+      <div class="mode-name">Reference</div>
+      <div class="mode-list">
+        &bull; Character sheet (6 tabs)<br>
+        &bull; Journal (quests/NPCs/locs)<br>
+        &bull; Cargo (inventory/wagon)<br>
+        &bull; Treasury (coins/log)<br>
+        &bull; Compendium (spells/feats)<br>
+        &bull; Glossary (97 terms)<br><br>
+        <em style="color:var(--text-dim)">Overlays, not navigation</em>
+      </div>
+    </div>
+    <div class="mode-box">
+      <div class="mode-name">Manage</div>
+      <div class="mode-list">
+        &bull; AI contracts editor<br>
+        &bull; Session review<br>
+        &bull; Data export/import<br>
+        &bull; Dev tools<br>
+        &bull; Settings<br><br>
+        <em style="color:var(--text-dim)">Between sessions, intentional</em>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Mode Transitions</div>
+  <div class="sync-flow">
+    <div class="sync-node" style="border-color:var(--purple)">
+      <div class="node-title">SETUP</div>
+      <div class="node-sub">first launch</div>
+    </div>
+    <span class="sync-arrow">→</span>
+    <div class="sync-node" style="border-color:var(--gold)">
+      <div class="node-title">PLAY</div>
+      <div class="node-sub">primary</div>
+    </div>
+    <span class="sync-arrow">↔</span>
+    <div class="sync-node" style="border-color:var(--green)">
+      <div class="node-title">REFERENCE</div>
+      <div class="node-sub">overlays</div>
+    </div>
+  </div>
+  <div class="sync-flow" style="margin-top: 8px;">
+    <div class="sync-node" style="border-color:var(--gold)">
+      <div class="node-title">PLAY</div>
+    </div>
+    <span class="sync-arrow">→</span>
+    <div class="sync-node" style="border-color:var(--blue)">
+      <div class="node-title">MANAGE</div>
+      <div class="node-sub">intentional step</div>
+    </div>
+  </div>
+
+  <div class="section-title">Bottom Nav</div>
+  <div class="box-grid cols-4">
+    <div class="box" style="text-align:center">
+      <div class="icon">📦</div>
+      <div class="title">Cargo</div>
+    </div>
+    <div class="box" style="text-align:center">
+      <div class="icon">💰</div>
+      <div class="title">Treasury</div>
+    </div>
+    <div class="box" style="text-align:center">
+      <div class="icon">📔</div>
+      <div class="title">Journal</div>
+    </div>
+    <div class="box" style="text-align:center">
+      <div class="icon">⚙</div>
+      <div class="title">Settings</div>
+    </div>
+  </div>
+
+  <div class="section-title">Event-Driven Overlays</div>
+  <div class="box-grid cols-3">
+    <div class="box">
+      <div class="title">Combat</div>
+      <div class="desc">Appears when combat starts. Zone grid + initiative strip. Dismisses on combat end.</div>
+    </div>
+    <div class="box">
+      <div class="title">Level-Up</div>
+      <div class="desc">Triggers on XP threshold. Wizard flow: HP, features, spells, ASI. Not a button.</div>
+    </div>
+    <div class="box">
+      <div class="title">Character Sheet</div>
+      <div class="desc">Tap character tile → slides up. 6 tabs: Core, Skills, Combat, Spells, Gear, Features.</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ==================== FILES PANEL ==================== -->
+<div class="panel" id="panel-files">
+<div class="diagram">
+
+  <div class="section-title">Source File Map</div>
+  <div class="tree">
+<span class="dir">src/</span>
+├── <span class="dir">ai/</span>
+│   ├── <span class="file">providers.js</span> <span class="comment">— Gemini, OpenRouter wrappers</span>
+│   ├── <span class="file">prompt.js</span> <span class="comment">— buildPrompt(), genLedger()</span>
+│   ├── <span class="file">mechanics.js</span> <span class="comment">— 65 keys, extract/validate/apply</span>
+│   ├── <span class="file">engine.js</span> <span class="comment">— sendMsg(), callAI(), core loop</span>
+│   ├── <span class="file">contracts.js</span> <span class="comment">— AI contracts, load/inject</span>
+│   └── <span class="file">memory.js</span> <span class="comment">— summarize, prune, archive</span>
+│
+├── <span class="dir">content/</span>
+│   ├── <span class="file">fileParser.js</span> <span class="comment">— PDF, epub, mobi</span>
+│   ├── <span class="file">webParser.js</span> <span class="comment">— web reference import</span>
+│   ├── <span class="file">mdParser.js</span> <span class="comment">— markdown/text</span>
+│   ├── <span class="file">jsonParser.js</span> <span class="comment">— AI-generated JSON</span>
+│   └── <span class="file">normalizer.js</span> <span class="comment">— common schema output</span>
+│
+├── <span class="dir">data/</span>
+│   ├── <span class="file">firebase.js</span> <span class="comment">— sync, merge, offline fallback</span>
+│   ├── <span class="file">local.js</span> <span class="comment">— IndexedDB compendiums</span>
+│   ├── <span class="file">bundles.js</span> <span class="comment">— content pack gen + import</span>
+│   └── <span class="file">migrate.js</span> <span class="comment">— state version migration</span>
+│
+├── <span class="dir">state/</span>
+│   ├── <span class="file">store.js</span> <span class="comment">— SolidJS signals, ownership enforcement</span>
+│   ├── <span class="file">campaign.js</span> <span class="comment">— campaign data shape + reset</span>
+│   └── <span class="file">system.js</span> <span class="comment">— system data (survives swap)</span>
+│
+├── <span class="dir">ui/</span>
+│   ├── <span class="dir">play/</span>
+│   │   ├── <span class="file">Chat.jsx</span> <span class="comment">— chat canvas (Narrative + OOC tabs)</span>
+│   │   ├── <span class="file">ContextBanner.jsx</span> <span class="comment">— location, weather, time</span>
+│   │   ├── <span class="file">QuestBar.jsx</span> <span class="comment">— quest chips, pinned main quest</span>
+│   │   ├── <span class="file">CharTiles.jsx</span> <span class="comment">— PC HP tiles</span>
+│   │   ├── <span class="file">Combat.jsx</span> <span class="comment">— zone grid, initiative, tokens</span>
+│   │   ├── <span class="file">InputBar.jsx</span> <span class="comment">— message input + send</span>
+│   │   ├── <span class="file">QuickActions.jsx</span> <span class="comment">— FAB, common actions</span>
+│   │   ├── <span class="file">DiceRoller.jsx</span> <span class="comment">— d4-d20</span>
+│   │   ├── <span class="file">RollRequest.jsx</span> <span class="comment">— system roll prompts</span>
+│   │   ├── <span class="file">Rewind.jsx</span> <span class="comment">— checkpoint controls</span>
+│   │   └── <span class="file">TTS.jsx</span> <span class="comment">— text-to-speech</span>
+│   │
+│   ├── <span class="dir">reference/</span>
+│   │   ├── <span class="file">CharSheet.jsx</span> <span class="comment">— 6-tab sheet overlay</span>
+│   │   ├── <span class="file">Journal.jsx</span> <span class="comment">— quests, NPCs, locations, consequences</span>
+│   │   ├── <span class="file">Cargo.jsx</span> <span class="comment">— inventory, wagon, hoard</span>
+│   │   ├── <span class="file">Treasury.jsx</span> <span class="comment">— coins, income/expense log</span>
+│   │   ├── <span class="file">Compendium.jsx</span> <span class="comment">— spell/feat/item browser</span>
+│   │   └── <span class="file">Glossary.jsx</span> <span class="comment">— D&D term definitions</span>
+│   │
+│   ├── <span class="dir">setup/</span>
+│   │   ├── <span class="file">SessionZero.jsx</span>
+│   │   ├── <span class="file">CharCreate.jsx</span>
+│   │   ├── <span class="file">ContentImport.jsx</span>
+│   │   ├── <span class="file">CampaignConfig.jsx</span>
+│   │   └── <span class="file">PlayerOnboard.jsx</span>
+│   │
+│   ├── <span class="dir">manage/</span>
+│   │   ├── <span class="file">Contracts.jsx</span> <span class="comment">— AI contract editor</span>
+│   │   ├── <span class="file">SessionReview.jsx</span>
+│   │   ├── <span class="file">DevTools.jsx</span> <span class="comment">— flags, state inspector</span>
+│   │   └── <span class="file">Settings.jsx</span> <span class="comment">— API keys, TTS, prefs</span>
+│   │
+│   ├── <span class="dir">shared/</span>
+│   │   ├── <span class="file">MechPill.jsx</span> <span class="comment">— tappable mechanic pills</span>
+│   │   ├── <span class="file">Toast.jsx</span>
+│   │   ├── <span class="file">Modal.jsx</span> <span class="comment">— bottom sheet overlays</span>
+│   │   ├── <span class="file">Nav.jsx</span> <span class="comment">— bottom nav bar</span>
+│   │   └── <span class="file">LevelUp.jsx</span> <span class="comment">— event-driven wizard</span>
+│   │
+│   ├── <span class="file">App.jsx</span> <span class="comment">— root component, mode routing</span>
+│   └── <span class="file">AppSimple.jsx</span> <span class="comment">— child-friendly entry point</span>
+│
+├── <span class="dir">audio/</span>
+│   ├── <span class="file">browserTTS.js</span>
+│   └── <span class="file">elevenlabs.js</span>
+│
+├── <span class="file">main.js</span>
+└── <span class="file">style.css</span> <span class="comment">— 20 themes, global styles</span>
+  </div>
+
+</div>
+</div>
+
+<!-- ==================== SCRIPT ==================== -->
+<script>
+function showPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+
+</body>
+</html>
