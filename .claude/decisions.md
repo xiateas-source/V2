@@ -189,7 +189,7 @@
 | `//explain` help system (✅ in player-requests, cut with `//`) | Stay cut. Help moves to onboarding tooltips + Ask DM interception layer. | 31 |
 | Encounter presets (✅ in player-requests, cut in decisions) | Moved to icebox. Player-requests say they were built and used. Could return via content pipeline. | 31 |
 | Context strip carousel (✅ in player-requests) | Superseded by Situation Bar + Context Banner. Better design: tappable, always visible, urgency-sorted. | 31 |
-| Character sheet tab names (Core/Skills/Combat/Spells/Gear/Features vs Stats/Combat/Spells/Features/Equipment/Bio) | Use v2 spec: Stats/Combat/Spells/Features/Equipment/Bio. "Stats" clearer than "Core." Bio is new (race reference + backstory). Skills fold into Stats. | 31 |
+| Character sheet tab names (Core/Skills/Combat/Spells/Gear/Features vs Stats/Vitals/Spells/Features/Equipment/Bio) | Use v2 spec: Stats/Vitals/Spells/Features/Equipment/Bio. "Stats" clearer than "Core." Bio is new (race reference + backstory). Skills fold into Stats. | 31 |
 | `race` ownership (system vs player) | System-owned. Race is mechanical (chosen at creation, affects bonuses). Bio tab displays race reference data from compendium (read-only). | 31 |
 | `hp` dual ownership (AI writes via mechanics, player needs manual +/-) | AI-owned with player override. Normal: AI writes via `hp:` mechanic. Override: player inline +/- calls `aiSet()` with `player_override` flag, logged for audit trail. | 31 |
 | Missing character fields (background, alignment, languages, exhaustion, hp_temp, inspiration, attacks, color) | Added to campaign data shape. Real gameplay fields from v1. | 31 |
