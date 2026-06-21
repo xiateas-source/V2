@@ -257,7 +257,9 @@ The chat is the play surface. Two tabs, multiple message types, streaming, sync,
 - Draft text persists per tab — switching doesn't clear what you typed
 - Input bar changes per tab:
   - **Narrative:** placeholder "What do you do?", send button (⚡), stop generation button (during streaming), dice roller icon
-  - **OOC:** placeholder "Talk to the party...", send button (💬, no AI), Ask DM button (🧙, distinct icon/color — routes to advisory AI)
+  - **OOC:** placeholder "Talk to the party...", two buttons side by side:
+    - **Send (💬)** — sends player text to OOC stream, no AI. Just table talk.
+    - **Ask DM (🧙)** — sends the same input text to the advisory AI. Player types their question in the same input field, then chooses which button to tap. Example: player types "does Sneak Attack work with thrown daggers?" and taps Ask DM. The question appears as a `player` message in OOC, then the AI advisory response appears as `dm_advisory`. If the player types "hey check the chest in room 3" and taps Send, it's just table talk — no AI.
 
 #### OOC → Narrative awareness
 
@@ -274,8 +276,11 @@ BaseMessage: {
   id: string,             // 'nar_' | 'ooc_' + timestamp + random suffix
   type: string,           // see below
   content: string,        // markdown text
-  ts: number,             // wall clock timestamp (for sync/ordering)
-  gameTs: string,         // in-game time from Campaign State ("Day 7, 04:30 PM")
+  ts: number,             // wall clock timestamp (for sync/ordering). Displayed so players
+                          // can see WHEN each other played: "Mom sent this at 9:14 PM."
+  gameTs: string,         // in-game time from Campaign State ("Day 7, 04:30 PM"). Displayed
+                          // so players can track time-sensitive events: "the poison wears off
+                          // at Day 7, 06:00 PM — it's 04:30 now." Both timestamps always shown.
   playerName: string,     // who sent it (multi-player: which player/device)
   partial: boolean,       // true while AI is streaming, removed on complete
   cancelled: boolean,     // true if player stopped generation
@@ -350,7 +355,7 @@ Player sends → API call begins → streaming response
   ├── Each token → append to message.content → re-render progressively
   ├── Markdown renders as tokens arrive
   ├── Mechanic pills DO NOT render until complete (can't parse partial blocks)
-  ├── Auto-scroll follows streaming text
+  ├── Auto-scroll follows streaming text (only if player was at bottom — see "Scroll behavior")
   ├── Stop button → mark complete → skip mechanics parse → "(generation stopped)"
   ├── Error → push system message "AI error: ..." → keep partial content
   └── Stream ends → mark complete → parse mechanics → run gates → apply state
@@ -359,6 +364,8 @@ Player sends → API call begins → streaming response
 - **Stop generation**: keeps received text, sets `cancelled: true`, does NOT parse mechanics (partial blocks unreliable). Gates don't run on cancelled messages.
 - **Retry on error**: player taps retry → delete failed dm message → resend with same context.
 - **System messages from gates**: appear AFTER streaming completes and mechanics are parsed.
+- **Input field**: stays editable during streaming. Player can draft next message. Send disabled until stream completes; stop button shown instead. See "Input field during streaming" section.
+- **OOC independence**: OOC tab can send/receive during Narrative streaming. Table talk doesn't wait for the DM. Ask DM requests queue until Narrative stream completes.
 
 #### Chat persistence & sync
 
@@ -398,6 +405,170 @@ Both tabs exportable for dev review:
 - **Session export** — Full session dump. Narrative + OOC interleaved by timestamp. Markdown format.
 - **Dev tools integration** — Export also available from DevTools (manage mode).
 
+#### Player identity & onboarding
+
+Every message needs a `playerName`. Set once during `PlayerOnboard` (setup mode) and stored in local state. Never prompt for identity mid-session — it would eat messages and break flow.
+
+**Onboarding flow (from v1 Set Player pattern):**
+```
+┌─────────────────────────────┐
+│       Welcome to V2         │
+│                             │
+│  Campaign: Tinkle's         │
+│           Tinctures         │
+│                             │
+│  Your name: [________]      │
+│                             │
+│  Select character:          │
+│  ○ Valenns  ○ Aria          │
+│  ○ Slasher  ○ All (solo)    │
+│                             │
+│  Mode:                      │
+│  ○ Single player            │
+│  ○ Multi player             │
+│                             │
+│  [Enter Campaign]           │
+└─────────────────────────────┘
+```
+
+- **Your name** — real name, not PC name. Used in `playerName` field on messages and for multi-device identification. Example: "Mom" or "Jessica."
+- **Select character** — which PC(s) this player controls. "All" for solo mode. Determines which PCs Gate 5 checks against (see below).
+- **Mode** — single or multi player. Affects Gate 5 behavior and Previously On triggers.
+- **Stored in** — local device state (not Firebase). Each device has its own identity. Firebase carries the player roster so other devices know who's connected.
+- **Edge case: identity somehow unset** — if `playerName` is null when player tries to send, show inline prompt in input area: "Who's playing? [name field] [Go]". Never block the UI or show a modal — just a gentle inline ask.
+- **No auth** — family trust model. No passwords, no accounts. Device-local identity is enough. One player can act for another if needed (hand phone over, or set identity to the other player temporarily).
+
+#### Single / multi player toggle
+
+The game supports fluid handoff between solo and multi-player within a session. Not a permanent setting — a toggle.
+
+**Why this exists:** "Sometimes I need my husband to play for me while I'm busy. That's why we sometimes say to the DM, 'I've been AFK, give me a recap.'" The app should support this naturally, not require restarting.
+
+**Toggle location:** Quick Actions FAB or top bar toggle. One tap to switch. No confirmation modal — it's a low-risk, easily reversible action.
+
+**What changes between modes:**
+
+| Aspect | Single player | Multi player |
+|--------|--------------|--------------|
+| Character selection | "All" — player controls all PCs | Each player selects their PC(s) |
+| Gate 5 (Unmentioned PCs) | Disabled — solo player is responsible for all PCs | Active — only flags PCs belonging to current player |
+| Previously On | Triggers on AFK return | Triggers on AFK return AND on player handoff (mode switch) |
+| Push notifications | Not needed (one device) | Active — notifies when other player acts |
+| OOC tab | Table talk with yourself (mainly Ask DM) | Table talk between players + Ask DM |
+| Input bar label | "What do you do?" | "What does [PC name] do?" |
+
+**Mode switch triggers Previously On:** When toggling from single → multi (a player is rejoining), the app triggers Previously On so the returning player gets caught up. Example: Mom played solo for an hour, Dad picks up his phone, toggles multi → sees "Previously On" recap of what happened while he was away.
+
+#### Scroll behavior
+
+**Problem from v1:** Player scrolls up to read earlier messages. Another player sends a message. The chat yanks the scrolled-up player back to the bottom. Disorienting and frustrating.
+
+**Solution — conditional auto-scroll:**
+```
+if (scrollPosition is at bottom or near bottom):
+    auto-scroll to new message  ← default behavior, smooth
+else:
+    do NOT auto-scroll  ← player is reading, don't yank them
+    show "↓ New messages" indicator at bottom of chat
+    indicator shows count: "↓ 3 new messages"
+    tap indicator → smooth-scroll to bottom + dismiss
+```
+
+- **"Near bottom" threshold:** within ~100px of the scroll end. Accounts for imprecise tapping.
+- **Indicator style:** floating pill/chip at bottom of scroll area, above input bar. Semi-transparent, tappable. Disappears when player scrolls to bottom manually or taps it.
+- **Per-tab:** each tab tracks scroll position independently. OOC scroll state doesn't affect Narrative.
+- **During AI streaming:** auto-scroll follows streaming text ONLY if player was already at bottom when streaming started. If player scrolled up during streaming, let them read in peace.
+
+#### Gate 5 multi-player awareness
+
+Gate 5 (Unmentioned PC Actions) must be player-aware, not just PC-aware.
+
+**Problem without this:** In multi-player, Gate 5 would flag every PC the AI acts for that the current player didn't mention — including PCs belonging to the OTHER player. That's noise, not signal.
+
+**Fix:** Gate 5 checks which PCs belong to the current player (from PlayerOnboard character selection). It only flags PCs that:
+1. Belong to the current player (the one who sent the message)
+2. Were NOT mentioned as actors in the player's message
+3. WERE given actions by the AI
+
+**Example:**
+- Mom controls Valenns. Dad controls Aria and Slasher.
+- Mom types "Valenns searches the room."
+- AI responds: Valenns searches (good), Aria stands guard (Dad's PC — not flagged by Gate 5 for Mom), Slasher checks the door (Dad's PC — not flagged for Mom).
+- If the AI also narrated "Valenns casts Detect Magic" but Mom didn't say that — Gate 5 flags it, because Valenns is Mom's PC and Mom didn't mention casting.
+
+**In single player mode:** Gate 5 is disabled entirely. The solo player is responsible for all PCs and explicitly accepted that in the mode selection. Flagging every response would be noise.
+
+#### Input field during streaming
+
+**The input field stays editable while the AI is streaming a response.** Players draft long, detailed messages — blocking the input during streaming would frustrate them.
+
+**Behavior:**
+- Player sends a message → AI starts streaming → input field clears and is immediately available for typing
+- Player can draft their next message while reading the AI response
+- Send button is disabled until streaming completes (can't send while AI is mid-response — would create prompt ordering issues)
+- Stop button replaces send during streaming — tap to cancel, then send button returns
+- Draft text persists if player switches tabs during streaming — switching to OOC and back doesn't lose the draft
+
+**OOC is independent:** OOC tab can send messages at any time, even while Narrative is streaming. The two channels are independent — table talk shouldn't wait for the DM to finish narrating. Ask DM during Narrative streaming: queued, sent after Narrative stream completes (prevents prompt conflicts).
+
+#### Push notifications — scope
+
+Push notifications fire for ALL OOC messages, not just Ask DM responses.
+
+**Why:** v1's biggest OOC problem was that no one checked it. Notifications are the fix. If Dad sends "hey are you still playing?" in OOC and Mom's phone doesn't buzz, OOC is dead again.
+
+**What triggers a push notification:**
+
+| Event | Notification text | When |
+|-------|------------------|------|
+| OOC player message | "[playerName]: [first 50 chars]" | App backgrounded or other player's device |
+| OOC Ask DM response | "DM answered your question" | App backgrounded (same device) |
+| Narrative AI response (not your turn) | "The story continues..." | Multi-player, other player's device |
+| State change needing attention | "Level up available!" / "[PC] is at 0 HP!" | Any time |
+| Combat turn | "It's [PC]'s turn!" | Multi-player, that player's device |
+
+**What does NOT trigger a push:**
+- Your own messages echoing back from Firebase sync
+- System messages from gates (visible inline, not urgent enough for phone buzz)
+- Tab badge updates (in-app only)
+
+**Implementation:** Web Push API + Firebase Cloud Messaging (FCM). Both free. Player opts in once during onboarding. Respect OS notification settings.
+
+#### Previously On as handoff tool
+
+Previously On serves two purposes: (1) AFK return recap and (2) player handoff recap.
+
+**AFK return (existing spec):** Triggers when idle time exceeds threshold. Shows narrative recap + state diff. Dismissable card.
+
+**Player handoff (new):** Triggers when multi-player mode is toggled ON, meaning a second player is joining a session that was running solo. The returning player needs to know what happened while they were away.
+
+**Handoff Previously On includes:**
+```
+┌─────────────────────────────┐
+│  📖 Previously On...        │
+│                             │
+│  [Narrative recap: 2-3      │
+│   sentences summarizing     │
+│   what happened since last  │
+│   multi-player session]     │
+│                             │
+│  State changes:             │
+│  • Valenns: HP 45→38        │
+│  • Location: Hunting Lodge  │
+│    → Forest Road            │
+│  • Quest completed: "Free   │
+│    the Prisoners"           │
+│  • New NPC: Captain Harwin  │
+│  • Gold: +150 (gem pouch)   │
+│                             │
+│  [Dismiss]                  │
+└─────────────────────────────┘
+```
+
+- The recap is generated by `memory.js` summary diffed against the last session where multi-player was active
+- The state diff is a pure comparison — no AI call needed. Shows HP changes, location, quests completed/added, NPCs met, inventory changes, gold changes
+- Dismissable — player can read it and move on. Not blocking.
+
 ### Core loop acceptance test
 
 A session where: player types an action → AI responds with narrative + mechanics block → mechanics are parsed and applied to state → state changes visible in UI → next message includes updated ledger in prompt. No enforcement gates yet — just the loop.
@@ -412,7 +583,7 @@ A session where: player types an action → AI responds with narrative + mechani
 - [ ] **Gate 2: Combat turn enforcement** — When `combat.active`, enforce initiative order. One PC per AI response. Track actions used per turn (action/bonus/reaction/movement). Reject multi-turn responses. Prompt next PC after current turn resolves.
 - [ ] **Gate 3: Drift detectors** — Scan narrative for state changes without matching mechanics. Gold/items/NPCs/HP/conditions/location/time. Flag with warning pill. Offer to auto-generate missing mechanic. Don't auto-reject.
 - [ ] **Gate 4: Scene transition** — Detect location/time changes in mechanics. Hold transition, show narrative up to that point. Prompt player: "Ready to move on?" Player-initiated moves lower the gate.
-- [ ] **Gate 5: Unmentioned PC actions** — Parse player message for PC names as actors. Parse AI response for PC names as actors. Diff. Flag PCs the AI acted for that the player didn't mention. Distinguish actions from perceptions.
+- [ ] **Gate 5: Unmentioned PC actions** — Parse player message for PC names as actors. Parse AI response for PC names as actors. Diff. Flag PCs the AI acted for that the player didn't mention. Distinguish actions from perceptions. **Multi-player aware:** only flags PCs belonging to the current player (from PlayerOnboard selection). Other players' PCs are not flagged. Disabled entirely in single-player mode. See "Gate 5 multi-player awareness" in chat spec.
 - [ ] **Gate 6: Spell validation** — Check spell name against caster's known spells. Check slot availability. Auto-resolve concentration conflicts. Requires system-owned spell data populated by char creation / level-up.
 - [ ] **Gate 7: Skill check requirement** — Map action keywords in player messages to expected checks. If AI resolves without requesting a roll, flag it. Three-condition test: uncertain outcome + meaningful consequences + requires skill.
 - [ ] **Gate 8: XP audit** — After `quest_done`, combat end, `chapter_add`: check if `xp:` mechanic was emitted in same or previous 2 responses. Flag if missing.
@@ -435,7 +606,7 @@ Full specs for each gate: `.claude/enforcement-spec.md`
 - [ ] **Term glossary links** — Auto-link D&D terms in AI messages. Tap → definition popup. Data from `v1-seed-data.md` glossary (97 terms).
 - [ ] **Checkpoint/rewind** — `Rewind.jsx`. State snapshots at: long rest, level-up, PC at 0 HP, periodic auto. Rewind stack. One-tap restore. Accessible mid-session in play mode, not buried in manage.
 - [ ] **TTS toggle** — `TTS.jsx`. Browser speech synthesis. Toggle on/off per message or continuous. Not automatic. ElevenLabs free tier as upgrade path.
-- [ ] **Previously On / Catch Up** — AI-powered session recap. Depends on memory.js (Phase 1) for session summaries and state diff. Surfaces when returning from AFK (detect idle time > threshold). Two parts: (1) narrative recap from memory.js summary, (2) tracker audit — state changes since last active (HP, quests, inventory, location diffs). The recap is an AI call; the audit is a pure state diff. UI: dismissable card at top of chat on return.
+- [ ] **Previously On / Catch Up** — AI-powered session recap. Depends on memory.js (Phase 1) for session summaries and state diff. **Two triggers:** (1) AFK return — detect idle time > threshold. (2) Player handoff — mode switches from single → multi, returning player gets caught up on what happened. Both show: narrative recap (AI call via memory.js summary) + tracker audit (pure state diff: HP, quests, inventory, location, gold, NPCs). UI: dismissable card at top of chat. See "Previously On as handoff tool" in chat spec.
 - [?] **Quick Actions** — `QuickActions.jsx`. Floating action button. Needs redesign from v1. See spec below.
 - [ ] **Combat overlay** — `Combat.jsx`. Phase 1: zone grid (Frontline/Backline/Flanks). Initiative strip. Token chips per PC/NPC. Appears when `combat.active = true`, disappears when combat ends.
 - [ ] **Nav badges** — Dot badges on bottom nav when state changes in other modes. In-chat alerts for important state changes.
@@ -443,7 +614,7 @@ Full specs for each gate: `.claude/enforcement-spec.md`
 - [ ] **Ask DM interception layer** — Before Ask DM sends to the AI, pattern-match the question for app issues. "Can't modify/change/edit [X]" → route to relevant editor/wizard. "What's in my inventory" → open Cargo. "How much gold" → open Treasury. "What are my spells" → open CharSheet Spells tab. Detection patterns: "can't/won't/how do I" + field name → system tool. Only questions the app can't answer directly hit the AI. Saves API calls, gives better answers.
 - [ ] **Ask DM data injection** — Before Ask DM prompt goes out, detect what the question is about and pull relevant data from IndexedDB/state. Spell questions → pull spell entries. Feat questions → pull feat data. NPC questions → pull NPC tracker entries. Class feature questions → pull class progression data. Grounds AI answers in actual app data, not training data. Especially important for homebrew content the AI has never seen.
 - [ ] **Citation linking** — Auto-link rules references in AI responses (spell names, feat names, conditions, PHB citations) to compendium entries when content is imported. Same auto-linking tech as term glossary, extended to Ask DM and Narrative responses. AI cites "PHB 182" → tappable link to travel pace rules in compendium. Tap-to-source for AI knowledge.
-- [ ] **Push notifications** — Web Push API (free, works on Android Chrome + iOS Safari 16.4+). Fires when: OOC message received while app is backgrounded, AI response arrives in Narrative when it's not your turn, game state changes that need attention. Player opts in once. Pairs with Firebase Cloud Messaging. Needed from day one for 2-player — without it, OOC is dead (v1 problem: no notifications meant no one checked OOC).
+- [ ] **Push notifications** — Web Push API (free, works on Android Chrome + iOS Safari 16.4+). Fires for ALL OOC messages (not just Ask DM), Narrative responses on other player's device, state changes needing attention, combat turn prompts. Player opts in during onboarding. Pairs with Firebase Cloud Messaging. Needed from day one for 2-player — without it, OOC is dead (v1 problem: no notifications meant no one checked OOC). Full notification table in chat spec "Push notifications — scope" section.
 
 ### Quick Actions — design needed
 
@@ -463,6 +634,7 @@ v1 Quick Actions was a FAB with common play actions. Carried forward but needs r
 - Request recap (AI message: "Previously On")
 - Roll initiative (system operation: start combat mode)
 - End combat (system operation: exit combat mode)
+- Toggle single/multi player mode (system operation: switches mode, triggers Previously On on multi→single handoff)
 
 ---
 
@@ -488,7 +660,7 @@ v1 Quick Actions was a FAB with common play actions. Carried forward but needs r
 - [ ] **Character creation** — `CharCreate.jsx`. Race, class, ability scores, background, equipment. Populates system-owned fields. Spell selection for casters. Uses compendium data from IndexedDB (class progressions from v1-seed-data.md until content pipeline built).
 - [ ] **Content import** — `ContentImport.jsx`. File upload (PDF, epub, mobi). Web URL import. Markdown/text paste. JSON import. Routes to appropriate parser. Preview before committing to IndexedDB.
 - [ ] **Campaign config** — `CampaignConfig.jsx`. Module selection, episode tracking setup, house rules, contract customization.
-- [ ] **Player onboarding** — `PlayerOnboard.jsx`. Share link generation. Content sync (shared bundles). Character creation for new player. Device-local "which PC am I" setting.
+- [ ] **Player onboarding** — `PlayerOnboard.jsx`. Share link generation. Content sync (shared bundles). Character creation for new player. Device-local identity: player name, character selection, single/multi mode. See "Player identity & onboarding" in chat spec for full flow mockup. Push notification opt-in prompt during onboarding.
 
 ---
 
