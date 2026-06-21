@@ -1,3 +1,12 @@
+import { initFirebase, isConnected, flushPending } from './firebase.js';
+
 export async function initData() {
-  // Phase 0: no-op. Firebase + IndexedDB + seed check will go here.
+  await initFirebase();
+
+  if (isConnected()) {
+    await flushPending();
+  }
 }
+
+export { isConnected } from './firebase.js';
+export { dbRead, dbWrite, dbUpdate, dbListen, getUid } from './firebase.js';
