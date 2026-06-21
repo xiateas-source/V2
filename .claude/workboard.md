@@ -1068,6 +1068,19 @@ v1 Quick Actions was a FAB with common play actions. Carried forward but needs r
 - **Backstory** — Player-owned. Tap to edit.
 - **Notes** — Player-owned. Tap to edit. Freeform.
 
+#### Manual Override (v1's "Advanced Editor")
+Accessed via lock icon / edit button on character sheet. Full form-based editor for when the engine gets it wrong. Not the primary path — wizards and enforcement handle normal play. This is the escape hatch.
+
+- **Core fields** — Name, race, class, subclass, level, background, alignment, HP, max HP, AC, initiative, speed, XP, all 6 ability scores. System-owned fields require unlock confirmation.
+- **Skills sub-tab** — Proficiency toggles on saves + skills. All bonuses **derived at render time** (not stored) — `mod = abilityMod + (isProficient ? profBonus : 0)`. V1 stored computed values and they drifted; V2 computes on the fly.
+- **Features sub-tab** — Edit feature text, add/remove. Resources with MAX/USED counters.
+- **Attacks sub-tab** — Attack builder: stat selector, bonus, prof checkbox, damage dice + modifier, properties (finesse, versatile, thrown, etc). Add/remove attacks.
+- **Spells sub-tab** — Spell slot editor (MAX/USED per level). Spell Compendium browser inline (search, filter by class/level, import). Manual add for homebrew.
+- **Gear sub-tab** — Add/remove items. Equipped vs Carried. Type, weight, description fields.
+- **Familiar** — Full stat block editor (all 6 abilities, HP, AC, speed, passive perception, special abilities). Add/remove.
+- **Danger zone** — Delete character, color picker, Update from JSON, Share Character.
+- **Audit** — All Manual Override edits are logged (field, old value, new value, timestamp). Visible in DevTools.
+
 - [ ] **Journal** — `Journal.jsx`. Sections: Quests, Locations, NPCs, Travel Log, Consequences, Town Reputation, Secrets. All AI-owned via mechanics. Secrets consolidated to one home with `playerKnown` / `aiOnly` flags. Quests show status (active/completed/failed). Locations show discovered/undiscovered. NPCs show disposition.
 - [ ] **Cargo** — `Cargo.jsx`. Three containers: Carried (per-PC), Wagon (party shared), Hoard (stored/stashed). Items from `item_add` mechanics. Weight tracking (encumbrance). AI-generated items (Firebase) vs compendium items (IndexedDB) display the same.
 - [ ] **Travel calculator** — In Journal's locations section. Tap a known destination → see distance, estimated travel time at current party speed (accounts for slowest member — mounts, oxen, vehicles), encounter risk level. Math is free (Law 5). AI handles "should we go?" judgment via Ask DM — app handles "how long will it take?" Depends on locations tracked in Journal state with distance/terrain data.

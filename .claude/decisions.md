@@ -192,6 +192,8 @@
 | Color picker on PC avatar | Tap color dot on avatar → picker. Sets accent color for tokens, borders, name displays. Stored in characters[].color. | 31 |
 | Per-character JSON import in lock bar | "JSON" button in lock bar. Auto-detects format, preserves HP/XP/conditions. Carried from v1 player-requests. | 31 |
 | Condition duration tracking | Conditions store optional round/hour counter. Duration auto-decrements. Visual badge on condition chip. | 31 |
+| Manual Override editor (v1's Advanced Editor) | Keep full form-based editor as escape hatch. Renamed from "Advanced Editor" to "Manual Override." Primary path is wizards/enforcement pipeline; this is the safety net when the engine gets something wrong. Player used v1's editor constantly to fix AI/system mistakes — removing it would leave them trapped. | 31 |
+| Derived bonuses, not stored | V1's proficiency auto-calc was buggy because it stored computed values that got out of sync. V2 derives all bonuses at render time: `save = abilityMod + (isProficient ? profBonus : 0)`. Nothing stored, nothing stale. | 31 |
 
 ## Conflict Resolutions (v1 agent specs vs v2 specs)
 
