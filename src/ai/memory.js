@@ -58,6 +58,16 @@ function buildLocalSummary(messages) {
         events.push(`Moved to: ${lastLocation}`);
       }
 
+      if (msg.mechanics) {
+        const notable = (msg.mechanics.applied || [])
+          .filter(m => m.applied && !['location', 'time', 'weather', 'none', 'loc_desc'].includes(m.key))
+          .map(m => `${m.key}: ${m.value}`)
+          .slice(0, 5);
+        if (notable.length) {
+          events.push(`[${notable.join('; ')}]`);
+        }
+      }
+
       if (msg.mechReceipt) {
         events.push(msg.mechReceipt);
       } else {
@@ -67,7 +77,7 @@ function buildLocalSummary(messages) {
     }
   }
 
-  return events.slice(-12).join('\n');
+  return events.slice(-16).join('\n');
 }
 
 function truncate(text, maxLen) {

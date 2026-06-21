@@ -138,18 +138,21 @@ export function genLedger(mode = 'compact') {
 }
 
 function buildCombatBlock(combat) {
-  const lines = ['ACTIVE COMBAT — ROUND ' + combat.round];
+  const sorted = [...combat.initiative].sort((a, b) => b.roll - a.roll);
+  const currentCombatant = sorted[combat.currentTurn];
+  const lines = [`ACTIVE COMBAT — ROUND ${combat.round} — ${currentCombatant?.name || 'Unknown'}'s turn`];
 
   lines.push('Initiative order:');
-  for (let i = 0; i < combat.initiative.length; i++) {
-    const c = combat.initiative[i];
+  for (let i = 0; i < sorted.length; i++) {
+    const c = sorted[i];
     const marker = i === combat.currentTurn ? '>>>' : '   ';
     const tag = c.type === 'pc' ? '[PC]' : '[NPC]';
-    lines.push(`${marker} ${c.roll} ${c.name} ${tag} HP:${c.hp}/${c.hpMax} AC:${c.ac} Zone:${c.zone}`);
+    const dead = c.hp <= 0 ? ' [DOWN]' : '';
+    lines.push(`${marker} ${c.roll} ${c.name} ${tag} HP:${c.hp}/${c.hpMax} AC:${c.ac} Zone:${c.zone}${dead}`);
   }
 
   const byZone = {};
-  for (const c of combat.initiative) {
+  for (const c of sorted) {
     const zone = c.zone || 'front';
     if (!byZone[zone]) byZone[zone] = [];
     byZone[zone].push(c);

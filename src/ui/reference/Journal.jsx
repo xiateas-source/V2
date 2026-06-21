@@ -1,5 +1,7 @@
-import { createSignal, For, Show } from 'solid-js';
+import { createSignal, For, Show, lazy } from 'solid-js';
 import { store } from '../../state/index.js';
+
+const Compendium = lazy(() => import('./Compendium.jsx'));
 
 export default function Journal() {
   const [tab, setTab] = createSignal('quests');
@@ -11,6 +13,7 @@ export default function Journal() {
         <button class={tab() === 'npcs' ? 'jtab active' : 'jtab'} onClick={() => setTab('npcs')}>NPCs</button>
         <button class={tab() === 'places' ? 'jtab active' : 'jtab'} onClick={() => setTab('places')}>Places</button>
         <button class={tab() === 'log' ? 'jtab active' : 'jtab'} onClick={() => setTab('log')}>Log</button>
+        <button class={tab() === 'lookup' ? 'jtab active' : 'jtab'} onClick={() => setTab('lookup')}>Lookup</button>
       </div>
 
       <div class="journal-content">
@@ -18,6 +21,7 @@ export default function Journal() {
         <Show when={tab() === 'npcs'}><NPCs /></Show>
         <Show when={tab() === 'places'}><Places /></Show>
         <Show when={tab() === 'log'}><Log /></Show>
+        <Show when={tab() === 'lookup'}><Compendium /></Show>
       </div>
     </div>
   );
