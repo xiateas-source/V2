@@ -45,9 +45,13 @@ body {
   border-radius: 2px;
 }
 
+/* ── HEADER ── */
 .sheet-header {
-  padding: 12px 16px 8px;
+  padding: 12px 16px 4px;
   background: #1a1a2e;
+  position: relative;
+}
+.header-main {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -64,9 +68,30 @@ body {
   font-weight: 700;
   color: #fff;
   flex-shrink: 0;
+  border: 3px solid #4a9eff;
+  cursor: pointer;
+  position: relative;
 }
-.pc-info { flex: 1; }
-.pc-name { font-size: 18px; font-weight: 700; color: #fff; }
+.avatar-color-hint {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #4a9eff;
+  border: 2px solid #1a1a2e;
+  cursor: pointer;
+}
+.avatar-color-hint::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background: conic-gradient(#e74c3c, #f1c40f, #2ecc71, #3498db, #9b59b6, #e74c3c);
+}
+.pc-info { flex: 1; min-width: 0; }
+.pc-name { font-size: 18px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 4px; }
 .pc-subtitle { font-size: 13px; color: #8a8a9a; margin-top: 2px; }
 .hp-mini {
   display: flex;
@@ -77,9 +102,100 @@ body {
   border-radius: 12px;
   font-size: 14px;
   font-weight: 600;
+  flex-shrink: 0;
 }
 .hp-mini .heart { color: #e74c3c; }
 
+/* XP bar */
+.xp-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px 8px;
+  background: #1a1a2e;
+  cursor: pointer;
+}
+.xp-label { font-size: 11px; color: #6a6a7a; white-space: nowrap; }
+.xp-track {
+  flex: 1;
+  height: 5px;
+  background: #2a2a4a;
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+.xp-fill {
+  height: 100%;
+  border-radius: 3px;
+  width: 72%;
+  transition: width 0.3s;
+}
+.xp-fill.normal { background: #f1c40f; }
+.xp-fill.ready {
+  background: linear-gradient(90deg, #f1c40f, #2ecc71);
+  animation: xpGlow 1.5s ease-in-out infinite;
+}
+@keyframes xpGlow {
+  0%, 100% { box-shadow: 0 0 4px rgba(46, 204, 113, 0.3); }
+  50% { box-shadow: 0 0 12px rgba(46, 204, 113, 0.8); }
+}
+.xp-nums { font-size: 11px; color: #8a8a9a; font-weight: 600; white-space: nowrap; }
+
+/* Swipe hint */
+.swipe-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 16px 2px;
+  background: #1a1a2e;
+  font-size: 10px;
+  color: #4a4a5a;
+}
+.swipe-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #3a3a4a;
+}
+.swipe-dot.active { background: #4a9eff; }
+
+/* ── LOCK BAR ── */
+.lock-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 16px;
+  background: #1a1a2e;
+  border-bottom: 1px solid #2a2a4a;
+  font-size: 11px;
+  color: #6a6a7a;
+}
+.lock-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.lock-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  color: #4a9eff;
+  font-weight: 600;
+  font-size: 11px;
+}
+.import-btn {
+  font-size: 11px;
+  color: #6a6a7a;
+  cursor: pointer;
+  padding: 2px 6px;
+  border: 1px solid #3a3a4a;
+  border-radius: 4px;
+}
+.import-btn:hover { color: #aaa; border-color: #555; }
+
+/* ── TAB BAR ── */
 .tab-bar {
   display: flex;
   background: #1a1a2e;
@@ -101,13 +217,29 @@ body {
   margin-bottom: -2px;
   white-space: nowrap;
   transition: all 0.2s;
+  position: relative;
 }
 .tab.active {
   color: #4a9eff;
   border-bottom-color: #4a9eff;
 }
 .tab:hover { color: #aaa; }
+.tab .changed-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f1c40f;
+  animation: dotPulse 2s ease-in-out infinite;
+}
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
 
+/* ── TAB CONTENT ── */
 .tab-content {
   flex: 1;
   overflow-y: auto;
@@ -116,7 +248,7 @@ body {
 }
 .tab-content.active { display: block; }
 
-/* Field styles */
+/* ── COMMON STYLES ── */
 .section-label {
   font-size: 11px;
   font-weight: 700;
@@ -139,17 +271,17 @@ body {
 }
 .stat-row .label { font-size: 14px; color: #ccc; }
 .stat-row .value { font-size: 14px; font-weight: 600; color: #fff; }
-.stat-row .modifier {
-  font-size: 12px;
-  color: #4a9eff;
-  margin-left: 6px;
+.stat-row.rollable {
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: border-color 0.15s;
 }
-.stat-row.tappable { cursor: pointer; }
-.stat-row.tappable::after {
-  content: '>';
-  color: #4a4a5a;
-  font-size: 12px;
-  margin-left: 8px;
+.stat-row.rollable:active { border-color: #4a9eff; background: #1a2a3e; }
+.stat-row.rollable .value { color: #4a9eff; }
+.roll-hint {
+  font-size: 10px;
+  color: #3a3a4a;
+  margin-left: 4px;
 }
 
 .ability-grid {
@@ -164,7 +296,10 @@ body {
   padding: 10px 8px;
   text-align: center;
   cursor: pointer;
+  border: 1px solid transparent;
+  transition: border-color 0.15s;
 }
+.ability-box:active { border-color: #4a9eff; background: #1a2a3e; }
 .ability-box .abbr {
   font-size: 11px;
   font-weight: 700;
@@ -193,7 +328,10 @@ body {
   margin-bottom: 3px;
   cursor: pointer;
   gap: 8px;
+  border: 1px solid transparent;
+  transition: border-color 0.15s;
 }
+.skill-row:active { border-color: #4a9eff; background: #1a2a3e; }
 .skill-row .prof-dot {
   width: 8px;
   height: 8px;
@@ -216,7 +354,10 @@ body {
   margin-bottom: 3px;
   cursor: pointer;
   gap: 8px;
+  border: 1px solid transparent;
+  transition: border-color 0.15s;
 }
+.save-row:active { border-color: #4a9eff; background: #1a2a3e; }
 .save-row .prof-dot {
   width: 8px;
   height: 8px;
@@ -228,52 +369,7 @@ body {
 .save-row .name { flex: 1; font-size: 13px; color: #ccc; }
 .save-row .bonus { font-size: 13px; font-weight: 600; color: #4a9eff; }
 
-/* Combat tab */
-.ac-block {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  background: #1a1a2e;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 8px;
-}
-.ac-shield {
-  width: 56px;
-  height: 64px;
-  background: #2a2a4a;
-  border-radius: 8px 8px 8px 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid #4a9eff;
-}
-.ac-shield .number { font-size: 24px; font-weight: 700; color: #fff; }
-.ac-shield .label { font-size: 9px; color: #6a6a7a; text-transform: uppercase; letter-spacing: 1px; }
-.ac-details { flex: 1; }
-.ac-details .line { font-size: 13px; color: #aaa; margin-bottom: 4px; }
-
-.attack-card {
-  background: #1a1a2e;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 6px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-}
-.attack-icon {
-  font-size: 18px;
-  width: 36px;
-  text-align: center;
-}
-.attack-info { flex: 1; }
-.attack-name { font-size: 14px; font-weight: 600; color: #fff; }
-.attack-stats { font-size: 12px; color: #8a8a9a; margin-top: 2px; }
-.attack-stats span { color: #4a9eff; font-weight: 600; }
-
+/* ── VITALS TAB ── */
 .hp-section {
   background: #1a1a2e;
   border-radius: 12px;
@@ -335,6 +431,77 @@ body {
 }
 .hp-temp .value { color: #3498db; font-weight: 600; }
 
+.ac-block {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #1a1a2e;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 8px;
+}
+.ac-shield {
+  width: 56px;
+  height: 64px;
+  background: #2a2a4a;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #4a9eff;
+}
+.ac-shield .number { font-size: 24px; font-weight: 700; color: #fff; }
+.ac-shield .label { font-size: 9px; color: #6a6a7a; text-transform: uppercase; letter-spacing: 1px; }
+.ac-details { flex: 1; }
+.ac-details .line { font-size: 13px; color: #aaa; margin-bottom: 4px; }
+
+.attack-card {
+  background: #1a1a2e;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: border-color 0.15s;
+}
+.attack-card:active { border-color: #4a9eff; background: #1a2a3e; }
+.attack-icon { font-size: 18px; width: 36px; text-align: center; }
+.attack-info { flex: 1; }
+.attack-name { font-size: 14px; font-weight: 600; color: #fff; }
+.attack-stats { font-size: 12px; color: #8a8a9a; margin-top: 2px; }
+.attack-stats span { color: #4a9eff; font-weight: 600; }
+.attack-roll-hint { font-size: 10px; color: #3a3a4a; }
+
+.condition-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.condition-chip {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.condition-chip.active { background: #4a1a3a; color: #e74c3c; }
+.condition-chip.conc { background: #1a3a4a; color: #3498db; }
+.condition-duration {
+  font-size: 10px;
+  opacity: 0.7;
+  background: rgba(255,255,255,0.1);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
 .hit-dice-row {
   display: flex;
   align-items: center;
@@ -344,10 +511,7 @@ body {
   padding: 12px;
   margin-bottom: 6px;
 }
-.dice-pips {
-  display: flex;
-  gap: 4px;
-}
+.dice-pips { display: flex; gap: 4px; }
 .dice-pip {
   width: 20px;
   height: 20px;
@@ -384,22 +548,6 @@ body {
 .ds-pip.fail { border: 2px solid #e74c3c; color: #e74c3c; }
 .ds-pip.fail.filled { background: #e74c3c; color: #fff; }
 
-.condition-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-.condition-chip {
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.condition-chip.active { background: #4a1a3a; color: #e74c3c; }
-.condition-chip.conc { background: #1a3a4a; color: #3498db; }
-
 .exhaustion-pips {
   display: flex;
   align-items: center;
@@ -424,7 +572,149 @@ body {
 }
 .exh-pip.filled { background: #4a3a1a; border-color: #f39c12; color: #f39c12; }
 
-/* Spells tab */
+/* Rest buttons */
+.rest-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+.rest-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #2a2a4a;
+  background: #1a1a2e;
+  color: #aaa;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+}
+.rest-btn:active { background: #2a2a4a; color: #fff; }
+.rest-btn .icon { font-size: 16px; display: block; margin-bottom: 2px; }
+.rest-btn .hint { font-size: 10px; color: #555; font-weight: 400; margin-top: 2px; }
+
+/* Familiar card */
+.familiar-card {
+  background: #1a1a2e;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 6px;
+  border: 1px solid #2a3a4a;
+}
+.familiar-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.familiar-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #2a3a4a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+.familiar-name { font-size: 14px; font-weight: 600; color: #fff; }
+.familiar-type { font-size: 11px; color: #6a6a7a; }
+.familiar-stats {
+  display: flex;
+  gap: 12px;
+}
+.familiar-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #8a8a9a;
+}
+.familiar-stat .val { color: #fff; font-weight: 600; }
+.familiar-hp-bar {
+  flex: 1;
+  height: 4px;
+  background: #2a2a4a;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-left: 8px;
+}
+.familiar-hp-fill {
+  height: 100%;
+  background: #2ecc71;
+  width: 100%;
+  border-radius: 2px;
+}
+
+/* ── SPELLS TAB ── */
+.spellcasting-stats {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.sc-stat {
+  flex: 1;
+  background: #1a1a2e;
+  border-radius: 8px;
+  padding: 10px 8px;
+  text-align: center;
+}
+.sc-stat .sc-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6a6a7a;
+}
+.sc-stat .sc-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  margin-top: 2px;
+}
+.sc-stat .sc-source {
+  font-size: 10px;
+  color: #555;
+  margin-top: 2px;
+}
+.sc-stat.rollable { cursor: pointer; border: 1px solid transparent; transition: border-color 0.15s; }
+.sc-stat.rollable:active { border-color: #9b59b6; }
+.sc-stat.rollable .sc-value { color: #9b59b6; }
+
+/* Concentration pinned spell */
+.conc-pinned {
+  background: #1a2a3a;
+  border: 1px solid #3498db;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: concGlow 2s ease-in-out infinite;
+}
+@keyframes concGlow {
+  0%, 100% { box-shadow: 0 0 4px rgba(52, 152, 219, 0.2); }
+  50% { box-shadow: 0 0 10px rgba(52, 152, 219, 0.4); }
+}
+.conc-icon { font-size: 16px; color: #3498db; flex-shrink: 0; }
+.conc-info { flex: 1; }
+.conc-label { font-size: 10px; color: #3498db; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.conc-spell-name { font-size: 14px; font-weight: 600; color: #fff; margin-top: 1px; }
+.conc-end {
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: #2a1a1a;
+  color: #e74c3c;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #4a2a2a;
+}
+
 .slot-bar {
   display: flex;
   align-items: center;
@@ -474,7 +764,7 @@ body {
 .spell-name { font-size: 13px; font-weight: 600; color: #e0dcd0; }
 .spell-meta { font-size: 11px; color: #6a6a7a; margin-top: 2px; }
 
-/* Features tab */
+/* ── FEATURES TAB ── */
 .feature-card {
   background: #1a1a2e;
   border-radius: 8px;
@@ -516,10 +806,8 @@ body {
 }
 .resource-pip.available { background: #f1c40f; }
 
-/* Equipment tab */
-.equip-section {
-  margin-bottom: 12px;
-}
+/* ── EQUIPMENT TAB ── */
+.equip-section { margin-bottom: 12px; }
 .equip-card {
   display: flex;
   align-items: center;
@@ -566,20 +854,12 @@ body {
 }
 .weight-nums { font-size: 12px; color: #aaa; font-weight: 600; }
 
-/* Bio tab */
+/* ── BIO TAB ── */
 .bio-section {
   background: #1a1a2e;
   border-radius: 8px;
   padding: 12px;
   margin-bottom: 8px;
-}
-.bio-section .title {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: #6a6a7a;
-  margin-bottom: 6px;
 }
 .bio-section .text {
   font-size: 13px;
@@ -642,6 +922,7 @@ body {
   color: #4a9eff;
 }
 
+/* ── OWNERSHIP TAGS ── */
 .ownership-tag {
   display: inline-block;
   font-size: 9px;
@@ -657,29 +938,9 @@ body {
 .ownership-tag.system { background: #1a2a3a; color: #3498db; }
 .ownership-tag.player { background: #1a3a2a; color: #2ecc71; }
 
-.lock-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 16px;
-  background: #1a1a2e;
-  border-bottom: 1px solid #2a2a4a;
-  font-size: 11px;
-  color: #6a6a7a;
-}
-.lock-toggle {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-  color: #4a9eff;
-  font-weight: 600;
-}
-
 .inspiration-star {
   font-size: 20px;
   cursor: pointer;
-  margin-left: 8px;
 }
 </style>
 </head>
@@ -688,32 +949,61 @@ body {
 <div class="phone">
   <div class="overlay-handle"><div class="bar"></div></div>
 
+  <!-- HEADER — with XP bar, swipe between PCs, color picker on avatar -->
   <div class="sheet-header">
-    <div class="pc-avatar">V</div>
-    <div class="pc-info">
-      <div class="pc-name">Valenns Vogelsang <span class="inspiration-star">☆</span></div>
-      <div class="pc-subtitle">Half-Elf Wizard 5 (Illusionist)</div>
+    <div class="header-main">
+      <div class="pc-avatar">V
+        <div class="avatar-color-hint" title="Tap to change PC color"></div>
+      </div>
+      <div class="pc-info">
+        <div class="pc-name">Valenns Vogelsang <span class="inspiration-star">&#9734;</span></div>
+        <div class="pc-subtitle">Half-Elf Wizard 5 (Illusionist)</div>
+      </div>
+      <div class="hp-mini"><span class="heart">&#9829;</span> 33/45</div>
     </div>
-    <div class="hp-mini"><span class="heart">&#9829;</span> 33/45</div>
   </div>
 
+  <!-- XP BAR — tap to edit, glows at level-up threshold -->
+  <div class="xp-bar-row" title="Tap to edit XP">
+    <div class="xp-label">XP</div>
+    <div class="xp-track">
+      <div class="xp-fill normal"></div>
+    </div>
+    <div class="xp-nums">4,700 / 6,500</div>
+  </div>
+
+  <!-- SWIPE INDICATOR — shows other PCs available -->
+  <div class="swipe-indicator">
+    <span style="font-size:10px;color:#3a3a4a">&#9664;</span>
+    <div class="swipe-dot active"></div>
+    <div class="swipe-dot"></div>
+    <div class="swipe-dot"></div>
+    <span style="font-size:10px;color:#3a3a4a">&#9654;</span>
+    <span style="margin-left:4px;color:#3a3a4a">swipe for other PCs</span>
+  </div>
+
+  <!-- LOCK BAR — with JSON import button -->
   <div class="lock-bar">
     <span>Fields locked during play</span>
-    <span class="lock-toggle">&#128274; Unlock</span>
+    <div class="lock-actions">
+      <span class="import-btn" title="Update from JSON">JSON</span>
+      <span class="lock-toggle">&#128274; Unlock</span>
+    </div>
   </div>
 
+  <!-- TAB BAR — with "what changed" dots on Vitals and Spells -->
   <div class="tab-bar" id="tabBar">
     <div class="tab active" data-tab="stats">Stats</div>
-    <div class="tab" data-tab="combat">Vitals</div>
-    <div class="tab" data-tab="spells">Spells</div>
+    <div class="tab" data-tab="vitals">Vitals<div class="changed-dot"></div></div>
+    <div class="tab" data-tab="spells">Spells<div class="changed-dot"></div></div>
     <div class="tab" data-tab="features">Features</div>
     <div class="tab" data-tab="equipment">Equipment</div>
     <div class="tab" data-tab="bio">Bio</div>
   </div>
 
-  <!-- STATS TAB -->
+  <!-- ═══ STATS TAB ═══ -->
   <div class="tab-content active" id="tab-stats">
-    <div class="section-label">Ability Scores <span class="ownership-tag system">system</span></div>
+    <div class="section-label">Ability Scores <span class="ownership-tag system">system</span> <span style="font-size:10px;color:#3a3a4a;text-transform:none;letter-spacing:0">tap any to roll</span></div>
     <div class="ability-grid">
       <div class="ability-box">
         <div class="abbr">STR</div>
@@ -779,7 +1069,7 @@ body {
       <div class="bonus">+0</div>
     </div>
 
-    <div class="section-label">Skills <span class="ownership-tag system">system</span> <span style="font-size:10px;color:#555;text-transform:none;letter-spacing:0">tap to roll</span></div>
+    <div class="section-label">Skills <span class="ownership-tag system">system</span></div>
     <div class="skill-row">
       <div class="prof-dot proficient"></div>
       <div class="name">Arcana</div>
@@ -817,7 +1107,12 @@ body {
       <div class="bonus">+0</div>
     </div>
 
-    <div class="stat-row" style="margin-top:12px">
+    <div class="section-label" style="margin-top:16px">Quick Reference</div>
+    <div class="stat-row rollable">
+      <div class="label">Initiative</div>
+      <div class="value">+2 <span class="roll-hint">tap to roll</span></div>
+    </div>
+    <div class="stat-row">
       <div class="label">Proficiency Bonus</div>
       <div class="value">+3</div>
     </div>
@@ -829,10 +1124,14 @@ body {
       <div class="label">Passive Perception</div>
       <div class="value">11</div>
     </div>
+    <div class="stat-row">
+      <div class="label">Passive Investigation</div>
+      <div class="value">17</div>
+    </div>
   </div>
 
-  <!-- COMBAT TAB -->
-  <div class="tab-content" id="tab-combat">
+  <!-- ═══ VITALS TAB ═══ -->
+  <div class="tab-content" id="tab-vitals">
     <div class="section-label">Hit Points <span class="ownership-tag ai">AI + override</span></div>
     <div class="hp-section">
       <div class="hp-bar-container">
@@ -864,13 +1163,14 @@ body {
       </div>
     </div>
 
-    <div class="section-label">Attacks <span class="ownership-tag system">system</span></div>
+    <div class="section-label">Attacks <span class="ownership-tag system">system</span> <span style="font-size:10px;color:#3a3a4a;text-transform:none;letter-spacing:0">tap to roll</span></div>
     <div class="attack-card">
       <div class="attack-icon">&#9876;</div>
       <div class="attack-info">
         <div class="attack-name">Dagger</div>
         <div class="attack-stats"><span>+5</span> to hit | <span>1d4+2</span> piercing</div>
       </div>
+      <div class="attack-roll-hint">d20</div>
     </div>
     <div class="attack-card">
       <div class="attack-icon">&#10040;</div>
@@ -878,13 +1178,14 @@ body {
         <div class="attack-name">Fire Bolt</div>
         <div class="attack-stats"><span>+7</span> to hit | <span>2d10</span> fire | 120ft</div>
       </div>
+      <div class="attack-roll-hint">d20</div>
     </div>
 
     <div class="section-label">Conditions <span class="ownership-tag ai">AI</span></div>
     <div class="condition-chips">
-      <div class="condition-chip conc">&#9679; Mage Armor <span style="font-size:10px;opacity:0.7">[end]</span></div>
-      <div style="font-size:12px;color:#555;padding:4px">No active conditions</div>
+      <div class="condition-chip conc">&#9679; Concentrating: Mage Armor <span class="condition-duration">8h</span></div>
     </div>
+    <div style="font-size:12px;color:#555;padding:0 4px 8px">No active conditions &mdash; tap to add manually</div>
 
     <div class="section-label">Hit Dice <span class="ownership-tag system">system</span></div>
     <div class="hit-dice-row">
@@ -930,11 +1231,73 @@ body {
       <div class="exh-pip">6</div>
       <span style="font-size:12px;color:#555;margin-left:auto">None</span>
     </div>
+
+    <!-- FAMILIAR — lives in Vitals since it has HP/AC -->
+    <div class="section-label">Familiar <span class="ownership-tag ai">AI</span></div>
+    <div class="familiar-card">
+      <div class="familiar-header">
+        <div class="familiar-icon">&#128056;</div>
+        <div>
+          <div class="familiar-name">Quill</div>
+          <div class="familiar-type">Owl &middot; Find Familiar</div>
+        </div>
+      </div>
+      <div class="familiar-stats">
+        <div class="familiar-stat">HP <span class="val">1/1</span><div class="familiar-hp-bar"><div class="familiar-hp-fill"></div></div></div>
+        <div class="familiar-stat">AC <span class="val">11</span></div>
+        <div class="familiar-stat">Fly <span class="val">60ft</span></div>
+      </div>
+    </div>
+
+    <!-- REST BUTTONS -->
+    <div class="section-label">Rest</div>
+    <div class="rest-buttons">
+      <div class="rest-btn">
+        <div class="icon">&#9788;</div>
+        Short Rest
+        <div class="hint">Hit dice + Arcane Recovery</div>
+      </div>
+      <div class="rest-btn">
+        <div class="icon">&#9790;</div>
+        Long Rest
+        <div class="hint">Full HP, slots, hit dice</div>
+      </div>
+    </div>
   </div>
 
-  <!-- SPELLS TAB -->
+  <!-- ═══ SPELLS TAB ═══ -->
   <div class="tab-content" id="tab-spells">
-    <div class="section-label">Spell Slots <span class="ownership-tag system">system</span></div>
+    <!-- Spellcasting stats — Spell Save DC + Spell Attack -->
+    <div class="section-label">Spellcasting <span class="ownership-tag system">system</span></div>
+    <div class="spellcasting-stats">
+      <div class="sc-stat">
+        <div class="sc-label">Spell Save DC</div>
+        <div class="sc-value">15</div>
+        <div class="sc-source">8 + Prof + INT</div>
+      </div>
+      <div class="sc-stat rollable">
+        <div class="sc-label">Spell Attack</div>
+        <div class="sc-value">+7</div>
+        <div class="sc-source">Prof + INT &middot; tap to roll</div>
+      </div>
+      <div class="sc-stat">
+        <div class="sc-label">Ability</div>
+        <div class="sc-value">INT</div>
+        <div class="sc-source">+4 modifier</div>
+      </div>
+    </div>
+
+    <!-- Concentration pinned spell -->
+    <div class="conc-pinned">
+      <div class="conc-icon">&#9679;</div>
+      <div class="conc-info">
+        <div class="conc-label">Concentrating</div>
+        <div class="conc-spell-name">Mage Armor</div>
+      </div>
+      <div class="conc-end">End</div>
+    </div>
+
+    <div class="section-label">Spell Slots</div>
     <div class="slot-bar">
       <div class="slot-level">1st</div>
       <div class="slot-pips">
@@ -1024,7 +1387,7 @@ body {
     </div>
   </div>
 
-  <!-- FEATURES TAB -->
+  <!-- ═══ FEATURES TAB ═══ -->
   <div class="tab-content" id="tab-features">
     <div class="section-label">Class Features <span class="ownership-tag system">system</span></div>
     <div class="feature-card">
@@ -1092,7 +1455,7 @@ body {
     </div>
   </div>
 
-  <!-- EQUIPMENT TAB -->
+  <!-- ═══ EQUIPMENT TAB ═══ -->
   <div class="tab-content" id="tab-equipment">
     <div class="weight-bar">
       <div class="weight-label">Carry</div>
@@ -1157,7 +1520,7 @@ body {
     </div>
   </div>
 
-  <!-- BIO TAB -->
+  <!-- ═══ BIO TAB ═══ -->
   <div class="tab-content" id="tab-bio">
     <div class="race-card">
       <div class="race-name">Half-Elf</div>

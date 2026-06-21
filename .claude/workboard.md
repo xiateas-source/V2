@@ -1000,7 +1000,73 @@ v1 Quick Actions was a FAB with common play actions. Carried forward but needs r
 
 > Mid-session orientation. Overlays over chat — tap to open, tap away to close. No mode switch friction.
 
-- [ ] **Character sheet** — `CharSheet.jsx`. 6-tab overlay: Stats, Vitals, Spells, Features, Equipment, Bio. System-owned fields read-only during play. Player-owned fields (name, backstory, appearance, personality, notes) editable. Familiar/mount section tied to specific PC, gets own combat token. **Bio tab includes race/species reference data** pulled from compendium: physical description, traits, age range, size, special abilities, lore summary. Player shouldn't need to ask the AI what their own character's species looks like.
+- [ ] **Character sheet** — `CharSheet.jsx`. 6-tab overlay (Stats/Vitals/Spells/Features/Equipment/Bio). Full spec below. See `charsheet-mockup.html` for interactive visual reference.
+
+### Character sheet spec
+
+**Layout:** Overlay that slides up from character tile tap. Drag handle to dismiss. Header + XP bar + swipe indicator + lock bar + 6 tabs + scrollable content.
+
+**Header:**
+- PC avatar (colored circle with initial, border = PC accent color)
+- Name + inspiration star toggle (tap to toggle)
+- Class/race/level subtitle
+- HP mini badge (always visible regardless of tab)
+- **Color picker:** tap avatar color dot → color picker for PC accent color (tokens, borders, name displays). Stored in `characters[].color`.
+- **XP bar:** below header. Shows `currentXP / nextLevelXP`. Tap to manually edit XP. **Level-up glow:** when XP >= threshold, bar pulses green. Tapping opens level-up wizard. The character IS the notification.
+- **Swipe between PCs:** dot indicators below XP bar. Swipe left/right on header to switch PCs without closing the sheet. All tabs reload for the new PC. Quick reference during combat.
+- **JSON import button:** in lock bar. "Update from JSON" per character. Auto-detects format, preserves HP/XP/conditions.
+
+**Lock bar:** "Fields locked during play" + unlock toggle. Unlock enables editing system-owned fields (with confirmation). Lock bar also shows JSON import button.
+
+**"What changed" tab badges:** After AI mechanics apply, pulsing gold dot appears on tabs where fields changed. Vitals dot = HP changed. Spells dot = slot used. Clears on tab view. Tap-to-source in reverse — connects mechanic pills in chat to where they landed.
+
+**Every modifier is a roll:** Any field with a d20 modifier is tappable for a roll. Ability scores → d20+mod. Skills → d20+bonus. Saves → d20+bonus. Initiative → d20+DEX. Attacks → d20+hit. Spell attack → d20+bonus. Fields without roll context (AC, speed, DC) are not rollable. Visual hint: rollable values show in accent color. Active press state: border flash + background tint.
+
+#### Stats tab
+- **Ability scores** — 3x2 grid. Each box: abbreviation, score, modifier. All tappable (roll d20+mod).
+- **Saving throws** — 6 rows. Proficiency dot (filled = proficient). Name + bonus. All tappable (roll).
+- **Skills** — All 18 skills. Proficiency dot (blue = proficient, gold = expertise). Name + ability tag + bonus. All tappable (roll).
+- **Quick reference** — Initiative (tappable, roll d20+DEX), Proficiency bonus, Speed, Passive Perception, Passive Investigation.
+
+#### Vitals tab
+- **Hit Points** — Large HP display (current/max), HP bar, +/- buttons (-5, -1, custom, +1, +5), temp HP row. AI-owned with player override (logged).
+- **Armor Class** — Shield display with AC number, source breakdown (armor type + DEX).
+- **Attacks** — Cards with weapon/spell name, hit bonus, damage, range. Tappable (roll d20+hit). "d20" hint on right side.
+- **Conditions** — Chips with condition name + optional duration counter (rounds/hours). Tap to remove. Duration auto-decrements. Concentration shown as a condition here too.
+- **Hit Dice** — Pip display (filled = available, empty = used). Tap available pip to spend (heal d{hitDie}+CON). Shows heal estimate.
+- **Death Saves** — Heart and skull pips, tap to toggle each.
+- **Exhaustion** — 1-6 scale, tap to set level.
+- **Familiar/mount** — Card with name, type, HP bar, AC, speed. Gets own combat token. Shows when `characters[].familiar` is not null. AI-owned.
+- **Rest buttons** — Short Rest and Long Rest side by side at bottom. Short: spend hit dice + class recovery features (Arcane Recovery, etc). Long: full HP, all slots, half hit dice. System operations — not AI chat. The "fix it" button is right where you see depleted resources.
+
+#### Spells tab
+- **Spellcasting stats** — Three boxes at top: Spell Save DC (8+prof+ability), Spell Attack bonus (prof+ability, tappable roll), Spellcasting Ability (ability + modifier). Always visible.
+- **Concentration pinned spell** — When concentrating, the active spell pins to top with glowing border and "End" button. Reminds player they'll lose concentration if they cast another concentration spell. Same spell also shows as condition in Vitals.
+- **Spell slots** — Rows per level. Pip display (filled = available). Tap to use/restore.
+- **Cantrips** — Level badge "C", spell name, school + casting time + range.
+- **Known spells** — Grouped by level. Level badge, spell name, meta. Tap for full description (from compendium/IndexedDB).
+
+#### Features tab
+- **Class features** — Cards with name, source (class + level), description. Sorted by acquisition level.
+- **Racial traits** — Cards with name, source, description.
+- **Resources** — Pip displays for limited-use features (Superiority Dice, Channel Divinity, etc). Tap to use/restore.
+- **Feats** — Cards with name, source level, description.
+- **Proficiencies** — Tag chips (weapons, armor, tools, etc).
+
+#### Equipment tab
+- **Encumbrance bar** — Current weight / capacity (STR x 15). Warning color when over 2/3.
+- **Equipped** — Weapons, armor, shield, focus. Shows stats inline.
+- **Carried** — Personal items. Tap for detail. Quantity badges.
+- **Footer** — "Wagon & Hoard in Cargo tab" link.
+
+#### Bio tab
+- **Race reference card** — Pulled from compendium (IndexedDB). Name, lore description, trait chips (Darkvision, Fey Ancestry, etc), size, speed, age. Read-only. Player shouldn't need to ask AI what their species looks like.
+- **Identity** — Background, Alignment, Languages. System-owned.
+- **Appearance** — Player-owned. Tap to edit.
+- **Personality** — Player-owned. Tap to edit.
+- **Backstory** — Player-owned. Tap to edit.
+- **Notes** — Player-owned. Tap to edit. Freeform.
+
 - [ ] **Journal** — `Journal.jsx`. Sections: Quests, Locations, NPCs, Travel Log, Consequences, Town Reputation, Secrets. All AI-owned via mechanics. Secrets consolidated to one home with `playerKnown` / `aiOnly` flags. Quests show status (active/completed/failed). Locations show discovered/undiscovered. NPCs show disposition.
 - [ ] **Cargo** — `Cargo.jsx`. Three containers: Carried (per-PC), Wagon (party shared), Hoard (stored/stashed). Items from `item_add` mechanics. Weight tracking (encumbrance). AI-generated items (Firebase) vs compendium items (IndexedDB) display the same.
 - [ ] **Travel calculator** — In Journal's locations section. Tap a known destination → see distance, estimated travel time at current party speed (accounts for slowest member — mounts, oxen, vehicles), encounter risk level. Math is free (Law 5). AI handles "should we go?" judgment via Ask DM — app handles "how long will it take?" Depends on locations tracked in Journal state with distance/terrain data.

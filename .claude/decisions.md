@@ -179,6 +179,19 @@
 | Narration style field in Session Zero | Player-configurable text field: "Brandon Sanderson," "dark and gritty," freeform. Injected into Narrative contract. Lives in campaign data. Editable mid-campaign in Settings. One prompt line that changes the game's feel. | 31 |
 | Race/species reference data in CharSheet Bio tab | Pulled from compendium: physical description, traits, age range, lore summary. Player shouldn't need to ask the AI about their own character's species. From v1 OOC: player asked "describe a black dragonborn" — should be on the sheet. | 31 |
 | Push notifications from day one | Web Push API + FCM. OOC messages, Narrative turns, state changes that need attention. V1 OOC had no notifications → no one checked it. Needed for 2-player, critical for 6-7. | 31 |
+| Character sheet tab: "Vitals" not "Combat" | Combat is an overlay that appears during combat. The charsheet tab with HP/AC/attacks/conditions is always-available reference — "Vitals" avoids confusion. | 31 |
+| "What changed" tab badges | After AI mechanics apply, pulsing gold dot on tabs where fields changed (Vitals = HP changed, Spells = slot used). Clears on tab view. Tap-to-source in reverse. | 31 |
+| Swipe between PCs in character sheet | Swipe left/right on header to switch PCs without closing sheet. Dot indicators show position. Quick reference during combat. | 31 |
+| Rest buttons on Vitals tab | Short rest / Long rest buttons right on Vitals tab where depleted resources are visible. System operations, not AI chat. The "fix it" button next to the problem. | 31 |
+| Concentration pinned in Spells tab | Active concentration spell pins to top of Spells tab with glow + "End" button. Reminds player before casting another concentration spell. | 31 |
+| Level-up glow on XP bar | XP bar pulses green when threshold crossed. Tapping opens level-up wizard. The character IS the notification. | 31 |
+| Every modifier is a roll | All d20-eligible fields (abilities, skills, saves, initiative, attacks, spell attack) are tappable for instant rolls. Sheet becomes the dice roller for character-specific checks. | 31 |
+| Familiar/mount lives in Vitals tab | Has its own HP/AC/speed — combat-relevant stats belong with other vitals. Gets own combat token when combat overlay appears. | 31 |
+| Spell Save DC + Spell Attack at top of Spells tab | Three-box display: DC, Attack bonus (tappable roll), Ability. Always visible. Missing from v1 — casters need these constantly. | 31 |
+| Initiative in Stats tab Quick Reference | Tappable for d20+DEX roll. Players check this before every combat. | 31 |
+| Color picker on PC avatar | Tap color dot on avatar → picker. Sets accent color for tokens, borders, name displays. Stored in characters[].color. | 31 |
+| Per-character JSON import in lock bar | "JSON" button in lock bar. Auto-detects format, preserves HP/XP/conditions. Carried from v1 player-requests. | 31 |
+| Condition duration tracking | Conditions store optional round/hour counter. Duration auto-decrements. Visual badge on condition chip. | 31 |
 
 ## Conflict Resolutions (v1 agent specs vs v2 specs)
 
