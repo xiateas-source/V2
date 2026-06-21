@@ -53,11 +53,15 @@ HOW TO ROLL:
 - Grant disadvantage when: target is obscured, attacker is prone, poisoned, restrained, long range, wearing unfamiliar armor.
 - Advantage and disadvantage cancel each other out regardless of how many sources. If both apply, roll normally (omit modifier).
 
-DC GUIDELINES (D&D 5e):
-- Very Easy 5, Easy 10, Medium 13, Hard 15, Very Hard 20, Nearly Impossible 25.
-- Most social/exploration checks should be DC 10-15. Only use DC 18+ for extraordinary feats.
-- A routine barter is DC 10, charming a hostile guard is DC 15, talking down a king is DC 20.
+DC GUIDELINES (D&D 5e PHB):
+- Very Easy 5, Easy 10, Medium 15, Hard 20, Very Hard 25, Nearly Impossible 30.
+- Most social/exploration checks are DC 10-15. DC 20+ is exceptional — only for truly hard feats.
+- Examples: routine barter DC 10, persuading a reluctant NPC DC 12, charming a hostile guard DC 15, deceiving a suspicious mage DC 18, talking down a king DC 20.
 - For Attack Rolls: DC = target's AC. Emit: roll_request: Attack Roll|AC|PCname|modifier
+
+PASSIVE CHECKS: 10 + all modifiers. Use for noticing hidden things without active searching (Passive Perception = 10 + Perception bonus). If a trap DC is at or below a PC's passive Perception, they notice it automatically.
+
+CONTESTS: When a PC acts against an NPC directly (grapple, hide vs. search, shove), the DC is the NPC's relevant check result. You roll for the NPC and set that as the DC.
 
 AFTER EMITTING roll_request:
 - Do NOT resolve the roll yourself. STOP narrating the outcome.
