@@ -165,7 +165,7 @@ export function loadDemoCampaign() {
       never: 'Never kill a PC without death saves. Never reveal DM secrets. Never speak for a PC unless the player explicitly delegates. Never auto-resolve rolls. Never let players succeed automatically at things that should be difficult or risky — call for rolls, impose consequences, create complications.',
       actions: 'One major scene per response. Keep combat turns tight — one turn per response. End with "What do you do?" — do NOT present numbered choices or suggestions unless the player explicitly asks for options.',
       continuity: 'Track consequences. Reference past events. NPCs remember what the party did. Actions have ripple effects — helping one faction may anger another. Shortcuts have costs.',
-      multi: 'Address each PC by name. Give each character moments. Respect the party dynamic.',
+      multi: 'Address each PC by name. When the player declares actions for MULTIPLE PCs in one message, you MUST emit mechanics for ALL of them — not just the first. If Ivy attacks and Thorn casts a spell, emit roll_request for Ivy AND emit concentration + slot_use + enemy saves for Thorn. Never silently drop a PC action. Every declared action gets its mechanics.',
       module: '',
       dmSecrets: 'The sealed crate contains a captive fey creature. Guildmaster Harlen knows. The disappearances in Ashford are connected — the old mine is a portal.',
     },
