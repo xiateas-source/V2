@@ -21,16 +21,27 @@
 | Phase | Must be specced first | Status | Can wait until display phase |
 |-------|----------------------|--------|------------------------------|
 | **Phase 0: Foundation** | Campaign data shape, system data shape, color themes | ✅ All done | — |
-| **Phase 1: Core Loop** | All mechanic target data shapes — quest, NPC, location, item, consequence, combat, economy. Chat messages. | ⚠️ Chat ✅, characters ✅. **Quests, NPCs, locations, consequences, secrets, town rep are skeletal — need full field specs before mechanics handlers can be built.** | Journal UI, Cargo UI, Treasury UI |
+| **Phase 1: Core Loop** | All mechanic target data shapes — quest, NPC, location, item, consequence, combat, economy. Chat messages. | ✅ Chat spec complete (`chat-system-spec-v2.md`). Characters ✅. **Journal data shapes now have real field specs from v1 engine dump** (`v1-engine-dump.md` Part 2). Ready to build. | Journal UI, Cargo UI, Treasury UI |
 | **Phase 2: Gates** | Field ownership registry, validation rules per gate | ✅ Ownership done. Gate rules defined. | Gate UI (pills, overlays) |
-| **Phase 3: Play Mode UI** | Combat state shape, overlay behavior specs | ⚠️ Combat state exists but thin. Overlays specced in chat-system-spec. | — |
-| **Phase 4: Reference Mode** | Nothing new — reads existing state | ✅ | Journal UI, Cargo UI (spec when building). CharSheet ✅ |
+| **Phase 3: Play Mode UI** | Combat state shape, overlay behavior specs | ✅ Combat fully specced (`ui-specs-v2.md` §5). Overlays specced in `chat-system-spec-v2.md`. | — |
+| **Phase 4: Reference Mode** | Nothing new — reads existing state | ✅ All UI specs complete (`ui-specs-v2.md` §1–5). | Journal UI, Cargo UI, Treasury UI, CharSheet — all specced |
 | **Phase 5: Setup Mode** | Session Zero flow, char creation wizard fields | ❌ Not specced | — |
 | **Phase 6: Manage Mode** | — | — | DevTools, contracts editor, session review |
 | **Phase 7: Content Pipeline** | Episode/module tracking data shape | ❌ Not specced | — |
 | **Phase 8: Multi-Player** | Player identity/onboarding flow | ⚠️ Partially specced | Child-friendly view |
 
-**Build order:** Phase 0 now (no spec needed) → spec Journal data shapes → Phase 1 → Phase 2 → spec as needed from there.
+**Build order:** Phase 0 now (no spec needed) → Phase 1 (all data shapes now available from v1 engine dump) → Phase 2 → spec as needed from there.
+
+---
+
+## Reference Docs (from v1 transfer)
+
+| File | Use During |
+|------|-----------|
+| `.claude/chat-system-spec-v2.md` | Phase 1 (chat system), Phase 3 (overlays, streaming) |
+| `.claude/ui-specs-v2.md` | Phase 3–4 (CharSheet, Cargo, Treasury, Journal, Combat) |
+| `.claude/player-requests-v2.md` | Every phase — cross-cutting UX requirements, ✅ = must preserve |
+| `.claude/v1-engine-dump.md` | Phase 1–2 (mechanic key mapping, validation, pre-parse rejections, real data shapes) |
 
 ---
 
