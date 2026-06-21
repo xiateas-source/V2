@@ -58,13 +58,14 @@ export default function RollBar() {
         const rolls = msg.mechanics.applied
           ?.filter(m => m.key === 'roll_request' && m.applied)
           .map((m, idx) => {
-            const [skill, dcStr, pcName] = m.value.split('|').map(s => s.trim());
+            const [skill, dcStr, rawName] = m.value.split('|').map(s => s.trim());
+            const pcName = (rawName || 'Unknown').replace(/\s*\(.*\)$/, '');
             return {
               id: `${i}-${idx}`,
               skill,
               dc: dcStr === 'none' ? null : (parseInt(dcStr, 10) || null),
-              pcName: pcName || 'Unknown',
-              isPC: isPlayerChar(pcName || ''),
+              pcName,
+              isPC: isPlayerChar(pcName),
             };
           }) || [];
         if (rolls.length > 0) return rolls;
