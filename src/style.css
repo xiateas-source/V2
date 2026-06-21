@@ -710,3 +710,365 @@ body {
   color: var(--color-text-muted);
   margin-left: auto;
 }
+
+/* --- CONTEXT BANNER --- */
+
+.context-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-xs) var(--space-md);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-sm);
+  flex-shrink: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.ctx-location {
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.ctx-time, .ctx-weather {
+  color: var(--color-text-muted);
+}
+
+/* --- CHARACTER TILES --- */
+
+.char-tiles {
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  overflow-x: auto;
+  flex-shrink: 0;
+  background: var(--color-bg);
+}
+
+.char-tile {
+  min-width: 130px;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.tile-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--space-xs);
+}
+
+.tile-name {
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+}
+
+.tile-class {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+
+.tile-hp-bar {
+  height: 4px;
+  background: var(--color-surface-alt);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: var(--space-xs);
+}
+
+.tile-hp-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.tile-stats {
+  display: flex;
+  gap: var(--space-sm);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.tile-hp {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.tile-conditions {
+  color: var(--color-warning);
+  font-style: italic;
+}
+
+.tile-conc {
+  font-size: 0.7rem;
+  color: var(--color-accent);
+  margin-top: 2px;
+}
+
+/* --- SITUATION BAR --- */
+
+.situation-bar {
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-md);
+  overflow-x: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.sit-chip {
+  display: inline-block;
+  padding: 2px var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: 0.7rem;
+  flex-shrink: 0;
+}
+
+.sit-mission {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-weight: 600;
+}
+
+.sit-consequence {
+  background: var(--color-danger);
+  color: var(--color-bg);
+}
+
+.sit-deadline {
+  margin-left: var(--space-xs);
+  opacity: 0.8;
+}
+
+.sit-quest {
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+}
+
+/* --- MECH PILLS --- */
+
+.mech-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: var(--space-xs);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--color-border);
+}
+
+.mech-pill {
+  display: inline-block;
+  padding: 2px var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.pill-applied {
+  background: var(--color-success);
+  color: var(--color-bg);
+}
+
+.pill-rejected {
+  background: var(--color-danger);
+  color: var(--color-bg);
+}
+
+/* --- CARGO --- */
+
+.cargo-page {
+  padding: var(--space-lg) var(--space-md);
+  overflow-y: auto;
+  height: 100%;
+}
+
+.page-heading {
+  font-size: 1.2rem;
+  margin-bottom: var(--space-lg);
+}
+
+.cargo-section {
+  margin-bottom: var(--space-lg);
+}
+
+.section-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-sm);
+}
+
+.treasury-display {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-accent);
+  padding: var(--space-md);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.item-list {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.item-row:last-child {
+  border-bottom: none;
+}
+
+.item-name {
+  font-size: var(--font-size-base);
+}
+
+.item-meta {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: var(--space-xl) 0;
+}
+
+/* --- JOURNAL --- */
+
+.journal-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.journal-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  flex-shrink: 0;
+}
+
+.jtab {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: var(--space-sm);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  min-height: var(--touch-target);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.jtab.active {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+  font-weight: 600;
+}
+
+.journal-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-md);
+}
+
+.journal-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.mission-banner {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+}
+
+.sub-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: var(--space-md);
+}
+
+.quest-card, .npc-card, .place-card, .chapter-card, .consequence-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.quest-text, .npc-name, .place-name, .chapter-title {
+  font-weight: 600;
+}
+
+.quest-notes, .npc-details, .chapter-content, .place-history {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.quest-location, .npc-location, .npc-mood, .place-meta {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.quest-done {
+  opacity: 0.5;
+}
+
+.quest-status {
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.consequence-card {
+  border-left: 3px solid var(--color-danger);
+}
+
+.consequence-type {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: var(--color-danger);
+  font-weight: 600;
+  margin-right: var(--space-sm);
+}
+
+.consequence-text {
+  font-size: var(--font-size-sm);
+}
+
+.consequence-deadline {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--color-warning);
+  margin-top: 2px;
+}
+
+.rep-row {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-xs) var(--space-md);
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+}
+
+.rep-town { font-weight: 600; }
+.rep-status { color: var(--color-text-muted); font-size: var(--font-size-sm); }
