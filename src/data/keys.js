@@ -1,9 +1,11 @@
 import { setStore, store } from '../state/index.js';
 import { getByKey } from './local.js';
+import { dbWrite, dbRead } from './firebase.js';
 
 const KEYS_STORAGE = 'tp2_provider_keys';
 const SETTINGS_STORAGE = 'tp2_provider_settings';
 const QA_STORAGE = 'tp2_quick_actions';
+const SHARED_KEYS_PATH = 'shared/providerKeys';
 
 function idbPut(key, value) {
   try {
@@ -22,6 +24,7 @@ export function saveKeys(geminiKey, openrouterKey) {
     localStorage.setItem(KEYS_STORAGE, JSON.stringify({ geminiKey, openrouterKey }));
   } catch {}
   idbPut('_providerKeys', { geminiKey, openrouterKey });
+  dbWrite(SHARED_KEYS_PATH, { geminiKey, openrouterKey, ts: Date.now() }).catch(() => {});
 }
 
 export function saveProviderSettings(geminiModel) {
@@ -68,6 +71,7 @@ export async function restoreFromIDB() {
   const hasKey = store.system.providers.geminiKey || store.system.providers.openrouterKey;
   if (hasKey) return;
 
+  // Try IndexedDB first (survives localStorage clear)
   try {
     const keysRecord = await getByKey('meta', '_providerKeys');
     if (keysRecord?.value) {
@@ -79,6 +83,19 @@ export async function restoreFromIDB() {
       if (openrouterKey) setStore('system', 'providers', 'openrouterKey', openrouterKey);
     }
   } catch {}
+
+  // If still no key, try Firebase (synced from other device)
+  if (!store.system.providers.geminiKey) {
+    try {
+      const shared = await dbRead(SHARED_KEYS_PATH);
+      if (shared?.geminiKey) {
+        setStore('system', 'providers', 'geminiKey', shared.geminiKey);
+        if (shared.openrouterKey) setStore('system', 'providers', 'openrouterKey', shared.openrouterKey);
+        try { localStorage.setItem(KEYS_STORAGE, JSON.stringify({ geminiKey: shared.geminiKey, openrouterKey: shared.openrouterKey || '' })); } catch {}
+        idbPut('_providerKeys', { geminiKey: shared.geminiKey, openrouterKey: shared.openrouterKey || '' });
+      }
+    } catch {}
+  }
 
   try {
     const settingsRecord = await getByKey('meta', '_providerSettings');
