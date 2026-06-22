@@ -1,6 +1,6 @@
 import { createSignal, Show, lazy, Suspense } from 'solid-js';
 import { isSending, stopGeneration } from '../../ai/engine.js';
-import { sendMsg } from '../../ai/engine.js';
+import { sendMsg, sendTableTalk } from '../../ai/engine.js';
 import DiceRoller from './DiceRoller.jsx';
 import QuickActions from './QuickActions.jsx';
 
@@ -17,7 +17,19 @@ export default function InputBar(props) {
     if (!msg || isSending()) return;
     setText('');
     inputRef?.focus();
-    await sendMsg(msg, { tab: props.tab });
+    if (props.tab === 'ooc') {
+      sendTableTalk(msg);
+    } else {
+      await sendMsg(msg, { tab: props.tab });
+    }
+  }
+
+  async function handleAskDm() {
+    const msg = text().trim();
+    if (!msg || isSending()) return;
+    setText('');
+    inputRef?.focus();
+    await sendMsg(msg, { tab: 'ooc' });
   }
 
   function handleKeyDown(e) {
@@ -34,7 +46,7 @@ export default function InputBar(props) {
         <textarea
           ref={inputRef}
           class="input-field"
-          placeholder={props.tab === 'ooc' ? 'Ask a rules question...' : 'What do you do?'}
+          placeholder={props.tab === 'ooc' ? 'Talk to the party...' : 'What do you do?'}
           value={text()}
           onInput={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -42,6 +54,11 @@ export default function InputBar(props) {
         />
         {isSending() ? (
           <button class="btn-stop" onClick={stopGeneration}>Stop</button>
+        ) : props.tab === 'ooc' ? (
+          <div class="ooc-buttons">
+            <button class="btn-send" onClick={handleSend} disabled={!text().trim()}>Send</button>
+            <button class="btn-ask-dm" onClick={handleAskDm} disabled={!text().trim()}>Ask DM</button>
+          </div>
         ) : (
           <button class="btn-send" onClick={handleSend} disabled={!text().trim()}>Send</button>
         )}

@@ -51,7 +51,13 @@ const OWNERSHIP = {
   'playerIdentity': 'player',
   'contracts': 'player',
 
-  // System-owned (via wizards only)
+  // AI-owned runtime values (current state managed by AI during gameplay)
+  'characters.$.xp': 'ai',
+  'characters.$.currentSlots': 'ai',
+  'characters.$.hitDice': 'ai',
+  'characters.$.resources.$.current': 'ai',
+
+  // System-owned (via wizards only — structure/ceilings)
   'characters.$.level': 'system',
   'characters.$.hpMax': 'system',
   'characters.$.class': 'system',
@@ -61,7 +67,6 @@ const OWNERSHIP = {
   'characters.$.knownSpells': 'system',
   'characters.$.cantrips': 'system',
   'characters.$.spellSlots': 'system',
-  'characters.$.currentSlots': 'system',
   'characters.$.resources': 'system',
   'characters.$.proficiencies': 'system',
   'characters.$.savingThrows': 'system',
@@ -69,9 +74,7 @@ const OWNERSHIP = {
   'characters.$.abilityScores': 'system',
   'characters.$.race': 'system',
   'characters.$.ac': 'system',
-  'characters.$.hitDice': 'system',
   'characters.$.speed': 'system',
-  'characters.$.xp': 'system',
   'characters.$.background': 'system',
   'characters.$.alignment': 'system',
   'characters.$.languages': 'system',

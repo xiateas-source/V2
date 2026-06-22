@@ -90,8 +90,7 @@ export default function CharTiles() {
       <Show when={sheetOpen()}>
         <div class="sheet-overlay" onClick={() => setSheetOpen(false)}>
           <div class="sheet-panel" onClick={(e) => e.stopPropagation()}>
-            <button class="sheet-close" onClick={() => setSheetOpen(false)}>Close</button>
-            <CharSheet initialPC={sheetPC()} />
+            <CharSheet initialPC={sheetPC()} onClose={() => setSheetOpen(false)} />
           </div>
         </div>
       </Show>

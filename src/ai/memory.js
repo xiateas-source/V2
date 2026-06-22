@@ -1,5 +1,6 @@
 import { store, setStore } from '../state/index.js';
 import { estimateTokens } from './providers.js';
+import { createNarrativeMsg, isPlayMsg } from './messages.js';
 
 const MAX_NARRATIVE_TOKENS = 12000;
 const PRUNE_TARGET_TOKENS = 8000;
@@ -12,7 +13,7 @@ export async function pruneIfNeeded(chatKey = 'narrative') {
   const totalTokens = messages.reduce((sum, m) => sum + estimateTokens(m.content || ''), 0);
   if (totalTokens <= MAX_NARRATIVE_TOKENS) return;
 
-  const playMessages = messages.filter(m => m.role === 'user' || m.role === 'assistant');
+  const playMessages = messages.filter(m => isPlayMsg(m));
   if (playMessages.length <= MIN_MESSAGES_KEEP) return;
 
   const toSummarize = [];
@@ -30,7 +31,7 @@ export async function pruneIfNeeded(chatKey = 'narrative') {
   if (cutIndex <= 0) return;
 
   for (let i = 0; i < cutIndex; i++) {
-    if (messages[i].role === 'user' || messages[i].role === 'assistant') {
+    if (isPlayMsg(messages[i])) {
       toSummarize.push(messages[i]);
     }
   }
@@ -39,7 +40,7 @@ export async function pruneIfNeeded(chatKey = 'narrative') {
 
   const summary = buildLocalSummary(toSummarize);
   const kept = messages.slice(cutIndex);
-  const summaryMsg = { role: 'system', content: `[PRIOR CONTEXT SUMMARY]\n${summary}`, ts: Date.now(), isSummary: true };
+  const summaryMsg = createNarrativeMsg('system', `[PRIOR CONTEXT SUMMARY]\n${summary}`, { isSummary: true });
 
   setStore('campaign', chatKey, [summaryMsg, ...kept]);
 }
@@ -49,9 +50,9 @@ function buildLocalSummary(messages) {
   let lastLocation = '';
 
   for (const msg of messages) {
-    if (msg.role === 'user') {
+    if (msg.type === 'player') {
       events.push(`Player: ${truncate(msg.content, 80)}`);
-    } else if (msg.role === 'assistant') {
+    } else if (msg.type === 'dm' || msg.type === 'dm_advisory') {
       const locMatch = msg.content.match(/Location:\s*(.+)/);
       if (locMatch && locMatch[1] !== lastLocation) {
         lastLocation = locMatch[1].trim();

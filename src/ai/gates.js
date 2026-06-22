@@ -132,6 +132,83 @@ export function runGate2(mechanics, narrative) {
   return flags;
 }
 
+export function runGate3(narrative, mechanics, playerMessage) {
+  const flags = [];
+  const mechanicKeys = new Set(mechanics.map(m => m.key));
+
+  const GOLD_PATTERNS = /(\d+)\s*(gold|gp|silver|sp|copper|cp|platinum|pp)/i;
+  const ITEM_GIVE_PATTERNS = /\b(finds?|receives?|picks?\s*up|grabs?|takes?|loots?|hands?\s*(you|them|her|him)|gives?)\b.*?\b[A-Z][a-z]+/;
+  const HP_NARRATION = /\b(takes?\s+\d+\s+(points?\s+of\s+)?damage|loses?\s+\d+\s+h(it\s*)?p(oints?)?|heals?\s+\d+)/i;
+
+  if (GOLD_PATTERNS.test(narrative) && !mechanicKeys.has('income') && !mechanicKeys.has('expense') && !mechanicKeys.has('gp')) {
+    flags.push({ gate: 3, type: 'drift_gold', text: 'Gold mentioned without mechanic — state may be drifting' });
+  }
+  if (ITEM_GIVE_PATTERNS.test(narrative) && !mechanicKeys.has('item_add') && !mechanicKeys.has('item_remove')) {
+    flags.push({ gate: 3, type: 'drift_item', text: 'Item exchange narrated without mechanic' });
+  }
+  if (HP_NARRATION.test(narrative) && !mechanicKeys.has('hp')) {
+    flags.push({ gate: 3, type: 'drift_hp', text: 'HP change narrated without hp mechanic' });
+  }
+
+  if (flags.length) {
+    for (const f of flags) addFlag(f);
+  }
+  return flags;
+}
+
+export function runGate4(mechanics) {
+  const flags = [];
+  const hasLocation = mechanics.some(m => m.key === 'location');
+  const hasTime = mechanics.some(m => m.key === 'time');
+
+  if (hasLocation && hasTime) {
+    flags.push({
+      gate: 4,
+      type: 'scene_transition',
+      text: 'Scene change detected (location + time) — confirm before continuing',
+      action: 'hold',
+    });
+    addFlag(flags[0]);
+  }
+  return flags;
+}
+
+export function runGate5(narrative, mechanics, playerMessage) {
+  const flags = [];
+  if (!playerMessage || store.campaign.characters.length <= 1) return flags;
+
+  const mentioned = new Set();
+  const msgLower = playerMessage.toLowerCase();
+  for (const pc of store.campaign.characters) {
+    if (msgLower.includes(pc.name.toLowerCase())) mentioned.add(pc.name);
+  }
+  if (mentioned.size === 0) return flags;
+
+  const ACTION_VERBS = /\b(attacks?|casts?|swings?|fires?|shoots?|runs?|dashes?|moves?|sneaks?|picks?\s*up|grabs?|throws?|drinks?|uses?)\b/;
+  const narrativeLower = narrative.toLowerCase();
+
+  for (const pc of store.campaign.characters) {
+    if (mentioned.has(pc.name)) continue;
+    const nameIdx = narrativeLower.indexOf(pc.name.toLowerCase());
+    if (nameIdx === -1) continue;
+    const vicinity = narrative.slice(nameIdx, nameIdx + 80);
+    if (ACTION_VERBS.test(vicinity)) {
+      flags.push({
+        gate: 5,
+        type: 'unmentioned_pc',
+        text: `AI acted for ${pc.name} — you didn't mention them`,
+        pcName: pc.name,
+        action: 'accept_or_redirect',
+      });
+    }
+  }
+
+  if (flags.length) {
+    for (const f of flags) addFlag(f);
+  }
+  return flags;
+}
+
 export function runGate6(narrative, mechanics) {
   const flags = [];
   const spellCastPattern = /\b(\w+)\s+casts?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/g;

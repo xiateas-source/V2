@@ -6,15 +6,18 @@ import { extractMechanics, validateMechanics, applyMechanics, buildMechReceipt, 
 import { ASK_DM_SYSTEM } from './contracts.js';
 import { pruneIfNeeded } from './memory.js';
 import { detectDrift } from './drift.js';
-import { runGate1, runGate2, runGate6, runGate7, runGate8, runGate9, advanceTurn } from './gates.js';
+import { runGate1, runGate2, runGate3, runGate4, runGate5, runGate6, runGate7, runGate8, runGate9, advanceTurn } from './gates.js';
+import { createNarrativeMsg, createOOCMsg, msgToRole, isPlayMsg } from './messages.js';
 
 let activeController = null;
+let wasAborted = false;
 const [sending, setSending] = createSignal(false);
 
 export function isSending() { return sending(); }
 
 export function stopGeneration() {
   if (activeController) {
+    wasAborted = true;
     activeController.abort();
     activeController = null;
   }
@@ -24,6 +27,7 @@ export function stopGeneration() {
 export async function sendMsg(text, options = {}) {
   if (sending()) return;
   setSending(true);
+  wasAborted = false;
 
   const { tab = 'narrative', contextInject = '', onChunk } = options;
 
@@ -32,7 +36,7 @@ export async function sendMsg(text, options = {}) {
       return await sendOOC(text, onChunk);
     }
 
-    const userMsg = { role: 'user', content: text, ts: Date.now() };
+    const userMsg = createNarrativeMsg('player', text);
     setStore('campaign', 'narrative', [...store.campaign.narrative, userMsg]);
 
     const receipt = contextInject;
@@ -41,15 +45,16 @@ export async function sendMsg(text, options = {}) {
     await pruneIfNeeded('narrative');
 
     const messages = store.campaign.narrative
-      .filter(m => m.role === 'user' || m.role === 'assistant')
-      .map(m => ({ role: m.role, content: m.content }));
+      .filter(m => isPlayMsg(m))
+      .map(m => ({ role: msgToRole(m), content: m.content }));
 
     activeController = new AbortController();
     const stream = callProvider(messages, systemPrompt, activeController.signal);
 
     let fullResponse = '';
     const assistantIdx = store.campaign.narrative.length;
-    setStore('campaign', 'narrative', [...store.campaign.narrative, { role: 'assistant', content: '', ts: Date.now() }]);
+    const dmMsg = createNarrativeMsg('dm', '', { partial: true });
+    setStore('campaign', 'narrative', [...store.campaign.narrative, dmMsg]);
 
     for await (const chunk of stream) {
       fullResponse += chunk;
@@ -58,6 +63,7 @@ export async function sendMsg(text, options = {}) {
     }
 
     activeController = null;
+    setStore('campaign', 'narrative', assistantIdx, 'partial', false);
 
     const mechanics = extractMechanics(fullResponse);
     if (mechanics.length > 0) {
@@ -84,11 +90,14 @@ export async function sendMsg(text, options = {}) {
 
       const gate1Flags = runGate1(fullResponse, applied, text);
       const gate2Flags = runGate2(applied, fullResponse);
+      const gate3Flags = runGate3(fullResponse, applied, text);
+      const gate4Flags = runGate4(applied);
+      const gate5Flags = runGate5(fullResponse, applied, text);
       const gate6Flags = runGate6(fullResponse, applied);
       const gate7Flags = runGate7(fullResponse, applied, text);
       const gate8Flags = runGate8(applied, fullResponse);
       const gate9Flags = runGate9(applied);
-      const allGateFlags = [...gate1Flags, ...gate2Flags, ...gate6Flags, ...gate7Flags, ...gate8Flags, ...gate9Flags];
+      const allGateFlags = [...gate1Flags, ...gate2Flags, ...gate3Flags, ...gate4Flags, ...gate5Flags, ...gate6Flags, ...gate7Flags, ...gate8Flags, ...gate9Flags];
       if (allGateFlags.length) {
         setStore('campaign', 'narrative', assistantIdx, 'gateFlags', allGateFlags);
       }
@@ -108,15 +117,26 @@ export async function sendMsg(text, options = {}) {
       }
 
       const gate1Flags = runGate1(fullResponse, [], text);
-      if (gate1Flags.length) {
-        setStore('campaign', 'narrative', assistantIdx, 'gateFlags', gate1Flags);
+      const gate3Flags = runGate3(fullResponse, [], text);
+      const gate5Flags = runGate5(fullResponse, [], text);
+      const noMechGateFlags = [...gate1Flags, ...gate3Flags, ...gate5Flags];
+      if (noMechGateFlags.length) {
+        setStore('campaign', 'narrative', assistantIdx, 'gateFlags', noMechGateFlags);
       }
     }
 
     return fullResponse;
   } catch (e) {
-    if (e.name === 'AbortError') return;
-    const errMsg = { role: 'system', content: `Error: ${e.message}`, ts: Date.now() };
+    if (e.name === 'AbortError') {
+      if (wasAborted) {
+        const idx = store.campaign.narrative.length - 1;
+        setStore('campaign', 'narrative', idx, 'partial', false);
+        window.dispatchEvent(new CustomEvent('toast', { detail: { text: 'Response stopped — mechanics skipped' } }));
+      }
+      wasAborted = false;
+      return;
+    }
+    const errMsg = createNarrativeMsg('system', `Error: ${e.message}`);
     setStore('campaign', 'narrative', [...store.campaign.narrative, errMsg]);
     throw e;
   } finally {
@@ -172,12 +192,12 @@ function interceptAskDm(text) {
 }
 
 async function sendOOC(text, onChunk) {
-  const userMsg = { role: 'user', content: text, ts: Date.now() };
+  const userMsg = createOOCMsg('player', text);
   setStore('campaign', 'ooc', [...store.campaign.ooc, userMsg]);
 
   const intercepted = interceptAskDm(text);
   if (intercepted) {
-    const reply = { role: 'assistant', content: intercepted, ts: Date.now() };
+    const reply = createOOCMsg('dm_advisory', intercepted);
     setStore('campaign', 'ooc', [...store.campaign.ooc, reply]);
     return intercepted;
   }
@@ -187,9 +207,9 @@ async function sendOOC(text, onChunk) {
 
   const messages = [
     ...store.campaign.ooc
-      .filter(m => m.role === 'user' || m.role === 'assistant')
+      .filter(m => isPlayMsg(m))
       .slice(-6)
-      .map(m => ({ role: m.role, content: m.content })),
+      .map(m => ({ role: msgToRole(m), content: m.content })),
   ];
   messages[messages.length - 1] = { role: 'user', content: askPrompt };
 
@@ -198,7 +218,8 @@ async function sendOOC(text, onChunk) {
 
   let fullResponse = '';
   const assistantIdx = store.campaign.ooc.length;
-  setStore('campaign', 'ooc', [...store.campaign.ooc, { role: 'assistant', content: '', ts: Date.now() }]);
+  const dmMsg = createOOCMsg('dm_advisory', '', { partial: true });
+  setStore('campaign', 'ooc', [...store.campaign.ooc, dmMsg]);
 
   for await (const chunk of stream) {
     fullResponse += chunk;
@@ -207,5 +228,11 @@ async function sendOOC(text, onChunk) {
   }
 
   activeController = null;
+  setStore('campaign', 'ooc', assistantIdx, 'partial', false);
   return fullResponse;
+}
+
+export function sendTableTalk(text) {
+  const msg = createOOCMsg('player', text);
+  setStore('campaign', 'ooc', [...store.campaign.ooc, msg]);
 }

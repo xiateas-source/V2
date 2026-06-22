@@ -33,6 +33,10 @@ export default function App() {
   });
 
   function switchMode(newMode) {
+    if (mode() === newMode) {
+      setMode('play');
+      return;
+    }
     if (mode() === 'cargo') {
       const gold = store.campaign.gold;
       const totalGold = (gold.pp || 0) * 10 + (gold.gp || 0) + (gold.ep || 0) * 0.5 + (gold.sp || 0) * 0.1 + (gold.cp || 0) * 0.01;
@@ -58,9 +62,6 @@ export default function App() {
         </Show>
       </main>
       <nav class="bottom-nav">
-        <button class="nav-item" classList={{ active: mode() === 'play' }} onClick={() => switchMode('play')}>
-          Play
-        </button>
         <button class="nav-item" classList={{ active: mode() === 'cargo' }} onClick={() => switchMode('cargo')}>
           Cargo
           <Show when={mode() !== 'cargo' && cargoBadge()}><span class="nav-badge" /></Show>

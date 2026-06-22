@@ -171,6 +171,17 @@ function buildCombatBlock(combat) {
   return lines.join('\n');
 }
 
+function buildOOCContext() {
+  const ooc = store.campaign.ooc;
+  if (!ooc || ooc.length === 0) return '';
+  const recent = ooc.slice(-6);
+  const exchanges = recent
+    .filter(m => (m.type === 'player' || m.role === 'user') && m.content)
+    .map(m => m.content.length > 80 ? m.content.slice(0, 80) + '...' : m.content);
+  if (!exchanges.length) return '';
+  return `[RECENT OOC — player discussed these topics off-screen; do not repeat unless acted upon]\n${exchanges.join('\n')}`;
+}
+
 export async function buildPrompt(contextInject = '') {
   const contracts = buildContracts();
   const ledger = genLedger('compact');
@@ -194,6 +205,11 @@ export async function buildPrompt(contextInject = '') {
 
   if (contextInject) {
     sections.push(contextInject);
+  }
+
+  const oocContext = buildOOCContext();
+  if (oocContext) {
+    sections.push(oocContext);
   }
 
   sections.push(ledger);

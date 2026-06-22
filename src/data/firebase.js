@@ -18,6 +18,23 @@ let db = null;
 let uid = null;
 let connected = false;
 
+const dirtyPaths = new Map();
+const DIRTY_WINDOW_MS = 3000;
+
+function markDirty(path) {
+  dirtyPaths.set(path, Date.now());
+}
+
+function isDirty(path) {
+  const ts = dirtyPaths.get(path);
+  if (!ts) return false;
+  if (Date.now() - ts > DIRTY_WINDOW_MS) {
+    dirtyPaths.delete(path);
+    return false;
+  }
+  return true;
+}
+
 export function isConnected() {
   return connected;
 }
@@ -63,6 +80,7 @@ export async function dbRead(path) {
 }
 
 export async function dbWrite(path, value) {
+  markDirty(path);
   try {
     await set(ref(db, path), value);
     localStorage.setItem(`fb_cache:${path}`, JSON.stringify(value));
@@ -73,6 +91,10 @@ export async function dbWrite(path, value) {
 }
 
 export async function dbUpdate(path, updates) {
+  markDirty(path);
+  for (const key of Object.keys(updates)) {
+    markDirty(`${path}/${key}`);
+  }
   try {
     await update(ref(db, path), updates);
   } catch (e) {
@@ -87,6 +109,7 @@ export async function dbUpdate(path, updates) {
 export function dbListen(path, callback) {
   const r = ref(db, path);
   onValue(r, (snap) => {
+    if (isDirty(path)) return;
     callback(snap.exists() ? snap.val() : null);
   });
   return () => off(r);

@@ -43,7 +43,7 @@ export default function Chat() {
   const lastAssistantMsg = () => {
     const msgs = messages();
     for (let i = msgs.length - 1; i >= 0; i--) {
-      if (msgs[i].role === 'assistant') return msgs[i].content;
+      if (msgs[i].type === 'dm' || msgs[i].type === 'dm_advisory') return msgs[i].content;
     }
     return '';
   };
@@ -123,7 +123,7 @@ export default function Chat() {
           class={tab() === 'ooc' ? 'tab active' : 'tab'}
           onClick={() => setTab('ooc')}
         >
-          Ask DM
+          OOC
         </button>
         <TTS text={lastAssistantMsg()} />
       </div>
@@ -140,7 +140,7 @@ export default function Chat() {
       <div class="chat-messages" ref={messagesDiv} onClick={handleChatClick} onScroll={onScroll}>
         <For each={messages()}>
           {(msg) => (
-            <div class={`msg msg-${msg.role}`}>
+            <div class={`msg msg-${msg.type || msg.role}`}>
               <Show when={msg.isSummary}>
                 <div class="msg-summary-badge">Prior context</div>
               </Show>

@@ -1,4 +1,4 @@
-import { store, setStore, aiSet } from '../state/index.js';
+import { store, aiSet } from '../state/index.js';
 
 let pendingConcentrationDrops = [];
 let pendingConcentrationSaves = [];
@@ -154,7 +154,10 @@ function checkRejection(mech) {
     return 'XP is not currency';
   }
   if (mech.key === 'hp_max') {
-    mech._warning = 'hp_max should be set by level-up wizard, not AI';
+    return 'hp_max is system-owned — only the level-up wizard can change it';
+  }
+  if (mech.key === 'spell_add') {
+    return 'Spells are system-owned — added via level-up wizard or scribing only';
   }
   if (mech.key === 'expense') {
     const amount = parseInt(mech.value.split(',')[0], 10) || 0;
@@ -210,13 +213,13 @@ export function applyMechanics(mechanics) {
 export function confirmLocation() {
   const pending = store.campaign.pendingLocation;
   if (!pending) return;
-  setStore('campaign', 'location', pending.value);
-  setStore('campaign', 'travelLog', [...store.campaign.travelLog, { from: pending.from, to: pending.value, note: '', gameTs: store.campaign.time }]);
-  setStore('campaign', 'pendingLocation', null);
+  aiSet('location', pending.value);
+  aiSet('travelLog', [...store.campaign.travelLog, { from: pending.from, to: pending.value, note: '', gameTs: store.campaign.time }]);
+  aiSet('pendingLocation', null);
 }
 
 export function rejectLocation() {
-  setStore('campaign', 'pendingLocation', null);
+  aiSet('pendingLocation', null);
 }
 
 function dispatch(mech) {
@@ -243,7 +246,7 @@ const DISPATCH = {
           if (initIdx >= 0) {
             const c = store.campaign.combatState.initiative[initIdx];
             const clamped = Math.max(0, Math.min(hp, c.hpMax));
-            setStore('campaign', 'combatState', 'initiative', initIdx, 'hp', clamped);
+            aiSet(`combatState.initiative.${initIdx}.hp`, clamped);
           }
         }
         continue;
@@ -254,16 +257,16 @@ const DISPATCH = {
       if (rawDamage > 0 && pc.hpTemp > 0) {
         const tempAbsorb = Math.min(pc.hpTemp, rawDamage);
         const remainingDamage = rawDamage - tempAbsorb;
-        setStore('campaign', 'characters', idx, 'hpTemp', pc.hpTemp - tempAbsorb);
+        aiSet(`characters.${idx}.hpTemp`, pc.hpTemp - tempAbsorb);
         const newHp = Math.max(0, pc.hp - remainingDamage);
-        setStore('campaign', 'characters', idx, 'hp', newHp);
+        aiSet(`characters.${idx}.hp`, newHp);
         if (remainingDamage > 0 && pc.concentration) {
           const dc = Math.max(10, Math.floor(rawDamage / 2));
           pendingConcentrationSaves.push({ pc: pc.name, spell: pc.concentration.spell, dc });
         }
       } else {
         const clamped = Math.max(0, Math.min(hp, pc.hpMax));
-        setStore('campaign', 'characters', idx, 'hp', clamped);
+        aiSet(`characters.${idx}.hp`, clamped);
         if (rawDamage > 0 && pc.concentration) {
           const dc = Math.max(10, Math.floor(rawDamage / 2));
           pendingConcentrationSaves.push({ pc: pc.name, spell: pc.concentration.spell, dc });
@@ -276,19 +279,13 @@ const DISPATCH = {
           c => c.name.toLowerCase() === pc.name.toLowerCase()
         );
         if (initIdx >= 0) {
-          setStore('campaign', 'combatState', 'initiative', initIdx, 'hp', finalHp);
+          aiSet(`combatState.initiative.${initIdx}.hp`, finalHp);
         }
       }
     }
   },
 
-  hp_max(value) {
-    for (const { name, value: hpMax } of parseHpEntries(value)) {
-      const idx = findPCIndex(name);
-      if (idx === -1) continue;
-      setStore('campaign', 'characters', idx, 'hpMax', hpMax);
-    }
-  },
+  hp_max() {},
 
   conditions(value) {
     const match = value.match(/^(.+?)([+-=])(.+)$/);
@@ -299,10 +296,10 @@ const DISPATCH = {
     const current = [...store.campaign.characters[idx].conditions];
     if (op === '-') {
       const filtered = current.filter(c => (c.name || c).toLowerCase() !== condition.toLowerCase());
-      setStore('campaign', 'characters', idx, 'conditions', filtered);
+      aiSet(`characters.${idx}.conditions`, filtered);
     } else {
       if (!current.some(c => (c.name || c).toLowerCase() === condition.toLowerCase())) {
-        setStore('campaign', 'characters', idx, 'conditions', [...current, { name: condition, duration: null }]);
+        aiSet(`characters.${idx}.conditions`, [...current, { name: condition, duration: null }]);
       }
     }
   },
@@ -312,13 +309,13 @@ const DISPATCH = {
     const idx = findPCIndex(name);
     if (idx === -1) return;
     if (spell.toLowerCase() === 'none') {
-      setStore('campaign', 'characters', idx, 'concentration', null);
+      aiSet(`characters.${idx}.concentration`, null);
     } else {
       const pc = store.campaign.characters[idx];
       if (pc.concentration && pc.concentration.spell) {
         pendingConcentrationDrops.push({ pc: pc.name, dropped: pc.concentration.spell, newSpell: spell });
       }
-      setStore('campaign', 'characters', idx, 'concentration', { spell, since: store.campaign.combatState.round || '' });
+      aiSet(`characters.${idx}.concentration`, { spell, since: store.campaign.combatState.round || '' });
     }
   },
 
@@ -326,22 +323,22 @@ const DISPATCH = {
     const newLoc = value.trim();
     const prev = store.campaign.location;
     if (prev && prev.toLowerCase() !== newLoc.toLowerCase()) {
-      setStore('campaign', 'pendingLocation', { value: newLoc, from: prev, ts: Date.now() });
+      aiSet('pendingLocation', { value: newLoc, from: prev, ts: Date.now() });
     } else {
-      setStore('campaign', 'location', newLoc);
+      aiSet('location', newLoc);
     }
   },
 
-  time(value) { setStore('campaign', 'time', value.trim()); },
-  weather(value) { setStore('campaign', 'weather', value.trim()); },
-  loc_desc(value) { setStore('campaign', 'locDesc', value.trim()); },
-  primary_mission(value) { setStore('campaign', 'primaryMission', value.trim()); },
+  time(value) { aiSet('time', value.trim()); },
+  weather(value) { aiSet('weather', value.trim()); },
+  loc_desc(value) { aiSet('locDesc', value.trim()); },
+  primary_mission(value) { aiSet('primaryMission', value.trim()); },
 
   travel_note(value) {
     const log = [...store.campaign.travelLog];
     if (log.length) {
       log[log.length - 1] = { ...log[log.length - 1], note: (log[log.length - 1].note || '') + '\n' + value.trim() };
-      setStore('campaign', 'travelLog', log);
+      aiSet('travelLog', log);
     }
   },
 
@@ -356,16 +353,16 @@ const DISPATCH = {
     const amount = parseInt(parts[0], 10) || 0;
     const category = parts[1] || 'misc';
     const desc = parts.slice(2).join(', ') || '';
-    setStore('campaign', 'gold', 'gp', Math.max(0, store.campaign.gold.gp + amount));
-    setStore('campaign', 'incomeLog', [...store.campaign.incomeLog, { amount, category, desc, gameTs: store.campaign.time }]);
+    aiSet('gold.gp', Math.max(0, store.campaign.gold.gp + amount));
+    aiSet('incomeLog', [...store.campaign.incomeLog, { amount, category, desc, gameTs: store.campaign.time }]);
   },
 
   expense(value) {
     const parts = value.split(',').map(s => s.trim());
     const amount = parseInt(parts[0], 10) || 0;
     const desc = parts.slice(1).join(', ') || '';
-    setStore('campaign', 'gold', 'gp', Math.max(0, store.campaign.gold.gp - amount));
-    setStore('campaign', 'expenseLog', [...store.campaign.expenseLog, { amount, desc, gameTs: store.campaign.time }]);
+    aiSet('gold.gp', Math.max(0, store.campaign.gold.gp - amount));
+    aiSet('expenseLog', [...store.campaign.expenseLog, { amount, desc, gameTs: store.campaign.time }]);
   },
 
   xp(value) {
@@ -375,12 +372,12 @@ const DISPATCH = {
     const amount = parseInt(amtStr, 10);
     if (target.toLowerCase() === 'party') {
       store.campaign.characters.forEach((pc, idx) => {
-        setStore('campaign', 'characters', idx, 'xp', pc.xp + amount);
+        aiSet(`characters.${idx}.xp`, pc.xp + amount);
       });
     } else {
       const idx = findPCIndex(target);
       if (idx === -1) return;
-      setStore('campaign', 'characters', idx, 'xp', store.campaign.characters[idx].xp + amount);
+      aiSet(`characters.${idx}.xp`, store.campaign.characters[idx].xp + amount);
     }
   },
 
@@ -388,7 +385,7 @@ const DISPATCH = {
     const [text, notes = '', location = ''] = value.split('|').map(s => s.trim());
     const prefix = text.substring(0, 30).toLowerCase();
     if (store.campaign.quests.some(q => q.text.substring(0, 30).toLowerCase() === prefix)) return;
-    setStore('campaign', 'quests', [...store.campaign.quests, {
+    aiSet('quests', [...store.campaign.quests, {
       id: 'qst_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
       text, status: 'active', location: location || store.campaign.location, giverNpc: '', notes,
       chatMsgId: '', discovery: { text: '', ts: new Date().toISOString() },
@@ -402,7 +399,7 @@ const DISPATCH = {
       q.text.toLowerCase().includes(lower) || lower.includes(q.text.substring(0, 20).toLowerCase())
         ? { ...q, status: 'done' } : q
     );
-    setStore('campaign', 'quests', quests);
+    aiSet('quests', quests);
   },
 
   quest_fail(value) {
@@ -411,7 +408,7 @@ const DISPATCH = {
       q.text.toLowerCase().includes(lower) || lower.includes(q.text.substring(0, 20).toLowerCase())
         ? { ...q, status: 'failed' } : q
     );
-    setStore('campaign', 'quests', quests);
+    aiSet('quests', quests);
   },
 
   quest_update(value) {
@@ -422,7 +419,7 @@ const DISPATCH = {
       q.text.toLowerCase().includes(lower)
         ? { ...q, notes: (q.notes ? q.notes + '\n' : '') + notes } : q
     );
-    setStore('campaign', 'quests', quests);
+    aiSet('quests', quests);
   },
 
   npc_add(value) {
@@ -432,9 +429,9 @@ const DISPATCH = {
     const details = parts.slice(2).join(', ') || '';
     const existing = store.campaign.npcs.findIndex(n => n.name.toLowerCase() === name.toLowerCase());
     if (existing >= 0) {
-      setStore('campaign', 'npcs', existing, { ...store.campaign.npcs[existing], disposition, details, lastSeen: store.campaign.location });
+      aiSet(`npcs.${existing}`, { ...store.campaign.npcs[existing], disposition, details, lastSeen: store.campaign.location });
     } else {
-      setStore('campaign', 'npcs', [...store.campaign.npcs, {
+      aiSet('npcs', [...store.campaign.npcs, {
         id: 'npc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
         name, disposition, details, status: 'active', hp: null,
         lastSeen: store.campaign.location, race: '', role: '', gameTs: store.campaign.time,
@@ -445,7 +442,7 @@ const DISPATCH = {
   npc_mood(value) {
     const [name, mood] = value.split('=').map(s => s.trim());
     const idx = store.campaign.npcs.findIndex(n => n.name.toLowerCase() === name.toLowerCase());
-    if (idx >= 0) setStore('campaign', 'npcs', idx, 'disposition', mood);
+    if (idx >= 0) aiSet(`npcs.${idx}.disposition`, mood);
   },
 
   consequence_add(value) {
@@ -457,7 +454,7 @@ const DISPATCH = {
       return overlap / Math.max(words.length, 1) > 0.6;
     });
     if (isDupe) return;
-    setStore('campaign', 'consequences', [...store.campaign.consequences, {
+    aiSet('consequences', [...store.campaign.consequences, {
       id: 'csq_' + Date.now(), text, type: 'deadline', resolved: false, resolvedTs: null,
       gameTs: store.campaign.time, location: store.campaign.location,
       deadline: deadline || null, details: details || '', _ripple: false,
@@ -470,13 +467,13 @@ const DISPATCH = {
       c.text.toLowerCase().includes(lower) && !c.resolved
         ? { ...c, resolved: true, resolvedTs: new Date().toISOString() } : c
     );
-    setStore('campaign', 'consequences', consequences);
+    aiSet('consequences', consequences);
   },
 
   chapter_add(value) {
     const [title, ...rest] = value.split('|');
     const content = rest.join('|').trim();
-    setStore('campaign', 'chapters', [...store.campaign.chapters, {
+    aiSet('chapters', [...store.campaign.chapters, {
       id: Date.now(), title: title.trim(), content, gameTs: store.campaign.time,
     }]);
   },
@@ -489,7 +486,7 @@ const DISPATCH = {
       ch.title.toLowerCase().includes(lower)
         ? { ...ch, content } : ch
     );
-    setStore('campaign', 'chapters', chapters);
+    aiSet('chapters', chapters);
   },
 
   town_rep(value) {
@@ -499,9 +496,9 @@ const DISPATCH = {
     if (existing >= 0) {
       const prev = store.campaign.townReputation[existing];
       const history = [...(prev.history || []), { status: prev.status, notes: prev.notes, gameTs: prev.gameTs }];
-      setStore('campaign', 'townReputation', existing, { ...prev, status, notes, gameTs: store.campaign.time, history });
+      aiSet(`townReputation.${existing}`, { ...prev, status, notes, gameTs: store.campaign.time, history });
     } else {
-      setStore('campaign', 'townReputation', [...store.campaign.townReputation, {
+      aiSet('townReputation', [...store.campaign.townReputation, {
         town, status, notes, gameTs: store.campaign.time, history: [],
       }]);
     }
@@ -515,11 +512,11 @@ const DISPATCH = {
     const description = desc.join('|');
     const existing = store.campaign.locations.findIndex(l => l.name.toLowerCase() === name.toLowerCase());
     if (existing >= 0) {
-      setStore('campaign', 'locations', existing, 'type', type);
-      if (description) setStore('campaign', 'locations', existing, 'history',
+      aiSet(`locations.${existing}.type`, type);
+      if (description) aiSet(`locations.${existing}.history`,
         [...store.campaign.locations[existing].history, { gameTs: store.campaign.time, text: description, dmOnly: false }]);
     } else {
-      setStore('campaign', 'locations', [...store.campaign.locations, {
+      aiSet('locations', [...store.campaign.locations, {
         id: 'loc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
         name, type, status: 'undiscovered', firstVisited: '', lastVisited: '',
         rep: { disposition: '', notes: '' }, npcs: [], investments: [],
@@ -533,10 +530,10 @@ const DISPATCH = {
     const name = value.trim();
     const idx = store.campaign.locations.findIndex(l => l.name.toLowerCase() === name.toLowerCase());
     if (idx >= 0) {
-      setStore('campaign', 'locations', idx, 'status', 'visited');
-      setStore('campaign', 'locations', idx, 'lastVisited', store.campaign.time);
+      aiSet(`locations.${idx}.status`, 'visited');
+      aiSet(`locations.${idx}.lastVisited`, store.campaign.time);
       if (!store.campaign.locations[idx].firstVisited) {
-        setStore('campaign', 'locations', idx, 'firstVisited', store.campaign.time);
+        aiSet(`locations.${idx}.firstVisited`, store.campaign.time);
       }
     }
   },
@@ -546,7 +543,7 @@ const DISPATCH = {
     const name = parts[0]; const text = parts[1] || ''; const dmOnly = parts[2] === 'true';
     const idx = store.campaign.locations.findIndex(l => l.name.toLowerCase() === name.toLowerCase());
     if (idx >= 0) {
-      setStore('campaign', 'locations', idx, 'history',
+      aiSet(`locations.${idx}.history`,
         [...store.campaign.locations[idx].history, { gameTs: store.campaign.time, text, dmOnly }]);
     }
   },
@@ -556,7 +553,7 @@ const DISPATCH = {
     const amount = parseInt(amountStr, 10) || 0;
     const idx = store.campaign.locations.findIndex(l => l.name.toLowerCase() === name.toLowerCase());
     if (idx >= 0) {
-      setStore('campaign', 'locations', idx, 'investments',
+      aiSet(`locations.${idx}.investments`,
         [...store.campaign.locations[idx].investments, { desc, amount, gameTs: store.campaign.time, notes: '' }]);
     }
   },
@@ -586,17 +583,17 @@ const DISPATCH = {
     const item = { name, qty: 1, type, attunement, weight: 0 };
 
     if (target === 'wagon' || target === 'cargo') {
-      setStore('campaign', 'inventory', 'wagon', [...store.campaign.inventory.wagon, item]);
+      aiSet('inventory.wagon', [...store.campaign.inventory.wagon, item]);
     } else if (target === 'hoard') {
-      setStore('campaign', 'inventory', 'hoard', [...store.campaign.inventory.hoard, item]);
+      aiSet('inventory.hoard', [...store.campaign.inventory.hoard, item]);
     } else if (target === 'party') {
-      setStore('campaign', 'inventory', 'wagon', [...store.campaign.inventory.wagon, item]);
+      aiSet('inventory.wagon', [...store.campaign.inventory.wagon, item]);
     } else {
       const pc = findPC(target);
       const key = pc ? pc.id : 'party';
       const carried = { ...store.campaign.inventory.carried };
       carried[key] = [...(carried[key] || []), item];
-      setStore('campaign', 'inventory', 'carried', carried);
+      aiSet('inventory.carried', carried);
     }
   },
 
@@ -626,15 +623,15 @@ const DISPATCH = {
     }
 
     if (target === 'wagon' || target === 'cargo' || target === 'party') {
-      setStore('campaign', 'inventory', 'wagon', removeFrom(store.campaign.inventory.wagon));
+      aiSet('inventory.wagon', removeFrom(store.campaign.inventory.wagon));
     } else if (target === 'hoard') {
-      setStore('campaign', 'inventory', 'hoard', removeFrom(store.campaign.inventory.hoard));
+      aiSet('inventory.hoard', removeFrom(store.campaign.inventory.hoard));
     } else if (pcIdx >= 0) {
       const pc = store.campaign.characters[pcIdx];
       const key = pc.id;
       const carried = { ...store.campaign.inventory.carried };
       carried[key] = removeFrom(carried[key] || []);
-      setStore('campaign', 'inventory', 'carried', carried);
+      aiSet('inventory.carried', carried);
     }
   },
 
@@ -642,10 +639,9 @@ const DISPATCH = {
     const [name, levelStr] = value.split('=').map(s => s.trim());
     const idx = findPCIndex(name);
     if (idx === -1) return;
-    const level = levelStr;
-    const current = store.campaign.characters[idx].currentSlots[level];
+    const current = store.campaign.characters[idx].currentSlots[levelStr];
     if (current > 0) {
-      setStore('campaign', 'characters', idx, 'currentSlots', level, current - 1);
+      aiSet(`characters.${idx}.currentSlots.${levelStr}`, current - 1);
     }
   },
 
@@ -655,10 +651,10 @@ const DISPATCH = {
     if (idx === -1) return;
     if (levelStr.toLowerCase() === 'all') {
       const pc = store.campaign.characters[idx];
-      setStore('campaign', 'characters', idx, 'currentSlots', { ...pc.spellSlots });
+      aiSet(`characters.${idx}.currentSlots`, { ...pc.spellSlots });
     } else {
       const max = store.campaign.characters[idx].spellSlots[levelStr] || 0;
-      setStore('campaign', 'characters', idx, 'currentSlots', levelStr, max);
+      aiSet(`characters.${idx}.currentSlots.${levelStr}`, max);
     }
   },
 
@@ -666,11 +662,11 @@ const DISPATCH = {
     const [name, resName] = value.split(',').map(s => s.trim());
     const idx = findPCIndex(name);
     if (idx === -1) return;
-    const resources = store.campaign.characters[idx].resources.map(r =>
-      r.name.toLowerCase().includes(resName.toLowerCase()) && r.current > 0
-        ? { ...r, current: r.current - 1 } : r
-    );
-    setStore('campaign', 'characters', idx, 'resources', resources);
+    const pc = store.campaign.characters[idx];
+    const resIdx = pc.resources.findIndex(r => r.name.toLowerCase().includes(resName.toLowerCase()));
+    if (resIdx >= 0 && pc.resources[resIdx].current > 0) {
+      aiSet(`characters.${idx}.resources.${resIdx}.current`, pc.resources[resIdx].current - 1);
+    }
   },
 
   resource_restore(value) {
@@ -678,41 +674,41 @@ const DISPATCH = {
     const idx = findPCIndex(name);
     if (idx === -1) return;
     if (target.toLowerCase() === 'all') {
-      const resources = store.campaign.characters[idx].resources.map(r => ({ ...r, current: r.max }));
-      setStore('campaign', 'characters', idx, 'resources', resources);
+      const pc = store.campaign.characters[idx];
+      pc.resources.forEach((r, resIdx) => {
+        aiSet(`characters.${idx}.resources.${resIdx}.current`, r.max);
+      });
     }
   },
 
   combat_start(value) {
-    const pcEntries = store.campaign.characters.map(pc => {
-      const dexMod = Math.floor((pc.abilityScores.dex - 10) / 2);
-      const roll = Math.floor(Math.random() * 20) + 1 + dexMod;
-      return {
-        name: pc.name, roll, type: 'pc',
-        hp: pc.hp, hpMax: pc.hpMax, ac: pc.ac, zone: 'front',
-      };
-    });
-    setStore('campaign', 'combatState', {
+    const pcEntries = store.campaign.characters.map(pc => ({
+      name: pc.name, roll: 0, type: 'pc', rollPending: true,
+      hp: pc.hp, hpMax: pc.hpMax, ac: pc.ac, zone: 'front',
+    }));
+    aiSet('combatState', {
       active: true, round: 1, initiative: pcEntries, currentTurn: 0,
       actionsUsed: { action: false, bonus: false, reaction: false, movement: false },
       zones: { front: { label: 'Frontline' }, back: { label: 'Backline' }, left: { label: 'Left Flank' }, right: { label: 'Right Flank' }, air: { label: 'Air' }, rear: { label: 'Rear Guard' } },
     });
+    for (const pc of store.campaign.characters) {
+      DISPATCH.roll_request(`Initiative|0|${pc.name}`);
+    }
   },
 
   combat_end(value) {
     if (store.campaign.location) {
       DISPATCH.location_history(`${store.campaign.location}|Combat ended (round ${store.campaign.combatState.round}): ${value}`);
     }
-    // Sync final PC HP from initiative back to characters
     for (const entry of store.campaign.combatState.initiative) {
       if (entry.type === 'pc') {
         const idx = findPCIndex(entry.name);
         if (idx >= 0 && store.campaign.characters[idx].hp !== entry.hp) {
-          setStore('campaign', 'characters', idx, 'hp', entry.hp);
+          aiSet(`characters.${idx}.hp`, entry.hp);
         }
       }
     }
-    setStore('campaign', 'combatState', {
+    aiSet('combatState', {
       active: false, round: 0, initiative: [], currentTurn: 0,
       actionsUsed: { action: false, bonus: false, reaction: false, movement: false },
       zones: {},
@@ -727,35 +723,35 @@ const DISPATCH = {
       ac: parseInt(ac, 10) || 10, zone: zone || 'front',
     }];
     initiative.sort((a, b) => b.roll - a.roll);
-    setStore('campaign', 'combatState', 'initiative', initiative);
+    aiSet('combatState.initiative', initiative);
     if (!store.campaign.combatState.active) DISPATCH.combat_start('');
   },
 
   zone_move(value) {
     const [name, zone] = value.split('|').map(s => s.trim());
     const idx = store.campaign.combatState.initiative.findIndex(c => c.name.toLowerCase() === name.toLowerCase());
-    if (idx >= 0) setStore('campaign', 'combatState', 'initiative', idx, 'zone', zone);
+    if (idx >= 0) aiSet(`combatState.initiative.${idx}.zone`, zone);
   },
 
   zone_remove(value) {
     const name = value.trim().toLowerCase();
-    setStore('campaign', 'combatState', 'initiative',
+    aiSet('combatState.initiative',
       store.campaign.combatState.initiative.filter(c => c.name.toLowerCase() !== name));
   },
 
   zone_effect(value) {
     const [zone, effect, type = 'terrain'] = value.split('|').map(s => s.trim());
-    setStore('campaign', 'combatState', 'zones', zone, type, effect);
+    aiSet(`combatState.zones.${zone}.${type}`, effect);
   },
 
   zone_label(value) {
     const [zone, label] = value.split('|').map(s => s.trim());
-    setStore('campaign', 'combatState', 'zones', zone, 'label', label);
+    aiSet(`combatState.zones.${zone}.label`, label);
   },
 
   zone_fog(value) {
     const [zone, action] = value.split('|').map(s => s.trim());
-    setStore('campaign', 'combatState', 'zones', zone, 'hidden', action === 'hide');
+    aiSet(`combatState.zones.${zone}.hidden`, action === 'hide');
   },
 
   roll_request(value) {
@@ -772,8 +768,8 @@ const DISPATCH = {
     const saves = { ...store.campaign.characters[idx].deathSaves };
     const lower = result.toLowerCase();
     if (lower === 'nat20' || lower === 'natural20') {
-      setStore('campaign', 'characters', idx, 'hp', 1);
-      setStore('campaign', 'characters', idx, 'deathSaves', { successes: 0, failures: 0 });
+      aiSet(`characters.${idx}.hp`, 1);
+      aiSet(`characters.${idx}.deathSaves`, { successes: 0, failures: 0 });
       return;
     } else if (lower === 'nat1' || lower === 'natural1') {
       saves.failures = Math.min(3, saves.failures + 2);
@@ -782,15 +778,14 @@ const DISPATCH = {
     } else {
       saves.failures = Math.min(3, saves.failures + 1);
     }
-    setStore('campaign', 'characters', idx, 'deathSaves', saves);
+    aiSet(`characters.${idx}.deathSaves`, saves);
     if (saves.successes >= 3) {
-      setStore('campaign', 'characters', idx, 'deathSaves', { successes: 0, failures: 0 });
-      // Stabilized — still at 0 HP but no longer dying
+      aiSet(`characters.${idx}.deathSaves`, { successes: 0, failures: 0 });
     }
     if (saves.failures >= 3) {
-      setStore('campaign', 'characters', idx, 'deathSaves', { successes: 0, failures: 0 });
+      aiSet(`characters.${idx}.deathSaves`, { successes: 0, failures: 0 });
       const conditions = [...store.campaign.characters[idx].conditions, { name: 'Dead', duration: null }];
-      setStore('campaign', 'characters', idx, 'conditions', conditions);
+      aiSet(`characters.${idx}.conditions`, conditions);
     }
   },
 
@@ -802,7 +797,7 @@ const DISPATCH = {
       if (i === num - 1) return { ...ep, status: status || 'active' };
       return ep;
     });
-    setStore('campaign', 'moduleProgress', progress);
+    aiSet('moduleProgress', progress);
   },
 
   short_rest(value) {
@@ -813,10 +808,11 @@ const DISPATCH = {
 
     for (const idx of targets) {
       const pc = store.campaign.characters[idx];
-      const resources = pc.resources.map(r =>
-        (r.restoresOn === 'short' || r.restoresOn === 'short_rest') ? { ...r, current: r.max } : r
-      );
-      setStore('campaign', 'characters', idx, 'resources', resources);
+      pc.resources.forEach((r, resIdx) => {
+        if (r.restoresOn === 'short' || r.restoresOn === 'short_rest') {
+          aiSet(`characters.${idx}.resources.${resIdx}.current`, r.max);
+        }
+      });
     }
   },
 
@@ -828,27 +824,27 @@ const DISPATCH = {
 
     for (const idx of targets) {
       const pc = store.campaign.characters[idx];
-      setStore('campaign', 'characters', idx, 'hp', pc.hpMax);
-      setStore('campaign', 'characters', idx, 'hpTemp', 0);
-      setStore('campaign', 'characters', idx, 'currentSlots', { ...pc.spellSlots });
-      const resources = pc.resources.map(r => ({ ...r, current: r.max }));
-      setStore('campaign', 'characters', idx, 'resources', resources);
+      aiSet(`characters.${idx}.hp`, pc.hpMax);
+      aiSet(`characters.${idx}.hpTemp`, 0);
+      aiSet(`characters.${idx}.currentSlots`, { ...pc.spellSlots });
+      pc.resources.forEach((r, resIdx) => {
+        aiSet(`characters.${idx}.resources.${resIdx}.current`, r.max);
+      });
       const hdRestore = Math.max(1, Math.floor(pc.hitDice.total / 2));
       const newUsed = Math.max(0, pc.hitDice.used - hdRestore);
-      setStore('campaign', 'characters', idx, 'hitDice', { ...pc.hitDice, used: newUsed });
-      setStore('campaign', 'characters', idx, 'exhaustion', Math.max(0, pc.exhaustion - 1));
-      setStore('campaign', 'characters', idx, 'deathSaves', { successes: 0, failures: 0 });
-      setStore('campaign', 'characters', idx, 'concentration', null);
+      aiSet(`characters.${idx}.hitDice`, { ...pc.hitDice, used: newUsed });
+      aiSet(`characters.${idx}.exhaustion`, Math.max(0, pc.exhaustion - 1));
+      aiSet(`characters.${idx}.deathSaves`, { successes: 0, failures: 0 });
+      aiSet(`characters.${idx}.concentration`, null);
     }
   },
 
   round_advance() {
     if (!store.campaign.combatState.active) return;
-    setStore('campaign', 'combatState', 'round', store.campaign.combatState.round + 1);
+    aiSet('combatState.round', store.campaign.combatState.round + 1);
   },
 
   hit_dice_use(value) {
-    // Format: Name=count or Name (defaults to 1)
     const [name, countStr] = value.split('=').map(s => s.trim());
     const count = parseInt(countStr, 10) || 1;
     const idx = findPCIndex(name);
@@ -857,16 +853,9 @@ const DISPATCH = {
     const available = pc.hitDice.total - pc.hitDice.used;
     if (available <= 0) return;
     const toUse = Math.min(count, available);
-    setStore('campaign', 'characters', idx, 'hitDice', { ...pc.hitDice, used: pc.hitDice.used + toUse });
-    // Roll hit dice for healing
+    aiSet(`characters.${idx}.hitDice`, { ...pc.hitDice, used: pc.hitDice.used + toUse });
     const dieSize = parseInt(pc.hitDice.die.replace('d', ''), 10) || 8;
-    const conMod = Math.floor((pc.abilityScores.con - 10) / 2);
-    let healed = 0;
-    for (let i = 0; i < toUse; i++) {
-      healed += Math.max(1, Math.floor(Math.random() * dieSize) + 1 + conMod);
-    }
-    const newHp = Math.min(pc.hpMax, pc.hp + healed);
-    setStore('campaign', 'characters', idx, 'hp', newHp);
+    DISPATCH.roll_request(`HitDice|${dieSize}|${pc.name}`);
   },
 
   inspiration(value) {
@@ -876,20 +865,19 @@ const DISPATCH = {
     const idx = findPCIndex(name);
     if (idx === -1) return;
     if (op === '-' || val === 'false') {
-      setStore('campaign', 'characters', idx, 'inspiration', false);
+      aiSet(`characters.${idx}.inspiration`, false);
     } else {
-      setStore('campaign', 'characters', idx, 'inspiration', true);
+      aiSet(`characters.${idx}.inspiration`, true);
     }
   },
 
   temp_hp(value) {
-    // Format: Name=amount (temp HP doesn't stack — take higher)
     const [name, amtStr] = value.split('=').map(s => s.trim());
     const amount = parseInt(amtStr, 10) || 0;
     const idx = findPCIndex(name);
     if (idx === -1) return;
     const current = store.campaign.characters[idx].hpTemp || 0;
-    setStore('campaign', 'characters', idx, 'hpTemp', Math.max(current, amount));
+    aiSet(`characters.${idx}.hpTemp`, Math.max(current, amount));
   },
 
   save_game() {},
@@ -913,7 +901,7 @@ const DISPATCH = {
       const pc = store.campaign.characters[i];
       if (pc.familiar && pc.familiar.name?.toLowerCase() === name.toLowerCase()) {
         const clamped = Math.max(0, Math.min(hp, pc.familiar.hpMax));
-        setStore('campaign', 'characters', i, 'familiar', 'hp', clamped);
+        aiSet(`characters.${i}.familiar.hp`, clamped);
         return;
       }
     }
@@ -927,7 +915,7 @@ const DISPATCH = {
     const idx = animals.findIndex(a => a.name?.toLowerCase() === name.toLowerCase());
     if (idx !== -1) {
       const clamped = Math.max(0, Math.min(hp, animals[idx].hpMax));
-      setStore('campaign', 'wagonState', 'animals', idx, 'hp', clamped);
+      aiSet(`wagonState.animals.${idx}.hp`, clamped);
     }
   },
 
@@ -936,33 +924,11 @@ const DISPATCH = {
     const animals = store.campaign.wagonState.animals;
     const idx = animals.findIndex(a => a.name?.toLowerCase() === name.toLowerCase());
     if (idx !== -1) {
-      setStore('campaign', 'wagonState', 'animals', idx, 'condition', condition);
+      aiSet(`wagonState.animals.${idx}.condition`, condition);
     }
   },
-  spell_add(value) {
-    // Format: PC|Name|Level|CastTime|Range|Duration|Components|Desc
-    const parts = value.split('|').map(s => s.trim());
-    if (parts.length < 3) return;
-    const [pcName, spellName, levelStr] = parts;
-    const idx = findPCIndex(pcName);
-    if (idx === -1) return;
-    const pc = store.campaign.characters[idx];
-    const level = parseInt(levelStr, 10);
 
-    if (level === 0) {
-      const cantrips = [...(pc.cantrips || [])];
-      if (!cantrips.some(s => s.toLowerCase() === spellName.toLowerCase())) {
-        cantrips.push(spellName);
-        setStore('campaign', 'characters', idx, 'cantrips', cantrips);
-      }
-    } else {
-      const known = [...(pc.knownSpells || [])];
-      if (!known.some(s => s.toLowerCase() === spellName.toLowerCase())) {
-        known.push(spellName);
-        setStore('campaign', 'characters', idx, 'knownSpells', known);
-      }
-    }
-  },
+  spell_add() {},
 
   pc_update() {},
   pc_add() {},
@@ -972,9 +938,9 @@ const DISPATCH = {
 function applyCurrency(key, value) {
   const current = store.campaign.gold[key];
   if (value.startsWith('+') || value.startsWith('-')) {
-    setStore('campaign', 'gold', key, Math.max(0, current + parseInt(value, 10)));
+    aiSet(`gold.${key}`, Math.max(0, current + parseInt(value, 10)));
   } else {
-    setStore('campaign', 'gold', key, Math.max(0, parseInt(value, 10) || 0));
+    aiSet(`gold.${key}`, Math.max(0, parseInt(value, 10) || 0));
   }
 }
 
