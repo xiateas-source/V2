@@ -238,7 +238,7 @@ function exportResults() {
   }
 }
 
-export default function DevTools() {
+export default function DevTools(props) {
   const [testMode, setTestMode] = createSignal('scenarios');
   const [sentPrompts, setSentPrompts] = createSignal(new Set());
 
@@ -260,15 +260,18 @@ export default function DevTools() {
 
   return (
     <div class="test-panel">
-      <div class="test-mode-tabs">
-        <button
-          class={`test-mode-tab ${testMode() === 'scenarios' ? 'active' : ''}`}
-          onClick={() => setTestMode('scenarios')}
-        >Scenarios</button>
-        <button
-          class={`test-mode-tab ${testMode() === 'direct' ? 'active' : ''}`}
-          onClick={() => setTestMode('direct')}
-        >Direct</button>
+      <div class="test-panel-header">
+        <div class="test-mode-tabs">
+          <button
+            class={`test-mode-tab ${testMode() === 'scenarios' ? 'active' : ''}`}
+            onClick={() => setTestMode('scenarios')}
+          >Scenarios</button>
+          <button
+            class={`test-mode-tab ${testMode() === 'direct' ? 'active' : ''}`}
+            onClick={() => setTestMode('direct')}
+          >Direct</button>
+        </div>
+        <button class="test-panel-close" onClick={() => props.onClose?.()}>✕</button>
       </div>
 
       {testMode() === 'scenarios' && (

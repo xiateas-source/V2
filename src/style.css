@@ -911,10 +911,30 @@ body {
   box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
 }
 
+.test-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+}
+
+.test-panel-close {
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  color: var(--color-text-muted);
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 .test-mode-tabs {
   display: flex;
   gap: 4px;
-  margin-bottom: var(--space-sm);
 }
 
 .test-mode-tab {

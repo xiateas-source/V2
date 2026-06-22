@@ -76,7 +76,7 @@ export default function InputBar(props) {
       </div>
       <Show when={showTest()}>
         <Suspense fallback={<div class="test-loading">Loading...</div>}>
-          <DevTools />
+          <DevTools onClose={() => setShowTest(false)} />
         </Suspense>
       </Show>
     </div>
