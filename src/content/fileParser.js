@@ -16,14 +16,20 @@ export async function extractText(file) {
 
 async function extractPdfText(file) {
   const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
   const pages = [];
 
   for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    const text = content.items.map(item => item.str).join(' ');
-    if (text.trim()) pages.push(text);
+    try {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const text = content.items.map(item => item.str).join(' ');
+      if (text.trim()) pages.push(text);
+    } catch (_) {}
+  }
+
+  if (!pages.length) {
+    throw new Error(`PDF has ${pdf.numPages} pages but no extractable text. It may be scanned/image-based.`);
   }
 
   return pages.join('\n\n');

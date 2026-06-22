@@ -271,7 +271,7 @@ function BookUpload(props) {
     try {
       const { extractText } = await import('../../content/fileParser.js');
       const text = await extractText(f);
-      if (!text) { setError('Could not extract text from file'); setParsing(false); return; }
+      if (!text) { setError('No text found in file. If this is a scanned PDF, try an epub or markdown version instead.'); setParsing(false); return; }
 
       const { splitIntoChunks } = await import('../../content/chunkSplitter.js');
       const chunks = splitIntoChunks(text);
