@@ -3804,11 +3804,27 @@ body {
 }
 
 .existing-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--radius-lg);
   font-size: var(--font-size-sm);
   color: #fff;
   font-weight: 600;
+}
+
+.existing-chip-remove {
+  background: rgba(0,0,0,0.3);
+  border: none;
+  color: #fff;
+  border-radius: 50%;
+  width: 1.2rem;
+  height: 1.2rem;
+  font-size: 0.8rem;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
 }
 
 /* Campaign Config */

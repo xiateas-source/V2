@@ -19,6 +19,11 @@ export default function CharCreate(props) {
     setMode(null);
   }
 
+  function removeCharacter(idx) {
+    const updated = store.campaign.characters.filter((_, i) => i !== idx);
+    setStore('campaign', 'characters', updated);
+  }
+
   function onCharParsed(charObj) {
     const normalized = normalizeCharacter(charObj);
     if (!normalized) return;
@@ -94,7 +99,12 @@ export default function CharCreate(props) {
       <Show when={store.campaign.characters.length > 0}>
         <div class="charcreate-existing">
           <For each={store.campaign.characters}>
-            {(pc) => <span class="existing-chip" style={{ background: pc.color }}>{pc.name}</span>}
+            {(pc, i) => (
+              <span class="existing-chip" style={{ background: pc.color }}>
+                {pc.name}
+                <button class="existing-chip-remove" onClick={() => removeCharacter(i())}>×</button>
+              </span>
+            )}
           </For>
         </div>
       </Show>
