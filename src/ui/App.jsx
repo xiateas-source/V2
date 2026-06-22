@@ -1,6 +1,5 @@
 import { createSignal, createMemo, Show } from 'solid-js';
 import { store } from '../state/index.js';
-import { loadDemoCampaign } from '../data/demo.js';
 import PlayerOnboard from './setup/PlayerOnboard.jsx';
 import Chat from './play/Chat.jsx';
 import Cargo from './reference/Cargo.jsx';

@@ -2,6 +2,7 @@ import { createSignal, For, Show } from 'solid-js';
 import { sendMsg, isSending } from '../../ai/engine.js';
 import { validateMechanics, applyMechanics } from '../../ai/mechanics.js';
 import { store, setStore } from '../../state/index.js';
+import { loadDemoCampaign } from '../../data/demo.js';
 
 const SCENARIOS = [
   {
@@ -179,10 +180,14 @@ function runTestBatch(batch) {
   const { valid, rejected } = validateMechanics([...batch.mechanics]);
   const applied = applyMechanics(valid);
   const msg = {
-    role: 'assistant',
+    id: `nar_test_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    type: 'dm',
     content: `[TEST] ${batch.label} — ${applied.filter(m => m.applied).length} applied, ${rejected.length} rejected`,
     mechanics: { applied, rejected },
     ts: Date.now(),
+    gameTs: store.campaign.time || null,
+    playerName: null,
+    partial: false,
   };
   setStore('campaign', 'narrative', [...store.campaign.narrative, msg]);
 }
@@ -212,7 +217,7 @@ function exportResults() {
     locations: c.locations,
     chapters: c.chapters,
     primaryMission: c.primaryMission,
-    narrative: c.narrative.map(m => ({ role: m.role, content: m.content, hasMechanics: !!m.mechanics })),
+    narrative: c.narrative.map(m => ({ type: m.type || m.role, content: m.content, hasMechanics: !!m.mechanics })),
   };
   const text = JSON.stringify(out, null, 2);
   const done = () => {
@@ -302,6 +307,7 @@ export default function DevTools() {
 
       <div class="test-export-row">
         <button class="btn-test-export" onClick={exportResults} disabled={isSending()}>Export</button>
+        <button class="btn-test" onClick={loadDemoCampaign}>Load Demo</button>
       </div>
     </div>
   );

@@ -33,12 +33,16 @@ export function createOOCMsg(type, content, extras = {}) {
 export function msgToRole(msg) {
   if (msg.type === 'player') return 'user';
   if (msg.type === 'dm' || msg.type === 'dm_advisory') return 'assistant';
+  if (msg.role === 'user') return 'user';
+  if (msg.role === 'assistant') return 'assistant';
   return 'system';
 }
 
 export function isPlayMsg(msg) {
   const t = msg.type || '';
-  return t === 'player' || t === 'dm' || t === 'dm_advisory';
+  if (t === 'player' || t === 'dm' || t === 'dm_advisory') return true;
+  if (!t && msg.role) return msg.role === 'user' || msg.role === 'assistant';
+  return false;
 }
 
 export function migrateMsg(msg) {

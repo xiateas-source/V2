@@ -43,7 +43,8 @@ export default function Chat() {
   const lastAssistantMsg = () => {
     const msgs = messages();
     for (let i = msgs.length - 1; i >= 0; i--) {
-      if (msgs[i].type === 'dm' || msgs[i].type === 'dm_advisory') return msgs[i].content;
+      const m = msgs[i];
+      if (m.type === 'dm' || m.type === 'dm_advisory' || m.role === 'assistant') return m.content;
     }
     return '';
   };
@@ -86,7 +87,7 @@ export default function Chat() {
 
     if (wasSending && !sending && autoRead()) {
       const last = msgs[msgs.length - 1];
-      if (last && last.role === 'assistant') {
+      if (last && (last.type === 'dm' || last.role === 'assistant')) {
         speak(last.content);
       }
     }
