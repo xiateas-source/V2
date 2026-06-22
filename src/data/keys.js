@@ -1,23 +1,39 @@
-import { setStore } from '../state/index.js';
+import { setStore, store } from '../state/index.js';
+import { getByKey } from './local.js';
 
 const KEYS_STORAGE = 'tp2_provider_keys';
 const SETTINGS_STORAGE = 'tp2_provider_settings';
 const QA_STORAGE = 'tp2_quick_actions';
 
+function idbPut(key, value) {
+  try {
+    const req = indexedDB.open('tinklepebble-v2', 1);
+    req.onsuccess = () => {
+      try {
+        const tx = req.result.transaction('meta', 'readwrite');
+        tx.objectStore('meta').put({ key, value, ts: Date.now() });
+      } catch {}
+    };
+  } catch {}
+}
+
 export function saveKeys(geminiKey, openrouterKey) {
   try {
     localStorage.setItem(KEYS_STORAGE, JSON.stringify({ geminiKey, openrouterKey }));
   } catch {}
+  idbPut('_providerKeys', { geminiKey, openrouterKey });
 }
 
 export function saveProviderSettings(geminiModel) {
   try {
     localStorage.setItem(SETTINGS_STORAGE, JSON.stringify({ geminiModel }));
   } catch {}
+  idbPut('_providerSettings', { geminiModel });
 }
 
 export function saveQuickActions(config) {
   try { localStorage.setItem(QA_STORAGE, JSON.stringify(config)); } catch {}
+  idbPut('_quickActions', config);
 }
 
 export function restoreQuickActions() {
@@ -44,6 +60,37 @@ export function restoreKeys() {
     if (raw) {
       const { geminiModel } = JSON.parse(raw);
       if (geminiModel) setStore('system', 'providers', 'geminiModel', geminiModel);
+    }
+  } catch {}
+}
+
+export async function restoreFromIDB() {
+  const hasKey = store.system.providers.geminiKey || store.system.providers.openrouterKey;
+  if (hasKey) return;
+
+  try {
+    const keysRecord = await getByKey('meta', '_providerKeys');
+    if (keysRecord?.value) {
+      const { geminiKey, openrouterKey } = keysRecord.value;
+      if (geminiKey) {
+        setStore('system', 'providers', 'geminiKey', geminiKey);
+        try { localStorage.setItem(KEYS_STORAGE, JSON.stringify({ geminiKey, openrouterKey: openrouterKey || '' })); } catch {}
+      }
+      if (openrouterKey) setStore('system', 'providers', 'openrouterKey', openrouterKey);
+    }
+  } catch {}
+
+  try {
+    const settingsRecord = await getByKey('meta', '_providerSettings');
+    if (settingsRecord?.value?.geminiModel) {
+      setStore('system', 'providers', 'geminiModel', settingsRecord.value.geminiModel);
+    }
+  } catch {}
+
+  try {
+    const qaRecord = await getByKey('meta', '_quickActions');
+    if (qaRecord?.value) {
+      setStore('system', 'settings', 'quickActions', qaRecord.value);
     }
   } catch {}
 }
