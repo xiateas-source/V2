@@ -28,11 +28,10 @@ async function extractPdfText(file) {
 async function loadPdfJs() {
   if (window.pdfjsLib) return window.pdfjsLib;
   try {
-    const url = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs';
-    const mod = await import(/* @vite-ignore */ url);
-    if (mod.GlobalWorkerOptions) {
-      mod.GlobalWorkerOptions.workerSrc = '';
-    }
+    const ver = '4.0.379';
+    const base = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${ver}/build`;
+    const mod = await import(/* @vite-ignore */ `${base}/pdf.min.mjs`);
+    mod.GlobalWorkerOptions.workerSrc = `${base}/pdf.worker.min.mjs`;
     window.pdfjsLib = mod;
     return mod;
   } catch (_) {
