@@ -3,6 +3,7 @@ import { store, setStore } from '../../state/index.js';
 import { callProvider } from '../../ai/providers.js';
 import { CAMPAIGN_BRAINSTORM_SYSTEM, CONTENT_STRUCTURING_SYSTEM } from '../../ai/setupPrompts.js';
 import { parseAdventure } from '../../content/adventureParser.js';
+import { parseMarkdownAdventure } from '../../content/markdownAdventureParser.js';
 
 const SETTING_CHIPS = ['Classic Fantasy', 'Dark & Gritty', 'Lighthearted', 'Urban Intrigue', 'Wilderness'];
 const STYLE_CHIPS = ['Tolkien', 'Pratchett', 'Critical Role', 'Grim & Short', 'Fairy Tale'];
@@ -168,23 +169,40 @@ function FreshCampaign(props) {
 }
 
 function AdventureImport(props) {
-  const [text, setText] = createSignal('');
+  const [file, setFile] = createSignal(null);
   const [error, setError] = createSignal('');
   const [result, setResult] = createSignal(null);
+  const [parsing, setParsing] = createSignal(false);
 
-  function parse() {
+  function onFileSelect(e) {
+    const f = e.target.files?.[0];
+    if (f) setFile(f);
+  }
+
+  async function importFile() {
+    const f = file();
+    if (!f) return;
     setError('');
-    const raw = text().trim();
-    if (!raw) { setError('Paste 5e.tools adventure JSON'); return; }
+    setParsing(true);
 
     try {
-      const json = JSON.parse(raw);
-      const parsed = parseAdventure(json);
-      if (!parsed) { setError('Could not parse adventure format'); return; }
+      const text = await f.text();
+      let parsed = null;
+
+      if (f.name.endsWith('.json')) {
+        const json = JSON.parse(text);
+        parsed = parseAdventure(json);
+      } else {
+        parsed = parseMarkdownAdventure(text);
+      }
+
+      if (!parsed) { setError('Could not parse adventure — check the file format'); setParsing(false); return; }
       setResult(parsed);
       applyAdventure(parsed);
     } catch (e) {
-      setError(`Invalid JSON: ${e.message}`);
+      setError(`Import failed: ${e.message}`);
+    } finally {
+      setParsing(false);
     }
   }
 
@@ -201,15 +219,16 @@ function AdventureImport(props) {
   return (
     <div class="adventure-import">
       <button class="builder-back" onClick={props.onBack}>&larr; Back</button>
-      <a class="config-link" href="https://5e.tools/adventures.html" target="_blank" rel="noopener">5e.tools Adventures ↗</a>
-      <p class="config-hint">Paste adventure JSON exported from 5e.tools</p>
-      <textarea
-        class="paste-area"
-        placeholder="Paste adventure JSON here..."
-        value={text()}
-        onInput={(e) => setText(e.target.value)}
-      />
+      <a class="config-link" href="https://5e.tools/adventures.html" target="_blank" rel="noopener">Browse 5e.tools Adventures ↗</a>
+      <p class="config-hint">Upload an adventure file (.md or .json) from 5e.tools</p>
+
+      <label class="file-upload-btn">
+        {file() ? file().name : 'Choose Adventure File'}
+        <input type="file" accept=".md,.json,.txt" onChange={onFileSelect} hidden />
+      </label>
+
       {error() && <div class="paste-error">{error()}</div>}
+
       <Show when={result()}>
         <div class="adventure-preview">
           <div class="adventure-name">{result().name}</div>
@@ -221,8 +240,10 @@ function AdventureImport(props) {
           </Show>
         </div>
       </Show>
-      <Show when={!result()}>
-        <button class="paste-btn" onClick={parse}>Import Adventure</button>
+      <Show when={file() && !result()}>
+        <button class="paste-btn" onClick={importFile} disabled={parsing()}>
+          {parsing() ? 'Importing...' : 'Import Adventure'}
+        </button>
       </Show>
     </div>
   );
