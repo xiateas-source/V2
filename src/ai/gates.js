@@ -279,9 +279,10 @@ export function runGate7(narrative, mechanics, playerMessage) {
   const hasRollRequest = mechanics.some(m => m.key === 'roll_request');
   if (hasRollRequest) return flags;
 
+  const resolvedPattern = /\b(succeeds?|successfully|manages?\s+to|fails?\s+to|unable|doesn'?t\s+(soften|budge|agree|relent|comply|accept|believe|waver|yield)|refuses?|rejects?|dismisses?|ignores?|scoffs?|shrugs?\s+off|isn'?t\s+(convinced|persuaded|swayed|moved|impressed))\b/i;
+
   for (const { pattern, skill } of SKILL_ACTION_MAP) {
     if (pattern.test(narrative)) {
-      const resolvedPattern = /\b(succeeds?|successfully|manages?\s+to|fails?\s+to|unable)\b/i;
       if (resolvedPattern.test(narrative)) {
         flags.push({
           gate: 7,

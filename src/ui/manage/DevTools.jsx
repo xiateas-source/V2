@@ -69,112 +69,116 @@ const SCENARIOS = [
   },
 ];
 
-const DIRECT_TESTS = [
-  {
-    label: 'HP + Cond',
-    mechanics: [
-      { key: 'hp', value: 'Ivy=18', target: '', applied: false },
-      { key: 'hp', value: 'Thorn=20', target: '', applied: false },
-      { key: 'conditions', value: 'Ivy+Poisoned', target: '', applied: false },
-      { key: 'concentration', value: 'Thorn=Hypnotic Pattern', target: '', applied: false },
-    ]
-  },
-  {
-    label: 'Items+Gold',
-    mechanics: [
-      { key: 'item_add', value: 'Ivy,Cloak of Elvenkind,wondrous,attuned', target: '', applied: false },
-      { key: 'item_add', value: 'Thorn,Lute of Illusions,wondrous,none', target: '', applied: false },
-      { key: 'wagon_add', value: '3 Healing Potions,potion,none', target: '', applied: false },
-      { key: 'income', value: '150,loot,bandit chest', target: '', applied: false },
-    ]
-  },
-  {
-    label: 'Quest+NPC',
-    mechanics: [
-      { key: 'quest_add', value: 'Find the missing blacksmith|He disappeared 3 days ago|Thornvale', target: '', applied: false },
-      { key: 'npc_add', value: 'Captain Voss,guard captain,stern but fair,Thornvale garrison', target: '', applied: false },
-      { key: 'npc_mood', value: 'Captain Voss=friendly', target: '', applied: false },
-      { key: 'consequence_add', value: 'Bandits regroup in 3 days|3 days|The bandit camp will be reinforced', target: '', applied: false },
-    ]
-  },
-  {
-    label: 'World',
-    mechanics: [
-      { key: 'location', value: 'Thornvale Market Square', target: '', applied: false },
-      { key: 'time', value: 'Late Afternoon', target: '', applied: false },
-      { key: 'weather', value: 'Overcast, light drizzle', target: '', applied: false },
-      { key: 'location_add', value: 'Thornvale Market Square|town_square|A bustling marketplace', target: '', applied: false },
-      { key: 'chapter_add', value: 'The Road to Thornvale|The party arrived after a day of travel', target: '', applied: false },
-    ]
-  },
-  {
-    label: 'Roll',
-    mechanics: [
-      { key: 'roll_request', value: 'Persuasion|14|Ivy', target: '', applied: false },
-    ]
-  },
-  {
-    label: 'Combat',
-    mechanics: [
-      { key: 'combat_start', value: 'Bandits ambush on the road', target: '', applied: false },
-      { key: 'zone_add_enemy', value: 'Bandit Leader|22|14|front|16', target: '', applied: false },
-      { key: 'zone_add_enemy', value: 'Bandit Archer|11|12|back|12', target: '', applied: false },
-    ]
-  },
-  {
-    label: 'Rest',
-    mechanics: [
-      { key: 'short_rest', value: 'party', target: '', applied: false },
-    ]
-  },
-  {
-    label: 'LongRest',
-    mechanics: [
-      { key: 'long_rest', value: 'party', target: '', applied: false },
-    ]
-  },
-  {
-    label: 'ConSave',
-    mechanics: [
-      { key: 'concentration', value: 'Thorn=Faerie Fire', target: '', applied: false },
-      { key: 'hp', value: 'Thorn=20', target: '', applied: false },
-    ]
-  },
-  {
-    label: 'TempHP',
-    mechanics: [
-      { key: 'temp_hp', value: 'Ivy=8', target: '', applied: false },
-      { key: 'temp_hp', value: 'Thorn=5', target: '', applied: false },
-    ]
-  },
-  {
-    label: 'HitDice',
-    mechanics: [
-      { key: 'hit_dice_use', value: 'Ivy=1', target: '', applied: false },
-      { key: 'hit_dice_use', value: 'Thorn=2', target: '', applied: false },
-    ]
-  },
-  {
-    label: 'Inspire',
-    mechanics: [
-      { key: 'inspiration', value: 'Ivy=grant', target: '', applied: false },
-      { key: 'inspiration', value: 'Thorn=remove', target: '', applied: false },
-    ]
-  },
-  {
-    label: 'DeathSave',
-    mechanics: [
-      { key: 'death_save', value: 'Ivy=success', target: '', applied: false },
-      { key: 'death_save', value: 'Ivy=failure', target: '', applied: false },
-    ]
-  },
-  {
-    label: 'RoundAdv',
-    mechanics: [
-      { key: 'round_advance', value: '', target: '', applied: false },
-    ]
-  },
-];
+function getDirectTests() {
+  const pc1 = store.campaign.characters[0]?.name || 'PC1';
+  const pc2 = store.campaign.characters[1]?.name || pc1;
+  return [
+    {
+      label: 'HP + Cond',
+      mechanics: [
+        { key: 'hp', value: `${pc1}=18`, target: '', applied: false },
+        { key: 'hp', value: `${pc2}=20`, target: '', applied: false },
+        { key: 'conditions', value: `${pc1}+Poisoned`, target: '', applied: false },
+        { key: 'concentration', value: `${pc2}=Hypnotic Pattern`, target: '', applied: false },
+      ]
+    },
+    {
+      label: 'Items+Gold',
+      mechanics: [
+        { key: 'item_add', value: `${pc1},Cloak of Elvenkind,wondrous,attuned`, target: '', applied: false },
+        { key: 'item_add', value: `${pc2},Lute of Illusions,wondrous,none`, target: '', applied: false },
+        { key: 'wagon_add', value: '3 Healing Potions,potion,none', target: '', applied: false },
+        { key: 'income', value: '150,loot,bandit chest', target: '', applied: false },
+      ]
+    },
+    {
+      label: 'Quest+NPC',
+      mechanics: [
+        { key: 'quest_add', value: 'Find the missing blacksmith|He disappeared 3 days ago|Thornvale', target: '', applied: false },
+        { key: 'npc_add', value: 'Captain Voss,guard captain,stern but fair,Thornvale garrison', target: '', applied: false },
+        { key: 'npc_mood', value: 'Captain Voss=friendly', target: '', applied: false },
+        { key: 'consequence_add', value: 'Bandits regroup in 3 days|3 days|The bandit camp will be reinforced', target: '', applied: false },
+      ]
+    },
+    {
+      label: 'World',
+      mechanics: [
+        { key: 'location', value: 'Thornvale Market Square', target: '', applied: false },
+        { key: 'time', value: 'Late Afternoon', target: '', applied: false },
+        { key: 'weather', value: 'Overcast, light drizzle', target: '', applied: false },
+        { key: 'location_add', value: 'Thornvale Market Square|town_square|A bustling marketplace', target: '', applied: false },
+        { key: 'chapter_add', value: 'The Road to Thornvale|The party arrived after a day of travel', target: '', applied: false },
+      ]
+    },
+    {
+      label: 'Roll',
+      mechanics: [
+        { key: 'roll_request', value: `Persuasion|14|${pc1}`, target: '', applied: false },
+      ]
+    },
+    {
+      label: 'Combat',
+      mechanics: [
+        { key: 'combat_start', value: 'Bandits ambush on the road', target: '', applied: false },
+        { key: 'zone_add_enemy', value: 'Bandit Leader|22|14|front|16', target: '', applied: false },
+        { key: 'zone_add_enemy', value: 'Bandit Archer|11|12|back|12', target: '', applied: false },
+      ]
+    },
+    {
+      label: 'Rest',
+      mechanics: [
+        { key: 'short_rest', value: 'party', target: '', applied: false },
+      ]
+    },
+    {
+      label: 'LongRest',
+      mechanics: [
+        { key: 'long_rest', value: 'party', target: '', applied: false },
+      ]
+    },
+    {
+      label: 'ConSave',
+      mechanics: [
+        { key: 'concentration', value: `${pc2}=Faerie Fire`, target: '', applied: false },
+        { key: 'hp', value: `${pc2}=20`, target: '', applied: false },
+      ]
+    },
+    {
+      label: 'TempHP',
+      mechanics: [
+        { key: 'temp_hp', value: `${pc1}=8`, target: '', applied: false },
+        { key: 'temp_hp', value: `${pc2}=5`, target: '', applied: false },
+      ]
+    },
+    {
+      label: 'HitDice',
+      mechanics: [
+        { key: 'hit_dice_use', value: `${pc1}=1`, target: '', applied: false },
+        { key: 'hit_dice_use', value: `${pc2}=2`, target: '', applied: false },
+      ]
+    },
+    {
+      label: 'Inspire',
+      mechanics: [
+        { key: 'inspiration', value: `${pc1}=grant`, target: '', applied: false },
+        { key: 'inspiration', value: `${pc2}=remove`, target: '', applied: false },
+      ]
+    },
+    {
+      label: 'DeathSave',
+      mechanics: [
+        { key: 'death_save', value: `${pc1}=success`, target: '', applied: false },
+        { key: 'death_save', value: `${pc1}=failure`, target: '', applied: false },
+      ]
+    },
+    {
+      label: 'RoundAdv',
+      mechanics: [
+        { key: 'round_advance', value: '', target: '', applied: false },
+      ]
+    },
+  ];
+}
 
 function runTestBatch(batch) {
   const { valid, rejected } = validateMechanics([...batch.mechanics]);
@@ -193,7 +197,7 @@ function runTestBatch(batch) {
 }
 
 function runAllDirect() {
-  for (const batch of DIRECT_TESTS) runTestBatch(batch);
+  for (const batch of getDirectTests()) runTestBatch(batch);
 }
 
 async function runScenarioPrompt(promptText) {
@@ -301,7 +305,7 @@ export default function DevTools(props) {
 
       {testMode() === 'direct' && (
         <div class="test-buttons">
-          {DIRECT_TESTS.map(b => (
+          {getDirectTests().map(b => (
             <button class="btn-test" onClick={() => runTestBatch(b)}>{b.label}</button>
           ))}
           <button class="btn-test btn-test-all" onClick={runAllDirect}>All</button>

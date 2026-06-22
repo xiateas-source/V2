@@ -3,20 +3,37 @@ import { store, setStore } from '../../state/index.js';
 import { callProvider } from '../../ai/providers.js';
 import { CHAR_BUILDER_SYSTEM } from '../../ai/setupPrompts.js';
 import { normalizeCharacter, validateCharacter } from '../../content/normalizer.js';
-import { buildCharacter, AVAILABLE_CLASSES, AVAILABLE_RACES } from '../../data/quickBuild.js';
+import { buildCharacter, AVAILABLE_CLASSES, AVAILABLE_RACES, STARTING_EQUIPMENT, getStartingGold } from '../../data/quickBuild.js';
 
 export default function CharCreate(props) {
   const [mode, setMode] = createSignal(null);
   const [draft, setDraft] = createSignal(null);
   const [draftErrors, setDraftErrors] = createSignal([]);
+  const [equipChoices, setEquipChoices] = createSignal({});
 
   function commitCharacter() {
     const char = draft();
     if (!char) return;
     const idx = store.campaign.characters.length;
     setStore('campaign', 'characters', idx, char);
+
+    const items = getSelectedEquipment(char.class, equipChoices());
+    if (items.length > 0) {
+      const carried = { ...store.campaign.inventory.carried };
+      carried[char.id] = items.map(i => ({ name: i.name, qty: i.qty, type: i.type, attunement: 'none', weight: i.weight || 0 }));
+      setStore('campaign', 'inventory', 'carried', carried);
+    }
+
+    const gold = getStartingGold(char.level || 1);
+    if (idx === 0) {
+      setStore('campaign', 'gold', 'gp', gold);
+    } else {
+      setStore('campaign', 'gold', 'gp', store.campaign.gold.gp + gold);
+    }
+
     setDraft(null);
     setMode(null);
+    setEquipChoices({});
   }
 
   function removeCharacter(idx) {
@@ -31,6 +48,11 @@ export default function CharCreate(props) {
     const { valid, errors } = validateCharacter(normalized);
     setDraftErrors(errors);
     setDraft(normalized);
+    setEquipChoices({});
+  }
+
+  function setChoice(groupIdx, optionIdx) {
+    setEquipChoices(prev => ({ ...prev, [groupIdx]: optionIdx }));
   }
 
   return (
@@ -89,6 +111,14 @@ export default function CharCreate(props) {
                 {([k, v]) => <span class="preview-ability">{k.toUpperCase()} {v}</span>}
               </For>
             </div>
+          </Show>
+          <Show when={STARTING_EQUIPMENT[draft()?.class]}>
+            <EquipmentPicker
+              className={draft().class}
+              level={draft().level}
+              choices={equipChoices()}
+              onChoice={setChoice}
+            />
           </Show>
           <Show when={draftErrors().length > 0}>
             <div class="preview-errors">
@@ -294,6 +324,64 @@ function QuickBuild(props) {
       <button class="qb-build" onClick={build} disabled={building()}>
         {building() ? 'Building...' : 'Build Character'}
       </button>
+    </div>
+  );
+}
+
+function getSelectedEquipment(className, choices) {
+  const data = STARTING_EQUIPMENT[className];
+  if (!data) return [];
+  const items = [...(data.always || [])];
+  for (let i = 0; i < (data.choices || []).length; i++) {
+    const group = data.choices[i];
+    const picked = choices[i] ?? 0;
+    const option = group.options[picked];
+    if (option) items.push(...option.items);
+  }
+  return items;
+}
+
+function EquipmentPicker(props) {
+  const data = () => STARTING_EQUIPMENT[props.className];
+
+  const selectedItems = () => {
+    if (!data()) return [];
+    return getSelectedEquipment(props.className, props.choices);
+  };
+
+  return (
+    <div class="equip-picker">
+      <label class="equip-picker-label">Starting Equipment</label>
+      <Show when={data()?.always?.length > 0}>
+        <div class="equip-always">
+          <For each={data().always}>
+            {(item) => <span class="equip-item-tag">{item.qty > 1 ? `${item.qty}x ` : ''}{item.name}</span>}
+          </For>
+        </div>
+      </Show>
+      <For each={data()?.choices || []}>
+        {(group, gi) => (
+          <div class="equip-choice-group">
+            <span class="equip-choice-label">{group.label}</span>
+            <div class="equip-choice-options">
+              <For each={group.options}>
+                {(opt, oi) => (
+                  <button
+                    class={`equip-chip ${(props.choices[gi()] ?? 0) === oi() ? 'active' : ''}`}
+                    onClick={() => props.onChoice(gi(), oi())}
+                  >
+                    {opt.label}
+                  </button>
+                )}
+              </For>
+            </div>
+          </div>
+        )}
+      </For>
+      <div class="equip-summary">
+        <span class="equip-gold">{getStartingGold(props.level || 1)} GP</span>
+        <span class="equip-item-count">{selectedItems().length} items</span>
+      </div>
     </div>
   );
 }
