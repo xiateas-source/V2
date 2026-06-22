@@ -193,7 +193,7 @@ function AdventureImport(props) {
         const json = JSON.parse(text);
         parsed = parseAdventure(json);
       } else {
-        parsed = parseMarkdownAdventure(text);
+        parsed = parseMarkdownAdventure(text, f.name);
       }
 
       if (!parsed) { setError('Could not parse adventure — check the file format'); setParsing(false); return; }

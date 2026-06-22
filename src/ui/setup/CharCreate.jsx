@@ -70,7 +70,12 @@ export default function CharCreate(props) {
       <Show when={draft()}>
         <div class="char-preview">
           <div class="preview-header" style={{ 'border-color': draft().color }}>
-            <span class="preview-name">{draft().name || 'Unnamed'}</span>
+            <input
+              class="preview-name-input"
+              value={draft().name || ''}
+              placeholder="Character name"
+              onInput={(e) => setDraft({ ...draft(), name: e.target.value })}
+            />
             <span class="preview-desc">{draft().race} {draft().class} Lv{draft().level}</span>
           </div>
           <div class="preview-stats">

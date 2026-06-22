@@ -1,12 +1,12 @@
-export function parseMarkdownAdventure(text) {
+export function parseMarkdownAdventure(text, fileName) {
   if (!text || typeof text !== 'string') return null;
 
   const lines = text.split('\n');
-  const name = extractTitle(lines);
-  if (!name) return null;
-
-  const chapters = splitChapters(lines);
+  const chapters = splitIntoChapters(lines);
   if (!chapters.length) return null;
+
+  const nameFromFile = fileName?.replace(/\.[^.]+$/, '') || null;
+  const name = nameFromFile || chapters[0]?.title || 'Imported Adventure';
 
   const moduleProgress = [];
   const allNpcs = [];
@@ -29,12 +29,10 @@ export function parseMarkdownAdventure(text) {
     }
   }
 
-  const premise = chapters[0]?.summary || '';
-
   return {
     name,
     setting: '',
-    premise,
+    premise: chapters[0]?.summary || '',
     moduleProgress,
     npcs: dedupeByName(allNpcs),
     locations: dedupeByName(allLocations),
@@ -42,52 +40,36 @@ export function parseMarkdownAdventure(text) {
   };
 }
 
-function extractTitle(lines) {
-  for (const line of lines) {
-    const m = line.match(/^#\s+(.+)/);
-    if (m) return m[1].trim();
-  }
-  return null;
-}
-
-function splitChapters(lines) {
-  const chapters = [];
+function splitIntoChapters(lines) {
+  const sections = [];
   let current = null;
   let bodyLines = [];
 
   for (const line of lines) {
+    const h1 = line.match(/^#\s+(.+)/);
     const h2 = line.match(/^##\s+(.+)/);
-    if (h2) {
-      if (current) {
-        chapters.push(buildChapter(current, bodyLines));
-      }
+
+    if (h1 && !line.startsWith('##')) {
+      if (current) sections.push({ title: current, body: bodyLines });
+      current = h1[1].trim();
+      bodyLines = [];
+    } else if (h2 && !current) {
       current = h2[1].trim();
       bodyLines = [];
     } else if (current) {
       bodyLines.push(line);
     }
   }
-  if (current) {
-    chapters.push(buildChapter(current, bodyLines));
-  }
+  if (current) sections.push({ title: current, body: bodyLines });
 
-  if (!chapters.length) {
-    const h1 = lines.find(l => l.match(/^#\s+/));
-    const h1idx = h1 ? lines.indexOf(h1) : 0;
-    const body = lines.slice(h1idx + 1).join('\n');
-    if (body.trim()) {
-      chapters.push(buildChapter(extractTitle(lines) || 'Chapter 1', lines.slice(h1idx + 1)));
-    }
-  }
-
-  return chapters;
+  return sections.map(s => buildChapter(s.title, s.body));
 }
 
 function buildChapter(title, bodyLines) {
   const body = bodyLines.join('\n');
   const summary = extractFirstParagraph(bodyLines);
   const npcs = extractNpcNames(body);
-  const locations = extractLocationNames(body);
+  const locations = extractKeyLocations(body);
   return { title, summary, npcs, locations };
 }
 
@@ -97,7 +79,7 @@ function extractFirstParagraph(lines) {
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed && started) break;
-    if (trimmed && !trimmed.startsWith('#') && !trimmed.startsWith('|') && !trimmed.startsWith('-')) {
+    if (trimmed && !trimmed.startsWith('#') && !trimmed.startsWith('|') && !trimmed.startsWith('-') && !trimmed.startsWith('>')) {
       started = true;
       para += (para ? ' ' : '') + trimmed;
     }
@@ -110,7 +92,6 @@ function extractNpcNames(text) {
   const patterns = [
     /\{@creature ([^}|]+)/g,
     /\{@npc ([^}|]+)/g,
-    /\*\*([A-Z][a-z]+ [A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\*\*/g,
   ];
   for (const pat of patterns) {
     let m;
@@ -122,18 +103,17 @@ function extractNpcNames(text) {
   return [...names];
 }
 
-function extractLocationNames(text) {
+function extractKeyLocations(text) {
   const locs = new Set();
-  const patterns = [
-    /\{@area ([^}|]+)/g,
-    /###\s+(.+)/g,
-  ];
-  for (const pat of patterns) {
-    let m;
-    while ((m = pat.exec(text)) !== null) {
-      const name = m[1].trim();
-      if (name.length > 2 && name.length < 60) locs.add(name);
-    }
+  const m = text.matchAll(/\{@area ([^}|]+)/g);
+  for (const match of m) {
+    const name = match[1].trim();
+    if (name.length > 2 && name.length < 60) locs.add(name);
+  }
+  const h2s = text.matchAll(/^##\s+(.+)/gm);
+  for (const match of h2s) {
+    const name = match[1].trim();
+    if (name.length > 2 && name.length < 60) locs.add(name);
   }
   return [...locs];
 }

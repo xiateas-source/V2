@@ -3746,6 +3746,23 @@ body {
   display: block;
 }
 
+.preview-name-input {
+  font-weight: 700;
+  font-size: var(--font-size-lg);
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--surface-2);
+  color: var(--text-primary);
+  padding: var(--spacing-xs) 0;
+  outline: none;
+}
+
+.preview-name-input:focus {
+  border-color: var(--accent);
+}
+
 .preview-desc {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
