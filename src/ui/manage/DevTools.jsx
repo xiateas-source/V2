@@ -3,6 +3,7 @@ import { sendMsg, isSending } from '../../ai/engine.js';
 import { validateMechanics, applyMechanics } from '../../ai/mechanics.js';
 import { store, setStore } from '../../state/index.js';
 import { loadDemoCampaign } from '../../data/demo.js';
+import { buildCharacter, STARTING_EQUIPMENT, getStartingGold } from '../../data/quickBuild.js';
 
 const SCENARIOS = [
   {
@@ -205,6 +206,40 @@ async function runScenarioPrompt(promptText) {
   await sendMsg(promptText, { tab: 'narrative' });
 }
 
+function resetOnboard() {
+  setStore('campaign', 'characters', []);
+  setStore('campaign', 'inventory', 'carried', {});
+  setStore('campaign', 'gold', 'gp', 0);
+}
+
+async function runStartEquipTest() {
+  const char = await buildCharacter({ name: 'Test Fighter', race: 'Human', className: 'Fighter', level: 1 }, 0);
+  if (!char) return;
+  setStore('campaign', 'characters', 0, char);
+
+  const data = STARTING_EQUIPMENT.Fighter;
+  const items = [...(data.always || [])];
+  for (const group of (data.choices || [])) {
+    if (group.options[0]) items.push(...group.options[0].items);
+  }
+  const carried = { ...store.campaign.inventory.carried };
+  carried[char.id] = items.map(i => ({ name: i.name, qty: i.qty, type: i.type, attunement: 'none', weight: i.weight || 0 }));
+  setStore('campaign', 'inventory', 'carried', carried);
+  setStore('campaign', 'gold', 'gp', getStartingGold(1));
+
+  const msg = {
+    id: `nar_test_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    type: 'dm',
+    content: `[TEST] StartEquip — ${char.name} created, ${items.length} items, ${getStartingGold(1)} GP, inventory keys: ${Object.keys(carried).join(', ')}`,
+    mechanics: { applied: [], rejected: [] },
+    ts: Date.now(),
+    gameTs: null,
+    playerName: null,
+    partial: false,
+  };
+  setStore('campaign', 'narrative', [...store.campaign.narrative, msg]);
+}
+
 function exportResults() {
   const c = store.campaign;
   const out = {
@@ -315,6 +350,8 @@ export default function DevTools(props) {
       <div class="test-export-row">
         <button class="btn-test-export" onClick={exportResults} disabled={isSending()}>Export</button>
         <button class="btn-test" onClick={loadDemoCampaign}>Load Demo</button>
+        <button class="btn-test" onClick={resetOnboard}>Reset Onboard</button>
+        <button class="btn-test" onClick={runStartEquipTest}>StartEquip</button>
       </div>
     </div>
   );

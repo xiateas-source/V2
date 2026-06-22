@@ -3983,6 +3983,51 @@ body {
   color: var(--color-text-secondary);
 }
 
+.equip-mode-bar {
+  display: flex;
+  gap: 0;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+.equip-mode-chip {
+  flex: 1;
+  font-size: var(--font-size-xs);
+  padding: 8px 6px;
+  border: none;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  min-height: 36px;
+  border-right: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.equip-mode-chip:last-child {
+  border-right: none;
+}
+
+.equip-mode-chip.active {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-weight: 600;
+}
+
+.equip-default-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: var(--spacing-xs) 0;
+}
+
+.equip-gold-msg {
+  font-size: var(--font-size-sm);
+  color: #d4a017;
+  font-weight: 600;
+  padding: var(--spacing-md) 0;
+  text-align: center;
+}
+
 .charcreate-existing {
   display: flex;
   flex-wrap: wrap;

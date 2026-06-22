@@ -63,6 +63,7 @@ const CLASS_DATA = {
 
 export const STARTING_EQUIPMENT = {
   Fighter: {
+    goldOption: 155,
     always: [],
     choices: [
       {
@@ -97,6 +98,7 @@ export const STARTING_EQUIPMENT = {
     ],
   },
   Rogue: {
+    goldOption: 100,
     always: [
       { name: 'Leather Armor', qty: 1, type: 'armor', weight: 10 },
       { name: 'Dagger', qty: 2, type: 'weapon', weight: 1 },
@@ -128,6 +130,7 @@ export const STARTING_EQUIPMENT = {
     ],
   },
   Bard: {
+    goldOption: 90,
     always: [
       { name: 'Leather Armor', qty: 1, type: 'armor', weight: 10 },
       { name: 'Dagger', qty: 1, type: 'weapon', weight: 1 },

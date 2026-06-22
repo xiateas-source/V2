@@ -10,6 +10,7 @@ export default function CharCreate(props) {
   const [draft, setDraft] = createSignal(null);
   const [draftErrors, setDraftErrors] = createSignal([]);
   const [equipChoices, setEquipChoices] = createSignal({});
+  const [equipMode, setEquipMode] = createSignal('default');
 
   function commitCharacter() {
     const char = draft();
@@ -17,23 +18,37 @@ export default function CharCreate(props) {
     const idx = store.campaign.characters.length;
     setStore('campaign', 'characters', idx, char);
 
-    const items = getSelectedEquipment(char.class, equipChoices());
-    if (items.length > 0) {
-      const carried = { ...store.campaign.inventory.carried };
-      carried[char.id] = items.map(i => ({ name: i.name, qty: i.qty, type: i.type, attunement: 'none', weight: i.weight || 0 }));
-      setStore('campaign', 'inventory', 'carried', carried);
-    }
+    const eMode = equipMode();
+    const classData = STARTING_EQUIPMENT[char.class];
 
-    const gold = getStartingGold(char.level || 1);
-    if (idx === 0) {
-      setStore('campaign', 'gold', 'gp', gold);
+    if (eMode === 'gold') {
+      const goldAmount = classData?.goldOption || getStartingGold(char.level || 1);
+      if (idx === 0) {
+        setStore('campaign', 'gold', 'gp', goldAmount);
+      } else {
+        setStore('campaign', 'gold', 'gp', store.campaign.gold.gp + goldAmount);
+      }
     } else {
-      setStore('campaign', 'gold', 'gp', store.campaign.gold.gp + gold);
+      const items = eMode === 'customize'
+        ? getSelectedEquipment(char.class, equipChoices())
+        : getDefaultEquipment(char.class);
+      if (items.length > 0) {
+        const carried = { ...store.campaign.inventory.carried };
+        carried[char.id] = items.map(i => ({ name: i.name, qty: i.qty, type: i.type, attunement: 'none', weight: i.weight || 0 }));
+        setStore('campaign', 'inventory', 'carried', carried);
+      }
+      const gold = getStartingGold(char.level || 1);
+      if (idx === 0) {
+        setStore('campaign', 'gold', 'gp', gold);
+      } else {
+        setStore('campaign', 'gold', 'gp', store.campaign.gold.gp + gold);
+      }
     }
 
     setDraft(null);
     setMode(null);
     setEquipChoices({});
+    setEquipMode('default');
   }
 
   function removeCharacter(idx) {
@@ -49,6 +64,7 @@ export default function CharCreate(props) {
     setDraftErrors(errors);
     setDraft(normalized);
     setEquipChoices({});
+    setEquipMode('default');
   }
 
   function setChoice(groupIdx, optionIdx) {
@@ -118,6 +134,8 @@ export default function CharCreate(props) {
               level={draft().level}
               choices={equipChoices()}
               onChoice={setChoice}
+              equipMode={equipMode()}
+              onModeChange={setEquipMode}
             />
           </Show>
           <Show when={draftErrors().length > 0}>
@@ -328,6 +346,17 @@ function QuickBuild(props) {
   );
 }
 
+function getDefaultEquipment(className) {
+  const data = STARTING_EQUIPMENT[className];
+  if (!data) return [];
+  const items = [...(data.always || [])];
+  for (const group of (data.choices || [])) {
+    const firstOption = group.options[0];
+    if (firstOption) items.push(...firstOption.items);
+  }
+  return items;
+}
+
 function getSelectedEquipment(className, choices) {
   const data = STARTING_EQUIPMENT[className];
   if (!data) return [];
@@ -344,44 +373,88 @@ function getSelectedEquipment(className, choices) {
 function EquipmentPicker(props) {
   const data = () => STARTING_EQUIPMENT[props.className];
 
-  const selectedItems = () => {
+  const defaultItems = () => {
+    if (!data()) return [];
+    return getDefaultEquipment(props.className);
+  };
+
+  const customItems = () => {
     if (!data()) return [];
     return getSelectedEquipment(props.className, props.choices);
   };
 
+  const goldAmount = () => data()?.goldOption || getStartingGold(props.level || 1);
+
   return (
     <div class="equip-picker">
       <label class="equip-picker-label">Starting Equipment</label>
-      <Show when={data()?.always?.length > 0}>
-        <div class="equip-always">
-          <For each={data().always}>
-            {(item) => <span class="equip-item-tag">{item.qty > 1 ? `${item.qty}x ` : ''}{item.name}</span>}
+      <div class="equip-mode-bar">
+        <button
+          class={`equip-mode-chip ${props.equipMode === 'default' ? 'active' : ''}`}
+          onClick={() => props.onModeChange('default')}
+        >Default Pack</button>
+        <button
+          class={`equip-mode-chip ${props.equipMode === 'customize' ? 'active' : ''}`}
+          onClick={() => props.onModeChange('customize')}
+        >Customize</button>
+        <button
+          class={`equip-mode-chip ${props.equipMode === 'gold' ? 'active' : ''}`}
+          onClick={() => props.onModeChange('gold')}
+        >Take {goldAmount()} GP</button>
+      </div>
+
+      <Show when={props.equipMode === 'default'}>
+        <div class="equip-default-list">
+          <For each={defaultItems()}>
+            {(item) => (
+              <span class="equip-item-tag">{item.qty > 1 ? `${item.qty}x ` : ''}{item.name}</span>
+            )}
           </For>
         </div>
+        <div class="equip-summary">
+          <span class="equip-gold">{getStartingGold(props.level || 1)} GP</span>
+          <span class="equip-item-count">{defaultItems().length} items</span>
+        </div>
       </Show>
-      <For each={data()?.choices || []}>
-        {(group, gi) => (
-          <div class="equip-choice-group">
-            <span class="equip-choice-label">{group.label}</span>
-            <div class="equip-choice-options">
-              <For each={group.options}>
-                {(opt, oi) => (
-                  <button
-                    class={`equip-chip ${(props.choices[gi()] ?? 0) === oi() ? 'active' : ''}`}
-                    onClick={() => props.onChoice(gi(), oi())}
-                  >
-                    {opt.label}
-                  </button>
-                )}
-              </For>
-            </div>
+
+      <Show when={props.equipMode === 'customize'}>
+        <Show when={data()?.always?.length > 0}>
+          <div class="equip-always">
+            <For each={data().always}>
+              {(item) => <span class="equip-item-tag">{item.qty > 1 ? `${item.qty}x ` : ''}{item.name}</span>}
+            </For>
           </div>
-        )}
-      </For>
-      <div class="equip-summary">
-        <span class="equip-gold">{getStartingGold(props.level || 1)} GP</span>
-        <span class="equip-item-count">{selectedItems().length} items</span>
-      </div>
+        </Show>
+        <For each={data()?.choices || []}>
+          {(group, gi) => (
+            <div class="equip-choice-group">
+              <span class="equip-choice-label">{group.label}</span>
+              <div class="equip-choice-options">
+                <For each={group.options}>
+                  {(opt, oi) => (
+                    <button
+                      class={`equip-chip ${(props.choices[gi()] ?? 0) === oi() ? 'active' : ''}`}
+                      onClick={() => props.onChoice(gi(), oi())}
+                    >
+                      {opt.label}
+                    </button>
+                  )}
+                </For>
+              </div>
+            </div>
+          )}
+        </For>
+        <div class="equip-summary">
+          <span class="equip-gold">{getStartingGold(props.level || 1)} GP</span>
+          <span class="equip-item-count">{customItems().length} items</span>
+        </div>
+      </Show>
+
+      <Show when={props.equipMode === 'gold'}>
+        <div class="equip-gold-msg">
+          Start with {goldAmount()} GP — buy equipment during play
+        </div>
+      </Show>
     </div>
   );
 }
