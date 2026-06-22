@@ -4,11 +4,11 @@ const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 const GEMINI_FALLBACK_ORDER = [
-  'gemini-3.1-flash-lite',
-  'gemini-2.5-flash-lite',
-  'gemini-2.5-flash',
   'gemini-3.5-flash',
-  'gemini-3-flash-preview',
+  'gemini-3.1-flash-lite',
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-2.5-pro',
 ];
 
 const MAX_RETRIES = 3;
@@ -18,7 +18,7 @@ function getProviderConfig() {
   const { providers } = store.system;
   return {
     primary: providers.primary,
-    geminiModel: providers.geminiModel || 'gemini-3.1-flash-lite',
+    geminiModel: providers.geminiModel || 'gemini-3.5-flash',
     geminiKey: providers.geminiKey,
     openrouterKey: providers.openrouterKey,
     health: providers.health,

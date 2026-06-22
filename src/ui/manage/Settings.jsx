@@ -3,18 +3,17 @@ import { store, setStore } from '../../state/index.js';
 import { saveKeys as persistKeys, saveProviderSettings } from '../../data/keys.js';
 
 const GEMINI_MODELS = [
-  { id: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash-Lite (free, working)' },
-  { id: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite (free, stable)' },
-  { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (free)' },
   { id: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash (free, newest)' },
-  { id: 'gemini-3-flash-preview', label: 'Gemini 3 Flash Preview (free)' },
+  { id: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash-Lite (free, fast)' },
+  { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (free)' },
+  { id: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite (free)' },
   { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro (paid)' },
 ];
 
 export default function Settings() {
   const [gemKey, setGemKey] = createSignal(store.system.providers.geminiKey);
   const [orKey, setOrKey] = createSignal(store.system.providers.openrouterKey);
-  const [model, setModel] = createSignal(store.system.providers.geminiModel || 'gemini-2.0-flash-lite');
+  const [model, setModel] = createSignal(store.system.providers.geminiModel || 'gemini-3.5-flash');
   const [saved, setSaved] = createSignal(false);
 
   function saveKeys() {
