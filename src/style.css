@@ -3913,6 +3913,14 @@ body {
   margin: 0;
 }
 
+.config-link {
+  display: inline-block;
+  font-size: var(--font-size-sm);
+  color: var(--color-accent);
+  text-decoration: none;
+  margin-bottom: 8px;
+}
+
 /* Adventure Preview */
 
 .adventure-preview {

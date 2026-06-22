@@ -201,6 +201,7 @@ function AdventureImport(props) {
   return (
     <div class="adventure-import">
       <button class="builder-back" onClick={props.onBack}>&larr; Back</button>
+      <a class="config-link" href="https://5e.tools/adventures.html" target="_blank" rel="noopener">5e.tools Adventures ↗</a>
       <p class="config-hint">Paste adventure JSON exported from 5e.tools</p>
       <textarea
         class="paste-area"
