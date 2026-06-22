@@ -189,6 +189,21 @@ function checkRejection(mech) {
       if (current <= 0) return `${name} has no level ${levelStr} slots remaining`;
     }
   }
+  if (mech.key === 'pc_update' || mech.key === 'pc_add' || mech.key === 'pc_delete') {
+    return 'PC structure is system-owned — use character wizard';
+  }
+  if (mech.key === 'item_add') {
+    const parts = mech.value.split(',').map(s => s.trim());
+    const pcIdx = findPCIndex(parts[0]);
+    const STORAGE_TARGETS = ['wagon', 'cargo', 'hoard', 'party'];
+    const isStorage = STORAGE_TARGETS.includes(parts[0].toLowerCase());
+    if (!pcIdx && pcIdx !== 0 && !isStorage && parts.length >= 3) {
+      const looksLikePcName = /^[A-Z][a-z]/.test(parts[0]) && parts[0].split(' ').length <= 3;
+      if (looksLikePcName && findPCIndex(parts[0]) === -1) {
+        mech._warning = `PC "${parts[0]}" not found — item goes to wagon`;
+      }
+    }
+  }
   return null;
 }
 
@@ -762,7 +777,8 @@ const DISPATCH = {
   },
 
   death_save(value) {
-    const [name, result] = value.split('|').map(s => s.trim());
+    const sep = value.includes('|') ? '|' : '=';
+    const [name, result] = value.split(sep).map(s => s.trim());
     const idx = findPCIndex(name);
     if (idx === -1) return;
     const saves = { ...store.campaign.characters[idx].deathSaves };
@@ -864,7 +880,8 @@ const DISPATCH = {
     const [, name, op, val] = match.map(s => s?.trim());
     const idx = findPCIndex(name);
     if (idx === -1) return;
-    if (op === '-' || val === 'false') {
+    const removals = ['false', 'remove', 'off', 'no', 'revoke'];
+    if (op === '-' || removals.includes(val.toLowerCase())) {
       aiSet(`characters.${idx}.inspiration`, false);
     } else {
       aiSet(`characters.${idx}.inspiration`, true);
@@ -930,9 +947,9 @@ const DISPATCH = {
 
   spell_add() {},
 
-  pc_update() {},
-  pc_add() {},
-  pc_delete() {},
+  pc_update() { throw new Error('PC structure is system-owned'); },
+  pc_add() { throw new Error('PC structure is system-owned'); },
+  pc_delete() { throw new Error('PC structure is system-owned'); },
 };
 
 function applyCurrency(key, value) {
