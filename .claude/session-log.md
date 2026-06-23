@@ -1,34 +1,38 @@
 # Session Log — Handoff Note
 
-## Session 39 · 2026-06-23 — Doc reconciliation (build-forward baseline)
+## Session 39 · 2026-06-23 — Doc reconciliation → visual-style exploration
 
-**Decision:** Restart from the committed state. NOT recovering the lost uncommitted onboarding — building forward from what's in git.
+**Two halves this session:** (1) reconciled docs to reality, (2) began the interface by finding a visual style (lots of mockup iteration, landed on a strong working direction).
 
-**Verified baseline (clean ground to build on):**
-- `npm install` clean · **33/33 tests pass** · `npm run build` succeeds (~143kB gzip main chunk).
+### Half 1 — Reconciliation (build-forward baseline)
+- **Decision:** restart from committed state; NOT recovering the lost uncommitted onboarding.
+- Verified baseline: `npm install` clean · **33/33 tests pass** · `npm run build` clean (~143kB gzip).
+- Added a **Reality Snapshot** to `workboard.md` superseding the drifted Phase-0–8 checkboxes; every `src/` file tiered (✅ tested / 🟢 real / 🟠 face / ⛔ stub / ◻️ absent).
+- **Key truth:** the app is a **face** — engine is the real, partly-tested asset; the *playable experience does not exist*. Only onboarding (half) + combat are built for the player; everything else is loose components.
+- **Root cause of the face (code trace):** no local persistence (`sync.js` is Firebase-only; boot never reloads a campaign — `loadCampaignFromCloud` unused), so every reload wipes `campaign.id` → back to onboarding; nothing endures. Law 1 offline-fallback NOT implemented. Annotated architecture.md accordingly.
+- **DECISION: build the interface FIRST** (connective play surface + local-first persistence spine), then fill stubs / harden engine.
 
-**Shipped this session:**
-- Reconciled `workboard.md` — added a **Reality Snapshot** at the top that supersedes the drifted Phase-0–8 checkboxes. Every `src/` file classified by tier (✅ tested / 🟢 real / 🟡 partial / ⛔ stub / ◻️ absent) with line counts + verification basis. The old Phase plan is kept below as design reference, explicitly marked superseded.
+### Half 2 — Visual style (the interface starts here)
+- Established the right framing through developer corrections: **color is already decided** (10 dark + 10 light rotating palettes) — style is the palette-independent skeleton. Avoid skeuomorphism (developer: an over-textured pass "looked like an early iOS game").
+- **Landed direction → `modern-atmospheric.html`** (root): modern/atmospheric register — real type system (Cinzel + EB Garamond + Inter), flat panels, sparing gold, faint grain, **Phosphor icon set** (no emoji), **monogram avatars** + per-PC color ring, compact **party HUD frames** w/ active-turn highlight, **combat strip** (combat-only), **d20 dice icon** (inline SVG) on roll prompt + dice-roller button.
+- **Player-experience pass** grounded in `player-requests-v2.md` + Five Laws: 16px input (no iOS zoom), **tap-to-source** (mechanic pills as buttons, linked NPC names, glossary-linked terms), **situation bar** with urgency-sorted consequences + **`+N` overflow → Journal**, **listen** controls (header toggle + per-message speaker), single-line **slim context banner**.
+- Deleted the failed style mockups; kept `modern-atmospheric.html` (working base), `charsheet-mockup.html`, `palette-sampler.html`.
 
-**Key correction — THE app is a face (developer review, mid-session):**
-- My first reconciliation pass repeated S37's mistake: I read code presence + store-wiring (`InputBar.handleSend → engine.sendMsg`, Chat rendering pills/drift) as "functional UI." Developer corrected: **it is just a face — not functionally built for a player to interact with. You cannot actually sit down and play it.**
-- Resolved framing (now in workboard): two axes. **Engine = real logic, partly unit-tested (the asset).** **Playable experience = does not exist yet.** UI files reclassified 🟢→🟠 **face** (renders + wired, NOT playable). Verify playability by playing, never by reading code.
-- S37 vs S38 conflict resolved toward **S38**: it was a face all along; S37 confused "deployed a build" with "playable."
-- True ⛔ stubs (1-line, genuinely empty): Treasury, Glossary, SessionReview, Contracts, ContentImport, SessionZero, AppSimple, shared/* (MechPill/Modal/Nav/Toast/LevelUp), RollRequest, jsonParser/mdParser/webParser, bundles, migrate, elevenlabs.
+### Decisions locked this session (in decisions.md)
+- Situation-bar overflow = `+N` chip → Journal's "Active Consequences (N)" (urgency-sorted; chosen over pure horizontal scroll). "For now."
+- Context banner = single slim line (location · time · weather icon · listen).
 
-**Staleness spot-check (CLAUDE.md step 6):** architecture.md nav (Cargo/Journal/Settings) matches `App.jsx`. ✅ No fix needed.
+### Known issues / open
+- **Style not formally locked** — `modern-atmospheric.html` is the strong working direction, not yet declared THE style. Lock it when ready, then build in SolidJS.
+- **Nav discrepancy:** mockup shows a 4-item bar (Cargo/**Play**/Journal/Settings); architecture/decisions say 3-item (Cargo/Journal/Settings, Play = default home). Resolve before building (4-item w/ explicit Play, or revert to 3).
+- **Review items 5–9 still open:** rewind/checkpoint access in play, tappable PC frame→sheet + condition→clear, initiative chip strip, dual (wall+game) timestamps, tab naming (spec=Narrative/OOC; mockup drifted to "Table-talk").
 
-**Developer's sharper truth (the real "where we are"):** Only **two** things are built FOR THE PLAYER — (1) **onboarding, half-done** and (2) the **combat system**. Everything else is loose components, not a built interface. That's *why every session gets confused*: the components look like an app, so each fresh Claude assumes the interface exists. The engine is a brain with no body.
+### Next up
+1. Lock the visual style (modern-atmospheric direction).
+2. Resolve the nav discrepancy + review items 5–9.
+3. **Build the real interface in SolidJS** on the working engine — start with the **persistence spine** (the root cause of the face) so a session survives reload.
 
-**Diagnosis confirming it (code trace):**
-- *No persistence:* `sync.js` writes campaign state to Firebase only — no local save; boot (`main.jsx`) never reloads a campaign (`loadCampaignFromCloud` unused). Reload wipes `campaign.id` → dumps back to onboarding. Law 1 offline-fallback NOT implemented.
-- *Feels inert:* play UI only renders when `campaign.id !== ''` (set only at end of onboarding), and nothing you do endures, so it reads as fake even though some handlers (e.g. CharTiles→CharSheet) are wired.
-
-**DECISION (S39): build the interface FIRST.** The connective play surface + local-first persistence spine. Engine, combat, and onboarding plug into it. Don't fill stubs or harden the engine first.
-
-**Next up:** Build the real play interface. Open scoping question for next turn: evolve the working Chat/CharTiles/combat into a coherent shell vs. design fresh from mockups/specs; and what the player's main screen centers on. Developer leans "see it, don't read about it" — show live UI, not descriptions.
-
-**Branch state:** `claude/new-session-mr3qge`. (was at 90d96a4 at session start)
+**Branch state:** consolidated — this session merged to **main**; `claude/new-session-mr3qge`, `claude/transfer-v2-planning-docs-hlibvu` (orphan), and `gh-pages` (stale) pruned. **Work from `main` going forward.**
 
 ---
 

@@ -92,6 +92,7 @@ S37: **"shipped, deployed, playable."** S38: **"mockup only, throwaway."** Devel
 
 ### Honest "what's left" (build-forward priorities)
 0. **BUILD THE INTERFACE.** The connective play surface — the body the engine/combat/onboarding plug into. This is the gate everything else waits behind.
+   - **S39 progress:** play-screen **visual style** prototyped in `modern-atmospheric.html` (modern/atmospheric, Phosphor icons, serif+sans type, party HUD, situation bar w/ consequence overflow, dice d20, listen, tap-to-source). Strong working direction, **not yet formally locked**. Open: nav 3-item vs 4-item (Play), review items 5–9. Next: lock style → build in SolidJS starting with the persistence spine.
 1. **Persistence spine (part of the interface):** `sync.js` writes campaign state to **Firebase only** — no local save, and boot never reloads a campaign (`loadCampaignFromCloud` exists but is never called). So every reload wipes `campaign.id` → back to step-0 onboarding, nothing endures. The architecture.md "offline→localStorage, reconcile on reconnect" (Law 1) is **NOT implemented.** Build local-first persistence + boot restore as part of the interface.
 2. ⛔ True stubs to fill *after* the interface holds: Treasury, Glossary, SessionReview, Contracts, ContentImport, SessionZero.
 3. ◻️ Absent: multiplayer identity, push notifications, child view (AppSimple), shared bundles, state migration.
