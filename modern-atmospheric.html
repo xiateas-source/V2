@@ -35,7 +35,18 @@
   /* ── header ── */
   .head{padding:11px 16px 9px;display:flex;align-items:center;gap:10px;}
   .head .loc{font-family:var(--disp);font-size:15px;letter-spacing:.08em;color:var(--text);text-transform:uppercase;}
-  .head .meta{margin-left:auto;font-size:11px;color:var(--faint);text-align:right;line-height:1.35;}
+  .head .meta{font-size:11px;color:var(--faint);text-align:right;line-height:1.35;}
+  /* tap-to-source links + listen controls + consequence chip (review 1–4) */
+  .head-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+  .tts{width:30px;height:30px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    background:var(--surface);border:1px solid var(--line);color:var(--gold);font-size:15px;}
+  .tts:not(.on){color:var(--faint);}
+  .say{display:inline-flex;align-items:center;color:var(--gold-dim);font-size:13px;}
+  .npc{color:var(--text);border-bottom:1px dashed var(--gold);cursor:pointer;}
+  .term{border-bottom:1px dotted var(--muted);cursor:help;}
+  .csq{display:flex;align-items:center;gap:4px;font-size:10px;padding:3px 8px;border-radius:5px;white-space:nowrap;
+    color:#e7c39a;background:rgba(224,168,62,.13);border:1px solid rgba(224,168,62,.34);}
+  .csq i{font-size:12px;color:var(--warn);}
   .head .meta b{color:var(--muted);font-weight:500;}
 
   /* ── party: compact HUD frames ── */
@@ -92,12 +103,14 @@
 
   /* ── chat ── */
   .feed{flex:1;min-height:0;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:16px;}
-  .who{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-dim);margin-bottom:7px;}
+  .who{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-dim);margin-bottom:7px;display:flex;align-items:center;gap:7px;}
   .dm{font-family:var(--serif);font-size:15.5px;line-height:1.68;color:#e4dccb;}
   .dm em{font-style:italic;color:var(--gold);}
   .tags{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap;}
-  .tag{font-size:10px;color:var(--muted);padding:3px 9px;border:1px solid var(--line);border-radius:13px;letter-spacing:.02em;}
-  .tag .i{color:var(--gold);margin-right:3px;}
+  /* mechanic pills — tappable (tap-to-source) */
+  .tag{font-size:10px;color:var(--text);padding:4px 10px;background:var(--surface-2);border:1px solid var(--line);border-radius:13px;letter-spacing:.02em;cursor:pointer;display:inline-flex;align-items:center;}
+  .tag .i{color:var(--gold);margin-right:4px;}
+  .tag .go{color:var(--faint);margin-left:5px;font-size:10px;}
   .me{align-self:flex-end;max-width:80%;}
   .me .b{font-family:var(--serif);font-size:14.5px;line-height:1.5;color:#e8e2d4;padding:9px 13px;border-radius:13px;
     background:var(--surface-2);border-left:2px solid var(--ring,#c9a25a);}
@@ -120,7 +133,7 @@
 
   /* ── input ── */
   .input{padding:10px 14px;display:flex;gap:11px;align-items:center;border-top:1px solid var(--line-soft);}
-  .field{flex:1;font-family:var(--serif);font-size:14px;color:var(--faint);padding:11px 16px;
+  .field{flex:1;font-family:var(--serif);font-size:16px;color:var(--faint);padding:10px 16px;
     background:var(--surface);border:1px solid var(--line-soft);border-radius:22px;font-style:italic;}
   .dice{width:44px;height:44px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
     background:var(--surface);border:1px solid var(--line);color:var(--gold);}
@@ -152,7 +165,10 @@
     <div class="stage">
       <div class="head">
         <span class="loc">Hunting Lodge Ruins</span>
-        <span class="meta"><b>Day 26</b> · 1:15 AM<br>clear · no moon</span>
+        <div class="head-right">
+          <button class="tts on" aria-label="Read aloud"><i class="ph ph-speaker-high"></i></button>
+          <span class="meta"><b>Day 26</b> · 1:15 AM<br>clear · no moon</span>
+        </div>
       </div>
       <div class="hr"></div>
 
@@ -177,6 +193,7 @@
 
       <div class="quests">
         <span class="qmain"><span class="t">Stop the Cult</span></span>
+        <span class="csq"><i class="ph ph-hourglass-high"></i>Ritual · 2 days</span>
         <span class="q">find the egg</span><span class="qdot">·</span><span class="q">rescue Leosin</span>
       </div>
 
@@ -193,9 +210,9 @@
 
       <div class="feed">
         <div>
-          <div class="who">Dungeon Master</div>
-          <div class="dm">The lodge's broken door hangs on one hinge. <em>Ivy</em>, your boots find old bloodstains beneath the ash — something moved through here recently, and not long ago. A low growl rolls out of the black doorway ahead, wet and deliberate.
-            <div class="tags"><span class="tag"><i class="ph ph-sword i"></i>Combat begins</span><span class="tag"><i class="ph ph-skull i"></i>Kobold</span><span class="tag"><i class="ph ph-map-pin i"></i>Lodge interior</span></div>
+          <div class="who">Dungeon Master <button class="say" aria-label="Read this aloud"><i class="ph ph-speaker-simple-high"></i></button></div>
+          <div class="dm">The lodge's broken door hangs on one hinge. <em>Ivy</em>, your boots find old bloodstains beneath the ash — something moved through here recently. A low growl rolls from the dark, and you remember the captive you came for: <span class="npc">Leosin</span> is still somewhere below. Stay <span class="term">Hidden</span> and it may not hear you.
+            <div class="tags"><span class="tag"><i class="ph ph-sword i"></i>Combat begins<i class="ph ph-arrow-up-right go"></i></span><span class="tag"><i class="ph ph-skull i"></i>Kobold<i class="ph ph-arrow-up-right go"></i></span><span class="tag"><i class="ph ph-map-pin i"></i>Lodge interior<i class="ph ph-arrow-up-right go"></i></span></div>
           </div>
         </div>
 
@@ -243,7 +260,7 @@
     <div class="d">restraint · type hierarchy · gold used sparingly</div>
   </div>
   <div class="note">
-    Added a real <b>d20 icon</b> (inline SVG, palette-tinted) — the roll prompt is now an actual die, and the input bar has a <b>dice-roller button</b>. Plus the compact party HUD frames, active-turn highlight, and combat strip. Full polyhedral set (d4–d20) would live in the dice-roller overlay. (Icons + fonts load from CDN — needs internet.)
+    Player-experience pass (review 1–4): <b>① input is 16px</b> (no iOS zoom). <b>② tap-to-source</b> — mechanic pills now read as buttons (↗ = navigates to source), NPC names are linked (<span style="border-bottom:1px dashed #c9a25a">Leosin</span>), and D&D terms are glossary-linked (<span style="border-bottom:1px dotted #9a9180">Hidden</span>, for the kid player). <b>③ situation bar</b> now pins a distinct amber <b>consequence/countdown</b> (Ritual · 2 days) after the main quest. <b>④ listen</b> — global read-aloud toggle in the header + a per-message speaker (eyes-free, Law 3).
   </div>
 </body>
 </html>
