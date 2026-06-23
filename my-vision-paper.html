@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerer's Chronograph — Ink & Paper (my vision)</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{min-height:100vh;display:flex;flex-direction:column;align-items:center;
+    background:radial-gradient(120% 90% at 50% 0%,#3a3026 0%,#241d14 60%,#15100a 100%);
+    font-family:'Iowan Old Style','Palatino Linotype',Georgia,serif;padding:16px 12px 36px;color:#e9dcc0;}
+  .title{font-size:20px;letter-spacing:.14em;color:#d8c49a;margin:4px 0 13px;text-align:center;
+    font-variant:small-caps;text-shadow:0 1px 2px rgba(0,0,0,.6);}
+
+  .phone{width:360px;max-width:96vw;height:782px;border-radius:34px;overflow:hidden;
+    border:3px solid #0c0c0e;box-shadow:0 18px 50px rgba(0,0,0,.6),inset 0 0 0 2px #2a2a2e;
+    display:flex;flex-direction:column;position:relative;background:#0c0c0e;}
+
+  /* ── the page: aged cream paper ── */
+  .screen{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;
+    background:
+      radial-gradient(140% 100% at 50% -10%, #f3ead2 0%, #e9ddbe 45%, #ddcfa8 100%);
+    color:#36291a;}
+  /* procedural paper grain + foxing stains, layered over the cream */
+  .grain{position:absolute;inset:0;pointer-events:none;mix-blend-mode:multiply;opacity:.5;z-index:0;}
+  .foxing{position:absolute;inset:0;pointer-events:none;z-index:0;opacity:.5;
+    background:
+      radial-gradient(circle at 18% 22%, rgba(150,110,60,.16) 0 6px, transparent 22px),
+      radial-gradient(circle at 82% 14%, rgba(150,110,60,.12) 0 4px, transparent 16px),
+      radial-gradient(circle at 70% 78%, rgba(140,100,55,.14) 0 7px, transparent 26px),
+      radial-gradient(circle at 30% 88%, rgba(150,110,60,.10) 0 5px, transparent 18px);}
+  .vignette{position:absolute;inset:0;pointer-events:none;z-index:1;
+    box-shadow:inset 0 0 60px rgba(90,60,25,.35), inset 0 0 14px rgba(60,40,15,.4);}
+  .leather-edge{position:absolute;left:0;top:0;bottom:0;width:14px;z-index:2;
+    background:linear-gradient(90deg,#2e1f12,#43301d 60%,rgba(67,48,29,0));
+    box-shadow:2px 0 6px rgba(0,0,0,.35);}
+  .stitch{position:absolute;left:6px;top:0;bottom:0;width:1px;z-index:3;
+    background:repeating-linear-gradient(180deg,#c9a86a 0 6px,transparent 6px 13px);opacity:.6;}
+  .content{position:relative;z-index:4;display:flex;flex-direction:column;flex:1;min-height:0;padding-left:8px;}
+
+  /* ── header: stamped location + date ── */
+  .head{padding:11px 14px 6px 16px;display:flex;align-items:flex-end;gap:8px;border-bottom:1px solid rgba(90,60,25,.28);}
+  .head .loc{font-variant:small-caps;letter-spacing:.04em;font-size:16px;font-weight:700;color:#3a2410;}
+  .head .date{margin-left:auto;font-size:10px;font-style:italic;color:#7a5f38;text-align:right;line-height:1.3;}
+  .head .date b{color:#5a4528;font-style:normal;}
+
+  /* ── party: pasted-in cameo portraits with ribbon ── */
+  .party{display:flex;gap:12px;padding:11px 14px 9px 16px;}
+  .pc{flex:1;display:flex;gap:9px;align-items:center;}
+  .cameo-wrap{position:relative;flex-shrink:0;}
+  .cameo{width:46px;height:52px;border-radius:50% 50% 48% 48%/56% 56% 44% 44%;
+    background:radial-gradient(circle at 42% 34%,#d8b285,#8a5f38);
+    border:2px solid #f3ead2;box-shadow:0 2px 5px rgba(60,40,15,.5),inset 0 0 8px rgba(60,30,10,.4);
+    display:flex;align-items:center;justify-content:center;font-size:21px;}
+  .cameo::after{content:'';position:absolute;inset:-2px;border-radius:inherit;border:1px solid rgba(90,60,25,.4);}
+  .ribbon{position:absolute;left:50%;bottom:-5px;transform:translateX(-50%);width:30px;height:9px;
+    background:var(--ribbon);clip-path:polygon(0 0,100% 0,100% 100%,50% 70%,0 100%);box-shadow:0 1px 2px rgba(0,0,0,.4);}
+  .seal{position:absolute;top:-4px;right:-5px;width:17px;height:17px;border-radius:50%;
+    background:radial-gradient(circle at 38% 32%,#b8452f,#7a2a1c);border:1px solid #5a1f14;
+    font-size:9px;color:#f0d0b0;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 1px 2px rgba(0,0,0,.5);}
+  .pc-info{flex:1;min-width:0;}
+  .pc-name{font-variant:small-caps;font-weight:700;font-size:14px;color:#3a2410;letter-spacing:.02em;}
+  .pc-sub{font-size:9px;font-style:italic;color:#7a5f38;margin-top:-1px;}
+  .hp-line{display:flex;align-items:center;gap:5px;margin-top:4px;}
+  .hp-track{flex:1;height:6px;border-radius:3px;background:rgba(90,60,25,.25);overflow:hidden;
+    box-shadow:inset 0 1px 2px rgba(60,40,15,.4);}
+  .hp-fill{height:100%;}
+  .hp-num{font-size:9px;font-weight:700;color:#5a4528;min-width:30px;text-align:right;}
+  .pc-tags{display:flex;gap:4px;margin-top:4px;align-items:center;}
+  .tag{font-size:8px;font-variant:small-caps;letter-spacing:.03em;padding:1px 5px;border-radius:3px;
+    border:1px solid rgba(90,60,25,.4);color:#5a4528;}
+  .tag.warn{border-color:#9a6a2a;color:#7a4e16;background:rgba(180,130,50,.12);}
+  .tag.ac{margin-left:auto;border:none;color:#5a4528;font-weight:700;}
+
+  /* ── quest ribbon strip ── */
+  .quests{display:flex;gap:7px;padding:2px 14px 8px 16px;overflow:hidden;align-items:center;}
+  .q{font-size:10px;font-style:italic;padding:3px 9px;border-radius:2px;white-space:nowrap;
+    color:#5a4528;background:rgba(120,90,45,.10);border:1px solid rgba(90,60,25,.3);}
+  .q.main{font-style:normal;font-variant:small-caps;letter-spacing:.04em;color:#f0e2c2;
+    background:linear-gradient(160deg,#9a3a2a,#6a261a);border-color:#5a1f14;box-shadow:0 1px 3px rgba(0,0,0,.35);}
+
+  /* ── divider flourish ── */
+  .rule{display:flex;align-items:center;gap:8px;padding:2px 16px;color:#9a7038;}
+  .rule .l{flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(120,80,35,.5),transparent);}
+  .rule .g{font-size:11px;}
+
+  /* ── chat: printed DM, handwritten player ── */
+  .tabs{display:flex;gap:14px;padding:4px 16px 2px;font-size:12px;}
+  .tab{color:#9a7a4a;font-variant:small-caps;letter-spacing:.06em;padding-bottom:3px;border-bottom:2px solid transparent;}
+  .tab.on{color:#3a2410;font-weight:700;border-bottom:2px solid #8c3b2e;}
+  .tab .b{font-size:8px;background:#8c3b2e;color:#f0d0c0;border-radius:8px;padding:0 4px;margin-left:3px;vertical-align:top;}
+  .feed{flex:1;min-height:0;overflow-y:auto;padding:8px 16px 6px;display:flex;flex-direction:column;gap:14px;}
+  .who{font-size:8px;text-transform:uppercase;letter-spacing:.14em;color:#9a7038;margin-bottom:4px;}
+  .dm{font-size:14px;line-height:1.62;color:#33271a;}
+  .dm .drop{float:left;font-size:34px;line-height:.8;padding:2px 6px 0 0;color:#8c3b2e;font-weight:700;}
+  .dm em{font-style:italic;color:#7a4a18;}
+  .stamps{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;clear:both;}
+  .stamp{font-size:9px;font-variant:small-caps;letter-spacing:.04em;padding:2px 8px;
+    color:#6a3a22;border:1px dashed #a06038;border-radius:3px;background:rgba(160,96,56,.07);transform:rotate(-1.2deg);}
+  /* player = handwritten margin note */
+  .note-me{align-self:flex-end;max-width:78%;text-align:right;}
+  .note-me .ink{font-family:'Segoe Script','Bradley Hand','Snell Roundhand',cursive;font-size:15px;
+    color:#3a3a6a;line-height:1.4;transform:rotate(-.8deg);}
+  .note-me .by{font-size:8px;color:#9a7a4a;font-style:italic;margin-top:2px;}
+
+  /* roll request = wax seal call to action */
+  .roll{align-self:center;display:flex;align-items:center;gap:11px;padding:9px 14px;border-radius:4px;
+    background:rgba(140,100,50,.10);border:1px solid rgba(90,60,25,.35);box-shadow:0 1px 3px rgba(0,0,0,.12);}
+  .wax{width:38px;height:38px;flex-shrink:0;border-radius:50%;font-size:13px;font-weight:700;color:#f0d0b0;
+    background:radial-gradient(circle at 36% 30%,#b8452f,#6a241a);border:1px solid #5a1f14;
+    display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,.35),inset 0 -2px 4px rgba(0,0,0,.3);}
+  .roll-t{font-size:11px;color:#5a4528;line-height:1.35;}
+  .roll-t b{font-variant:small-caps;color:#3a2410;font-size:12px;letter-spacing:.03em;}
+  .roll-go{font-size:11px;font-variant:small-caps;letter-spacing:.05em;padding:5px 13px;border-radius:3px;
+    background:linear-gradient(160deg,#8c3b2e,#6a261a);color:#f0e2c2;font-weight:700;}
+
+  /* ── input: write in the margin ── */
+  .inputrow{padding:6px 14px 9px 16px;display:flex;gap:9px;align-items:center;border-top:1px solid rgba(90,60,25,.28);}
+  .field{flex:1;font-size:13px;color:#8a6f44;font-style:italic;padding:8px 4px;
+    border-bottom:1px solid rgba(90,60,25,.45);background:transparent;}
+  .quill{width:40px;height:40px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    font-size:18px;color:#f0e2c2;background:radial-gradient(circle at 38% 32%,#5a4528,#2e2012);
+    box-shadow:0 2px 5px rgba(0,0,0,.4);border:1px solid #6a4f28;}
+
+  /* ── nav: brass tabs on leather ── */
+  .nav{display:flex;background:linear-gradient(180deg,#2e1f12,#1c1208);padding:6px 8px 12px;gap:6px;z-index:4;position:relative;}
+  .nav .it{flex:1;text-align:center;font-size:9px;color:#9a7a4a;font-variant:small-caps;letter-spacing:.05em;padding:4px 0;}
+  .nav .it .gi{display:block;font-size:16px;margin-bottom:2px;filter:sepia(.5) brightness(.95);}
+  .nav .it.on{color:#e8c98a;}
+  .nav .it.on .gi{filter:none;}
+
+  .cap{margin-top:13px;text-align:center;}
+  .cap .n{font-size:15px;color:#d8c49a;font-variant:small-caps;letter-spacing:.06em;}
+  .cap .d{font-size:11px;color:#a98c5f;font-style:italic;margin-top:2px;}
+  .note{max-width:368px;font-size:11px;color:#9a8666;line-height:1.55;margin-top:12px;text-align:center;font-family:-apple-system,system-ui,sans-serif;}
+  .note b{color:#c9a25a;}
+</style>
+</head>
+<body>
+  <div class="title">Tinkerer's Chronograph</div>
+
+  <div class="phone"><div class="screen">
+    <!-- procedural paper grain (real fiber via SVG noise; a Texturelabs scan drops in here) -->
+    <svg class="grain" xmlns="http://www.w3.org/2000/svg">
+      <filter id="paper"><feTurbulence type="fractalNoise" baseFrequency="0.012 0.016" numOctaves="5" stitchTiles="stitch"/>
+        <feColorMatrix type="saturate" values="0"/></filter>
+      <filter id="tooth"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2"/>
+        <feColorMatrix type="saturate" values="0"/></filter>
+      <rect width="100%" height="100%" filter="url(#paper)"/>
+      <rect width="100%" height="100%" filter="url(#tooth)" opacity="0.35"/>
+    </svg>
+    <div class="foxing"></div>
+    <div class="vignette"></div>
+    <div class="leather-edge"></div>
+    <div class="stitch"></div>
+
+    <div class="content">
+      <div class="head">
+        <span class="loc">Hunting Lodge Ruins</span>
+        <span class="date"><b>Day 26</b> · 1:15 AM<br>clear, no moon</span>
+      </div>
+
+      <div class="party">
+        <div class="pc" style="--ribbon:#3f8f63">
+          <div class="cameo-wrap">
+            <div class="cameo">🗡️</div>
+            <div class="seal">⚔</div>
+            <div class="ribbon"></div>
+          </div>
+          <div class="pc-info">
+            <div class="pc-name">Ivy</div>
+            <div class="pc-sub">Rogue · 4</div>
+            <div class="hp-line"><div class="hp-track"><div class="hp-fill" style="width:100%;background:linear-gradient(90deg,#5e8a36,#9bc24e);"></div></div><span class="hp-num">31/31</span></div>
+            <div class="pc-tags"><span class="tag">hidden</span><span class="tag ac">🛡 15</span></div>
+          </div>
+        </div>
+        <div class="pc" style="--ribbon:#7a5fb0">
+          <div class="cameo-wrap">
+            <div class="cameo">🎻</div>
+            <div class="seal">♪</div>
+            <div class="ribbon"></div>
+          </div>
+          <div class="pc-info">
+            <div class="pc-name">Thorn</div>
+            <div class="pc-sub">Bard · 4</div>
+            <div class="hp-line"><div class="hp-track"><div class="hp-fill" style="width:66%;background:linear-gradient(90deg,#b8862e,#e0a83e);"></div></div><span class="hp-num">18/27</span></div>
+            <div class="pc-tags"><span class="tag warn">concentrating</span><span class="tag ac">🛡 13</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="quests">
+        <span class="q main">⚑ Stop the cult</span>
+        <span class="q">find the dragon egg</span>
+        <span class="q">rescue Leosin</span>
+      </div>
+
+      <div class="rule"><span class="l"></span><span class="g">✦ ❧ ✦</span><span class="l"></span></div>
+
+      <div class="tabs">
+        <span class="tab on">Chronicle</span>
+        <span class="tab">Table-talk<span class="b">2</span></span>
+      </div>
+
+      <div class="feed">
+        <div>
+          <div class="who">The Tale</div>
+          <div class="dm"><span class="drop">T</span>he lodge's broken door hangs on one hinge. <em>Ivy</em>, your boots find old bloodstains beneath the ash — something moved through here recently, and not long ago. A low growl rolls out of the black doorway ahead, wet and deliberate.
+            <div class="stamps"><span class="stamp">⚔ combat begins</span><span class="stamp">＋ kobold sighted</span><span class="stamp">📍 lodge interior</span></div>
+          </div>
+        </div>
+
+        <div class="note-me">
+          <div class="ink">I ready my crossbow and creep toward the growl, hugging the shadows.</div>
+          <div class="by">— Ivy, 9:14 pm</div>
+        </div>
+
+        <div class="roll">
+          <div class="wax">d20</div>
+          <div class="roll-t"><b>Stealth</b> · Ivy · DC 13<br>close the distance unseen</div>
+          <div class="roll-go">Roll</div>
+        </div>
+      </div>
+
+      <div class="inputrow">
+        <div class="field">Write your move…</div>
+        <div class="quill">🖋</div>
+      </div>
+    </div>
+
+    <div class="nav">
+      <div class="it"><span class="gi">⚖</span>Cargo</div>
+      <div class="it on"><span class="gi">📖</span>Play</div>
+      <div class="it"><span class="gi">🗺</span>Journal</div>
+      <div class="it"><span class="gi">⚙</span>Settings</div>
+    </div>
+  </div></div>
+
+  <div class="cap">
+    <div class="n">Ink &amp; Paper — “the party's chronicle”</div>
+    <div class="d">aged paper · printed tale · handwritten moves · wax-sealed rolls</div>
+  </div>
+  <div class="note">
+    My take: the app <b>is</b> the journal. DM narration is set type with a drop-cap; <b>your</b> actions are handwritten ink margin notes; mechanics are little inked stamps; the roll is a wax seal you press. Paper grain is live SVG noise here — a <b>Texturelabs</b> paper scan drops into the same layer, kept grayscale so all 20 palettes tint it via blend mode. Inspired by Inkle's <i>80 Days</i> / <i>Sorcery!</i>.
+  </div>
+</body>
+</html>
