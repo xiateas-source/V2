@@ -15,7 +15,7 @@ Every entry is a documented AI failure from v1 gameplay. Each one either needs a
 - **Action economy violation** — AI let a caster cast a spell, use a bonus action feature, AND help another PC all in one turn. Needs: action economy enforcement — track actions used per turn.
 - **Entity duplication** — AI created new NPC entries for characters that already exist in the tracker. Needs: entity dedup — fuzzy match against existing NPCs before creating new ones.
 - **HP/stat fabrication** — AI set level, hp_max, class features, or spells via mechanics (should be wizard-only). Needs: field ownership enforcement — system-owned fields reject AI writes.
-- **Combined/skipped turns** — AI combined multiple players' turns into one response, skipped players, or advanced the story while players were still deliberating. Needs: enforced turn order in combat — AI waits for all players in initiative order before advancing.
+- **Combined/skipped turns** — AI combined multiple players' turns into one response, skipped players, or advanced the story while players were still deliberating. Needs: enforced turn order in combat — AI waits for all players in initiative order before advancing. **✅ partial (S37):** turn ORDER is now code-owned — the engine (`advanceCombatToNextPC`) holds the pointer and lands it on each living PC; AI only narrates the turn it's handed. The AI *stopping* at each PC is still prompt-enforced (combat block + contract) with Gate 2 flagging over-runs. Promote to full ✅ if a hard truncation gate is added.
 - **Skill check skipping** — AI gave players what they wanted without requiring a skill check. Needs: roll requirement enforcement for action types that demand checks.
 - **Consequence timer ignored** — AI forgot to enforce time-sensitive consequences (sleep wearing off, enemies tracking party, environmental countdowns). Players also forgot because consequences were buried behind quests. Needs: active consequences injected into prompt with timers, engine flags expiring timers for resolution before AI moves on, situation bar shows consequences with priority placement.
 - **Prose dice rolling** — AI rolled dice in narration text ("the goblin rolls a 15 to hit") instead of using the mechanics system. Needs: detection when AI makes rolls in prose, should go through roll mechanics not narration.
@@ -48,6 +48,14 @@ Every entry is a documented AI failure from v1 gameplay. Each one either needs a
 - **Item/object continuity error** — AI contradicts its own recent narration about item location or state. Example: Staff of Power described as "shattered, wedged in debris" in one message, then Aria has "her hand on the Staff's broken remnants" at a different location two messages later.
 
 ---
+
+## v2 Failures (discovered in v2 play-testing)
+
+*Real failures seen running the deployed app, not inherited from v1.*
+
+- **Roll requested FOR an enemy** — AI emitted a `roll_request` targeting an enemy/NPC; the roll bar surfaced it and the player rolled a bare d20 (no modifier) for a creature the DM is supposed to control. The "DM rolls enemies itself" rule was prompt-only. **✅ fixed (S37):** mechanics validation rejects any `roll_request` whose target isn't a player character (party/all excepted; player creatures TBD). Shows as a rejected pill. The DM resolves NPC/enemy rolls in narration.
+- **Enemy HP never moved in the tracker** — AI narrated enemy damage ("the goblin staggers, bloodied") without emitting `hp: Name=value`, so the combat tracker's enemy HP stayed full. Enemy HP only updates through the `hp` mechanic. **✅ partial (S37):** contract now requires an `hp` mechanic whenever ANY combatant (enemy or PC) takes damage/heals; Gate 3 (drift) flags HP narration without a matching mechanic. Promote to full ✅ with an engine auto-apply-from-narration fallback if the AI keeps skipping it.
+- **Turn overlap / everyone acting at once** — the v2 manifestation of "Combined/skipped turns" (above). Felt sloppy in play: turns blurred together, the story advanced past players. Root cause was split turn ownership (engine + AI both advancing). See the ✅ partial note on that entry.
 
 ## How This File Works
 
