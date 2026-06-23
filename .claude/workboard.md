@@ -83,12 +83,19 @@ browserTTS.js (58) 🟢 · elevenlabs.js (1) ⛔
 ### S37 vs S38 conflict — resolved
 S37: **"shipped, deployed, playable."** S38: **"mockup only, throwaway."** Developer's call (S39): **S38 was right about playability** — it's a face. S37 mistook "deployed a build" for "the build is playable." The asset is the **engine**; the playable game does not exist yet.
 
+### What's actually built FOR THE PLAYER (developer, S39)
+**Only two things are real player experiences:** (1) **onboarding** — half-done (KeyGate → CharCreate → CampaignConfig → Start Adventure), and (2) the **combat system**. Everything else (`App.jsx` router, Chat, reference screens, manage) is scattered components, not a built interface.
+
+**Why every session gets confused:** the loose components *look* like an app, so each fresh Claude assumes the interface exists and trips over the fact that it doesn't. The engine is a brain with no body. **The interface is the missing spine.**
+
+**DECISION (S39): build the interface first.** Don't fill stubs or harden the engine until there's a real play surface for the pieces to live in. The interface is what turns the face into a game.
+
 ### Honest "what's left" (build-forward priorities)
-0. **THE gap: there is no working play loop a player can actually use.** Everything below is secondary until the app is playable end-to-end. Next session should start by pinning down *exactly what breaks the experience* (see open question in session-log) — by running/playing, not reading code.
-1. ⛔ True stubs (genuinely empty): **Treasury**, **Glossary**, **SessionReview**, **Contracts** editor, **ContentImport**, **SessionZero**.
-2. 🟠 Faces to make actually playable: the play loop (Chat→send→engine→state→render), char creation, combat.
+0. **BUILD THE INTERFACE.** The connective play surface — the body the engine/combat/onboarding plug into. This is the gate everything else waits behind.
+1. **Persistence spine (part of the interface):** `sync.js` writes campaign state to **Firebase only** — no local save, and boot never reloads a campaign (`loadCampaignFromCloud` exists but is never called). So every reload wipes `campaign.id` → back to step-0 onboarding, nothing endures. The architecture.md "offline→localStorage, reconcile on reconnect" (Law 1) is **NOT implemented.** Build local-first persistence + boot restore as part of the interface.
+2. ⛔ True stubs to fill *after* the interface holds: Treasury, Glossary, SessionReview, Contracts, ContentImport, SessionZero.
 3. ◻️ Absent: multiplayer identity, push notifications, child view (AppSimple), shared bundles, state migration.
-4. ✅/🟢 Engine hardening: unit tests for untested gates (combat, spell-validation, XP/income), providers, memory.
+4. ✅/🟢 Engine hardening (later): unit tests for untested gates (combat, spell-validation, XP/income), providers, memory.
 
 ---
 

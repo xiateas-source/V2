@@ -18,9 +18,15 @@
 
 **Staleness spot-check (CLAUDE.md step 6):** architecture.md nav (Cargo/Journal/Settings) matches `App.jsx`. ✅ No fix needed.
 
-**OPEN QUESTION (blocks the build-forward plan):** *What specifically makes it a face?* — i.e. what breaks when you try to play? (loop never returns a response / needs API keys not set / char creation doesn't lead into play / state doesn't persist / it's visually there but inert, etc.) Pin this down before picking a build target. Best answered by running it.
+**Developer's sharper truth (the real "where we are"):** Only **two** things are built FOR THE PLAYER — (1) **onboarding, half-done** and (2) the **combat system**. Everything else is loose components, not a built interface. That's *why every session gets confused*: the components look like an app, so each fresh Claude assumes the interface exists. The engine is a brain with no body.
 
-**Next up:** Diagnose the play gap (run the app, find the first thing that breaks the experience), then build the first real working slice of the loop. Developer leans "see it, don't read about it."
+**Diagnosis confirming it (code trace):**
+- *No persistence:* `sync.js` writes campaign state to Firebase only — no local save; boot (`main.jsx`) never reloads a campaign (`loadCampaignFromCloud` unused). Reload wipes `campaign.id` → dumps back to onboarding. Law 1 offline-fallback NOT implemented.
+- *Feels inert:* play UI only renders when `campaign.id !== ''` (set only at end of onboarding), and nothing you do endures, so it reads as fake even though some handlers (e.g. CharTiles→CharSheet) are wired.
+
+**DECISION (S39): build the interface FIRST.** The connective play surface + local-first persistence spine. Engine, combat, and onboarding plug into it. Don't fill stubs or harden the engine first.
+
+**Next up:** Build the real play interface. Open scoping question for next turn: evolve the working Chat/CharTiles/combat into a coherent shell vs. design fresh from mockups/specs; and what the player's main screen centers on. Developer leans "see it, don't read about it" — show live UI, not descriptions.
 
 **Branch state:** `claude/new-session-mr3qge`. (was at 90d96a4 at session start)
 
