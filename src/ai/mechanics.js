@@ -718,9 +718,8 @@ const DISPATCH = {
       actionsUsed: { action: false, bonus: false, reaction: false, movement: false },
       zones: { front: { label: 'Frontline' }, back: { label: 'Backline' }, left: { label: 'Left Flank' }, right: { label: 'Right Flank' }, air: { label: 'Air' }, rear: { label: 'Rear Guard' } },
     });
-    for (const pc of store.campaign.characters) {
-      DISPATCH.roll_request(`Initiative|0|${pc.name}`);
-    }
+    // PCs are flagged rollPending above; the roll bar derives the Initiative
+    // roll prompts directly from that state and writes the results back.
   },
 
   combat_end(value) {

@@ -73,7 +73,27 @@ export default function RollBar() {
   const [rollResults, setRollResults] = createSignal({});
   const [submitted, setSubmitted] = createSignal(new Set());
 
+  // Initiative rolls are derived straight from combatState (the PCs still
+  // flagged rollPending), not from the message/mechanics path — combat_start
+  // generates them as a side effect that never lands in a message's applied
+  // mechanics. Sourcing them here is what actually starts the fight.
+  const initiativeRolls = createMemo(() => {
+    const cs = store.campaign.combatState;
+    if (!cs.active) return [];
+    return cs.initiative
+      .filter(c => c.type === 'pc' && c.rollPending)
+      .map(c => {
+        const foundPC = findPC(c.name);
+        // Exhaustion 1+ gives disadvantage on Dexterity (initiative) checks (2014 rules).
+        const advState = foundPC && foundPC.exhaustion >= 1 ? 'disadvantage' : 'normal';
+        return { id: `init-${c.name}`, skill: 'Initiative', dc: null, pcName: c.name, isPC: true, advState };
+      });
+  });
+
   const allPendingRolls = createMemo(() => {
+    const init = initiativeRolls();
+    if (init.length) return init;
+
     const msgs = store.campaign.narrative;
     if (!msgs.length) return [];
 
