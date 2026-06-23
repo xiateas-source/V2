@@ -1,6 +1,6 @@
 import { getByIndex } from './local.js';
 
-const RACE_BONUSES = {
+export const RACE_BONUSES = {
   'Human': { str: 1, dex: 1, con: 1, int: 1, wis: 1, cha: 1 },
   'Elf': { dex: 2, int: 1 },
   'Half-Elf': { cha: 2, dex: 1, con: 1 },
@@ -9,12 +9,12 @@ const RACE_BONUSES = {
   'Tiefling': { cha: 2, int: 1 },
 };
 
-const RACE_SPEED = {
+export const RACE_SPEED = {
   'Human': 30, 'Elf': 30, 'Half-Elf': 30,
   'Dwarf': 25, 'Halfling': 25, 'Tiefling': 30,
 };
 
-const RACE_LANGUAGES = {
+export const RACE_LANGUAGES = {
   'Human': ['Common', 'one extra'],
   'Elf': ['Common', 'Elvish'],
   'Half-Elf': ['Common', 'Elvish', 'one extra'],
@@ -23,7 +23,7 @@ const RACE_LANGUAGES = {
   'Tiefling': ['Common', 'Infernal'],
 };
 
-const CLASS_DATA = {
+export const CLASS_DATA = {
   'Fighter': {
     hitDie: 'd10',
     primaryAbilities: ['str', 'con', 'dex', 'wis', 'cha', 'int'],
@@ -51,6 +51,7 @@ const CLASS_DATA = {
     attacks: [{ name: 'Rapier', bonus: 5, damage: '1d8+3', type: 'piercing' }],
     skills: { performance: true, persuasion: true, deception: true },
     cantrips: ['Vicious Mockery', 'Minor Illusion'],
+    cantripsKnown: [2, 2, 2, 3, 3, 3, 3, 3, 3, 4],
     spellsKnown: [4, 5, 6, 7, 8, 9, 10, 11, 12, 14],
     slotTable: {
       1: { 1: 2 }, 2: { 1: 3 }, 3: { 1: 4, 2: 2 }, 4: { 1: 4, 2: 3 },
@@ -169,8 +170,51 @@ export function getStartingGold(level) {
   return 500 + (level - 4) * 100;
 }
 
-const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
-const CHAR_COLORS = ['#4ae0a0', '#a070e0', '#e08040', '#4a9eff', '#e06080', '#e0d040', '#60c0e0'];
+export const BACKGROUNDS = [
+  { name: 'Acolyte', desc: 'You spent your life in service to a temple.', skillProfs: ['Insight', 'Religion'], languages: 2, feature: 'Shelter of the Faithful' },
+  { name: 'Charlatan', desc: 'You have always had a way with people.', skillProfs: ['Deception', 'Sleight of Hand'], toolProfs: ["Disguise kit", "Forgery kit"], feature: 'False Identity' },
+  { name: 'Criminal', desc: 'You have a history of breaking the law.', skillProfs: ['Deception', 'Stealth'], toolProfs: ["Thieves' tools", "One gaming set"], feature: 'Criminal Contact' },
+  { name: 'Entertainer', desc: 'You thrive in front of an audience.', skillProfs: ['Acrobatics', 'Performance'], toolProfs: ["Disguise kit", "One instrument"], feature: 'By Popular Demand' },
+  { name: 'Folk Hero', desc: 'You come from a humble background but are destined for much more.', skillProfs: ['Animal Handling', 'Survival'], toolProfs: ["One artisan tools", "Vehicles (land)"], feature: 'Rustic Hospitality' },
+  { name: 'Guild Artisan', desc: 'You are a member of an artisan guild, skilled in a particular craft.', skillProfs: ['Insight', 'Persuasion'], toolProfs: ["One artisan tools"], languages: 1, feature: 'Guild Membership' },
+  { name: 'Hermit', desc: 'You lived in seclusion for a formative part of your life.', skillProfs: ['Medicine', 'Religion'], toolProfs: ["Herbalism kit"], languages: 1, feature: 'Discovery' },
+  { name: 'Noble', desc: 'You understand wealth, power, and privilege.', skillProfs: ['History', 'Persuasion'], toolProfs: ["One gaming set"], languages: 1, feature: 'Position of Privilege' },
+  { name: 'Outlander', desc: 'You grew up in the wilds, far from civilization.', skillProfs: ['Athletics', 'Survival'], toolProfs: ["One instrument"], languages: 1, feature: 'Wanderer' },
+  { name: 'Sage', desc: 'You spent years learning the lore of the multiverse.', skillProfs: ['Arcana', 'History'], languages: 2, feature: 'Researcher' },
+  { name: 'Sailor', desc: 'You sailed on a seagoing vessel for years.', skillProfs: ['Athletics', 'Perception'], toolProfs: ["Navigator's tools", "Vehicles (water)"], feature: 'Ship\'s Passage' },
+  { name: 'Soldier', desc: 'You trained as a soldier and fought in wars.', skillProfs: ['Athletics', 'Intimidation'], toolProfs: ["One gaming set", "Vehicles (land)"], feature: 'Military Rank' },
+  { name: 'Urchin', desc: 'You grew up on the streets, alone and poor.', skillProfs: ['Sleight of Hand', 'Stealth'], toolProfs: ["Disguise kit", "Thieves' tools"], feature: 'City Secrets' },
+];
+
+export const CLASS_SKILL_CHOICES = {
+  Fighter: { count: 2, from: ['Acrobatics', 'Animal Handling', 'Athletics', 'History', 'Insight', 'Intimidation', 'Perception', 'Survival'] },
+  Rogue: { count: 4, from: ['Acrobatics', 'Athletics', 'Deception', 'Insight', 'Intimidation', 'Investigation', 'Perception', 'Performance', 'Persuasion', 'Sleight of Hand', 'Stealth'] },
+  Bard: { count: 3, from: null },
+};
+
+export const ALL_SKILLS = [
+  'Acrobatics', 'Animal Handling', 'Arcana', 'Athletics', 'Deception', 'History',
+  'Insight', 'Intimidation', 'Investigation', 'Medicine', 'Nature', 'Perception',
+  'Performance', 'Persuasion', 'Religion', 'Sleight of Hand', 'Stealth', 'Survival',
+];
+
+export const SKILL_ABILITIES = {
+  Acrobatics: 'dex', 'Animal Handling': 'wis', Arcana: 'int', Athletics: 'str',
+  Deception: 'cha', History: 'int', Insight: 'wis', Intimidation: 'cha',
+  Investigation: 'int', Medicine: 'wis', Nature: 'int', Perception: 'wis',
+  Performance: 'cha', Persuasion: 'cha', Religion: 'int', 'Sleight of Hand': 'dex',
+  Stealth: 'dex', Survival: 'wis',
+};
+
+export const ALIGNMENTS = [
+  'Lawful Good', 'Neutral Good', 'Chaotic Good',
+  'Lawful Neutral', 'True Neutral', 'Chaotic Neutral',
+  'Lawful Evil', 'Neutral Evil', 'Chaotic Evil',
+];
+
+export const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
+export const CHAR_COLORS = ['#4ae0a0', '#a070e0', '#e08040', '#4a9eff', '#e06080', '#e0d040', '#60c0e0'];
+export const POINT_BUY_COSTS = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };
 
 export async function buildCharacter({ name, race, className, level }, existingCount = 0) {
   const classInfo = CLASS_DATA[className];
@@ -282,7 +326,7 @@ function assignAbilities(priority, race) {
   return result;
 }
 
-async function getClassFeatures(className, level) {
+export async function getClassFeatures(className, level) {
   try {
     const data = await getByIndex('classData', 'class', className);
     const features = [];
@@ -317,3 +361,27 @@ function getDefaultFeatures(className, level) {
 
 export const AVAILABLE_CLASSES = Object.keys(CLASS_DATA);
 export const AVAILABLE_RACES = Object.keys(RACE_BONUSES);
+
+export function getDefaultEquipment(className) {
+  const data = STARTING_EQUIPMENT[className];
+  if (!data) return [];
+  const items = [...(data.always || [])];
+  for (const group of (data.choices || [])) {
+    const firstOption = group.options[0];
+    if (firstOption) items.push(...firstOption.items);
+  }
+  return items;
+}
+
+export function getSelectedEquipment(className, choices) {
+  const data = STARTING_EQUIPMENT[className];
+  if (!data) return [];
+  const items = [...(data.always || [])];
+  for (let i = 0; i < (data.choices || []).length; i++) {
+    const group = data.choices[i];
+    const picked = choices[i] ?? 0;
+    const option = group.options[picked];
+    if (option) items.push(...option.items);
+  }
+  return items;
+}

@@ -3,7 +3,8 @@ import { store, setStore } from '../../state/index.js';
 import { callProvider } from '../../ai/providers.js';
 import { CHAR_BUILDER_SYSTEM } from '../../ai/setupPrompts.js';
 import { normalizeCharacter, validateCharacter } from '../../content/normalizer.js';
-import { buildCharacter, AVAILABLE_CLASSES, AVAILABLE_RACES, STARTING_EQUIPMENT, getStartingGold } from '../../data/quickBuild.js';
+import { STARTING_EQUIPMENT, getStartingGold, getDefaultEquipment, getSelectedEquipment } from '../../data/quickBuild.js';
+import CharWizard from './CharWizard.jsx';
 
 export default function CharCreate(props) {
   const [mode, setMode] = createSignal(null);
@@ -51,6 +52,26 @@ export default function CharCreate(props) {
     setEquipMode('default');
   }
 
+  function handleWizardComplete(char, goldGP, items, isGoldMode) {
+    const idx = store.campaign.characters.length;
+    setStore('campaign', 'characters', idx, char);
+
+    if (isGoldMode) {
+      if (idx === 0) setStore('campaign', 'gold', 'gp', goldGP);
+      else setStore('campaign', 'gold', 'gp', store.campaign.gold.gp + goldGP);
+    } else {
+      if (items.length > 0) {
+        const carried = { ...store.campaign.inventory.carried };
+        carried[char.id] = items.map(i => ({ name: i.name, qty: i.qty, type: i.type, attunement: 'none', weight: i.weight || 0 }));
+        setStore('campaign', 'inventory', 'carried', carried);
+      }
+      if (idx === 0) setStore('campaign', 'gold', 'gp', goldGP);
+      else setStore('campaign', 'gold', 'gp', store.campaign.gold.gp + goldGP);
+    }
+
+    setMode(null);
+  }
+
   function removeCharacter(idx) {
     const updated = store.campaign.characters.filter((_, i) => i !== idx);
     setStore('campaign', 'characters', updated);
@@ -87,10 +108,10 @@ export default function CharCreate(props) {
             <span class="path-label">Paste JSON</span>
             <span class="path-desc">From Gemini, ChatGPT, etc.</span>
           </button>
-          <button class="path-card" onClick={() => setMode('quick')}>
-            <span class="path-icon">⚡</span>
-            <span class="path-label">Quick Pick</span>
-            <span class="path-desc">Class + Race + Level → done</span>
+          <button class="path-card" onClick={() => setMode('wizard')}>
+            <span class="path-icon">🧙</span>
+            <span class="path-label">Guided Build</span>
+            <span class="path-desc">Step-by-step character creation</span>
           </button>
         </div>
       </Show>
@@ -101,8 +122,12 @@ export default function CharCreate(props) {
       <Show when={mode() === 'paste'}>
         <PasteImport onParsed={onCharParsed} onBack={() => setMode(null)} />
       </Show>
-      <Show when={mode() === 'quick'}>
-        <QuickBuild onParsed={onCharParsed} onBack={() => setMode(null)} />
+      <Show when={mode() === 'wizard'}>
+        <CharWizard
+          existingCount={store.campaign.characters.length}
+          onComplete={handleWizardComplete}
+          onBack={() => setMode(null)}
+        />
       </Show>
 
       <Show when={draft()}>
@@ -307,95 +332,6 @@ function PasteImport(props) {
       <button class="paste-btn" onClick={parse}>Import</button>
     </div>
   );
-}
-
-function QuickBuild(props) {
-  const [name, setName] = createSignal('');
-  const [cls, setCls] = createSignal('Fighter');
-  const [race, setRace] = createSignal('Human');
-  const [level, setLevel] = createSignal(1);
-  const [building, setBuilding] = createSignal(false);
-
-  async function build() {
-    setBuilding(true);
-    try {
-      const char = await buildCharacter(
-        { name: name(), race: race(), className: cls(), level: level() },
-        store.campaign.characters.length,
-      );
-      if (char) props.onParsed(char);
-    } finally {
-      setBuilding(false);
-    }
-  }
-
-  return (
-    <div class="quick-build">
-      <button class="builder-back" onClick={props.onBack}>&larr; Back</button>
-
-      <input
-        class="qb-name"
-        placeholder="Character name"
-        value={name()}
-        onInput={(e) => setName(e.target.value)}
-      />
-
-      <div class="qb-section">
-        <label class="qb-label">Class</label>
-        <div class="qb-options">
-          <For each={AVAILABLE_CLASSES}>
-            {(c) => <button class={`qb-chip ${cls() === c ? 'active' : ''}`} onClick={() => setCls(c)}>{c}</button>}
-          </For>
-        </div>
-      </div>
-
-      <div class="qb-section">
-        <label class="qb-label">Race</label>
-        <div class="qb-options">
-          <For each={AVAILABLE_RACES}>
-            {(r) => <button class={`qb-chip ${race() === r ? 'active' : ''}`} onClick={() => setRace(r)}>{r}</button>}
-          </For>
-        </div>
-      </div>
-
-      <div class="qb-section">
-        <label class="qb-label">Level {level()}</label>
-        <div class="qb-level">
-          <button class="qb-level-btn" onClick={() => setLevel(Math.max(1, level() - 1))}>-</button>
-          <span class="qb-level-val">{level()}</span>
-          <button class="qb-level-btn" onClick={() => setLevel(Math.min(10, level() + 1))}>+</button>
-        </div>
-      </div>
-
-      <button class="qb-build" onClick={build} disabled={building()}>
-        {building() ? 'Building...' : 'Build Character'}
-      </button>
-    </div>
-  );
-}
-
-function getDefaultEquipment(className) {
-  const data = STARTING_EQUIPMENT[className];
-  if (!data) return [];
-  const items = [...(data.always || [])];
-  for (const group of (data.choices || [])) {
-    const firstOption = group.options[0];
-    if (firstOption) items.push(...firstOption.items);
-  }
-  return items;
-}
-
-function getSelectedEquipment(className, choices) {
-  const data = STARTING_EQUIPMENT[className];
-  if (!data) return [];
-  const items = [...(data.always || [])];
-  for (let i = 0; i < (data.choices || []).length; i++) {
-    const group = data.choices[i];
-    const picked = choices[i] ?? 0;
-    const option = group.options[picked];
-    if (option) items.push(...option.items);
-  }
-  return items;
 }
 
 function EquipmentPicker(props) {

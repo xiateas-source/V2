@@ -1,0 +1,898 @@
+import { createSignal, createEffect, Show, For } from 'solid-js';
+import {
+  AVAILABLE_CLASSES, AVAILABLE_RACES, CLASS_DATA, RACE_BONUSES, RACE_SPEED, RACE_LANGUAGES,
+  BACKGROUNDS, CLASS_SKILL_CHOICES, ALL_SKILLS, ALIGNMENTS,
+  STANDARD_ARRAY, STARTING_EQUIPMENT, getStartingGold, POINT_BUY_COSTS, CHAR_COLORS,
+  getDefaultEquipment, getSelectedEquipment, getClassFeatures
+} from '../../data/quickBuild.js';
+import { getByIndex } from '../../data/local.js';
+import { callProvider } from '../../ai/providers.js';
+import { GENERATE_BIO_SYSTEM } from '../../ai/setupPrompts.js';
+
+const STEP_IDS = ['class', 'background', 'abilities', 'skills', 'spells', 'equipment', 'bio'];
+const STEP_LABELS = {
+  class: 'Class & Race', background: 'Background', abilities: 'Abilities',
+  skills: 'Skills', spells: 'Spells', equipment: 'Equipment', bio: 'Name & Bio'
+};
+const ABILITY_NAMES = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+const ABILITY_FULL = { str: 'Strength', dex: 'Dexterity', con: 'Constitution', int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma' };
+
+const CLASS_BLURBS = {
+  Fighter: 'Tough, versatile martial warrior',
+  Rogue: 'Stealthy, skillful striker',
+  Bard: 'Charismatic magic and inspiration',
+};
+const RACE_BLURBS = {
+  Human: '+1 all stats, versatile',
+  Elf: '+2 DEX, +1 INT, darkvision',
+  'Half-Elf': '+2 CHA, +1 DEX/CON, versatile',
+  Dwarf: '+2 CON, +1 WIS, resilient',
+  Halfling: '+2 DEX, +1 CHA, lucky',
+  Tiefling: '+2 CHA, +1 INT, fire resist',
+};
+
+const FALLBACK_CANTRIPS = [
+  'Vicious Mockery', 'Minor Illusion', 'Light', 'Mage Hand', 'Prestidigitation',
+  'Mending', 'Dancing Lights', 'Friends', 'Message', 'Thunderclap', 'True Strike', 'Blade Ward'
+];
+const FALLBACK_SPELLS = {
+  1: ['Healing Word', 'Thunderwave', 'Faerie Fire', 'Dissonant Whispers', 'Charm Person',
+      'Sleep', 'Cure Wounds', 'Detect Magic', 'Heroism', 'Identify', "Tasha's Hideous Laughter",
+      'Bane', 'Feather Fall', 'Speak with Animals'],
+  2: ['Hold Person', 'Invisibility', 'Shatter', 'Suggestion', 'Heat Metal',
+      'Lesser Restoration', 'Silence', 'Calm Emotions', 'Enhance Ability', 'Knock'],
+  3: ['Hypnotic Pattern', 'Dispel Magic', 'Fear', 'Bestow Curse', 'Major Image', 'Sending'],
+};
+
+export default function CharWizard(props) {
+  const [stepIdx, setStepIdx] = createSignal(0);
+
+  // Step 1: Class & Race
+  const [cls, setCls] = createSignal('');
+  const [race, setRace] = createSignal('');
+  const [level, setLevel] = createSignal(1);
+
+  // Step 2: Background & Alignment
+  const [bg, setBg] = createSignal('');
+  const [align, setAlign] = createSignal('');
+
+  // Step 3: Abilities
+  const [abilityMethod, setAbilityMethod] = createSignal('standard');
+  const [stdAssign, setStdAssign] = createSignal({});
+  const [selectedVal, setSelectedVal] = createSignal(null);
+  const [rolledScores, setRolledScores] = createSignal([]);
+  const [rollAssign, setRollAssign] = createSignal({});
+  const [selectedRollIdx, setSelectedRollIdx] = createSignal(null);
+  const [pbScores, setPbScores] = createSignal({ str: 8, dex: 8, con: 8, int: 8, wis: 8, cha: 8 });
+
+  // Step 4: Skills
+  const [skillPicks, setSkillPicks] = createSignal([]);
+
+  // Step 5: Spells
+  const [pickedCantrips, setPickedCantrips] = createSignal([]);
+  const [pickedSpells, setPickedSpells] = createSignal([]);
+  const [spellPool, setSpellPool] = createSignal({ cantrips: [], leveled: [] });
+  const [spellsLoaded, setSpellsLoaded] = createSignal(false);
+
+  // Step 6: Equipment
+  const [equipMode, setEquipMode] = createSignal('default');
+  const [equipChoices, setEquipChoices] = createSignal({});
+
+  // Step 7: Name & Bio
+  const [charName, setCharName] = createSignal('');
+  const [appearance, setAppearance] = createSignal('');
+  const [personality, setPersonality] = createSignal('');
+  const [backstory, setBackstory] = createSignal('');
+  const [genField, setGenField] = createSignal('');
+  const [building, setBuilding] = createSignal(false);
+
+  // Reset downstream when class changes
+  createEffect(() => {
+    const _ = cls();
+    setSkillPicks([]);
+    setPickedCantrips([]);
+    setPickedSpells([]);
+    setSpellsLoaded(false);
+    setEquipMode('default');
+    setEquipChoices({});
+  });
+
+  // Derived
+  const classData = () => CLASS_DATA[cls()] || null;
+  const isCaster = () => !!(classData()?.cantrips);
+  const activeSteps = () => isCaster() ? STEP_IDS : STEP_IDS.filter(s => s !== 'spells');
+  const currentStep = () => activeSteps()[stepIdx()] || 'class';
+  const totalSteps = () => activeSteps().length;
+
+  // Clamp step index if steps change (e.g. caster → non-caster)
+  createEffect(() => {
+    if (stepIdx() >= totalSteps()) setStepIdx(Math.max(0, totalSteps() - 1));
+  });
+
+  const mod = (score) => Math.floor((score - 10) / 2);
+  const fmtMod = (m) => m >= 0 ? `+${m}` : `${m}`;
+
+  const baseAbilities = () => {
+    const m = abilityMethod();
+    if (m === 'standard') {
+      const a = stdAssign();
+      const r = { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 };
+      for (const [k, v] of Object.entries(a)) r[k] = v;
+      return r;
+    }
+    if (m === 'roll') {
+      const a = rollAssign();
+      const r = { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 };
+      for (const [k, v] of Object.entries(a)) r[k] = v;
+      return r;
+    }
+    return { ...pbScores() };
+  };
+
+  const finalAbilities = () => {
+    const base = baseAbilities();
+    const bonuses = RACE_BONUSES[race()] || {};
+    const result = { ...base };
+    for (const [k, v] of Object.entries(bonuses)) {
+      if (k in result) result[k] += v;
+    }
+    return result;
+  };
+
+  const conMod = () => mod(finalAbilities().con);
+  const dexMod = () => mod(finalAbilities().dex);
+  const profBonus = () => Math.floor((level() - 1) / 4) + 2;
+
+  const hpMax = () => {
+    const cd = classData();
+    if (!cd) return 0;
+    const max = parseInt(cd.hitDie.slice(1));
+    const avg = Math.floor(max / 2) + 1;
+    return max + conMod() + (avg + conMod()) * (level() - 1);
+  };
+
+  const calcAC = () => {
+    if (!cls()) return 10;
+    if (cls() === 'Fighter') return 16;
+    return 11 + dexMod();
+  };
+
+  const bgData = () => BACKGROUNDS.find(b => b.name === bg());
+  const bgSkills = () => bgData()?.skillProfs || [];
+
+  // --- Standard Array ---
+  const unassignedStd = () => {
+    const assigned = Object.values(stdAssign());
+    const pool = [...STANDARD_ARRAY];
+    for (const v of assigned) {
+      const idx = pool.indexOf(v);
+      if (idx !== -1) pool.splice(idx, 1);
+    }
+    return pool;
+  };
+
+  function tapStdValue(val) {
+    setSelectedVal(selectedVal() === val ? null : val);
+  }
+
+  function tapStdAbility(ability) {
+    const current = { ...stdAssign() };
+    if (selectedVal() !== null) {
+      if (current[ability] !== undefined) {
+        // Return old value to pool (will happen automatically via unassignedStd)
+      }
+      current[ability] = selectedVal();
+      setStdAssign(current);
+      setSelectedVal(null);
+    } else if (current[ability] !== undefined) {
+      delete current[ability];
+      setStdAssign(current);
+    }
+  }
+
+  // --- 4d6 Roll ---
+  function roll4d6() {
+    const dice = Array.from({ length: 4 }, () => Math.floor(Math.random() * 6) + 1);
+    dice.sort((a, b) => b - a);
+    return dice.slice(0, 3).reduce((a, b) => a + b, 0);
+  }
+
+  function rollAll() {
+    setRolledScores(Array.from({ length: 6 }, roll4d6));
+    setRollAssign({});
+    setSelectedRollIdx(null);
+  }
+
+  const unassignedRollIndices = () => {
+    const used = new Set(Object.values(rollAssign()));
+    return rolledScores().map((_, i) => i).filter(i => !used.has(i));
+  };
+
+  function tapRollIdx(idx) {
+    setSelectedRollIdx(selectedRollIdx() === idx ? null : idx);
+  }
+
+  function tapRollAbility(ability) {
+    const current = { ...rollAssign() };
+    if (selectedRollIdx() !== null) {
+      current[ability] = selectedRollIdx();
+      setRollAssign(current);
+      setSelectedRollIdx(null);
+    } else if (current[ability] !== undefined) {
+      delete current[ability];
+      setRollAssign(current);
+    }
+  }
+
+  const rollAbilityValue = (ability) => {
+    const idx = rollAssign()[ability];
+    return idx !== undefined ? rolledScores()[idx] : null;
+  };
+
+  // --- Point Buy ---
+  const pbSpent = () => {
+    let t = 0;
+    for (const v of Object.values(pbScores())) t += POINT_BUY_COSTS[v] || 0;
+    return t;
+  };
+  const pbRemaining = () => 27 - pbSpent();
+
+  function pbAdjust(ability, delta) {
+    const cur = pbScores()[ability];
+    const nv = cur + delta;
+    if (nv < 8 || nv > 15) return;
+    const test = { ...pbScores(), [ability]: nv };
+    let t = 0;
+    for (const v of Object.values(test)) t += POINT_BUY_COSTS[v] || 0;
+    if (t > 27) return;
+    setPbScores(test);
+  }
+
+  // --- Skills ---
+  function toggleSkill(skill) {
+    const current = skillPicks();
+    const choices = CLASS_SKILL_CHOICES[cls()];
+    if (!choices) return;
+    if (current.includes(skill)) {
+      setSkillPicks(current.filter(s => s !== skill));
+    } else if (current.length < choices.count) {
+      setSkillPicks([...current, skill]);
+    }
+  }
+
+  const skillChoiceData = () => CLASS_SKILL_CHOICES[cls()] || { count: 0, from: [] };
+  const availableSkills = () => {
+    const sc = skillChoiceData();
+    const locked = new Set(bgSkills());
+    const pool = sc.from || ALL_SKILLS;
+    return pool.filter(s => !locked.has(s));
+  };
+
+  // --- Spells ---
+  async function loadSpells() {
+    if (spellsLoaded()) return;
+    const cd = classData();
+    if (!cd) return;
+    const slots = cd.slotTable?.[level()] || {};
+    const maxLv = Math.max(0, ...Object.keys(slots).map(Number));
+    try {
+      const all = await getByIndex('spells', 'class', cls());
+      const cantrips = all.filter(s => s.level === 0).map(s => s.name);
+      const leveled = all.filter(s => s.level > 0 && s.level <= maxLv).map(s => ({ name: s.name, level: s.level }));
+      setSpellPool({
+        cantrips: cantrips.length > 0 ? cantrips : FALLBACK_CANTRIPS,
+        leveled: leveled.length > 0 ? leveled : getFallbackLeveled(maxLv),
+      });
+    } catch {
+      setSpellPool({ cantrips: FALLBACK_CANTRIPS, leveled: getFallbackLeveled(maxLv) });
+    }
+    setSpellsLoaded(true);
+  }
+
+  function getFallbackLeveled(maxLv) {
+    const result = [];
+    for (let lv = 1; lv <= maxLv; lv++) {
+      for (const name of (FALLBACK_SPELLS[lv] || [])) result.push({ name, level: lv });
+    }
+    return result;
+  }
+
+  function toggleCantrip(name) {
+    const cur = pickedCantrips();
+    const max = classData()?.cantripsKnown?.[level() - 1] || 2;
+    if (cur.includes(name)) setPickedCantrips(cur.filter(s => s !== name));
+    else if (cur.length < max) setPickedCantrips([...cur, name]);
+  }
+
+  function toggleSpell(name) {
+    const cur = pickedSpells();
+    const max = classData()?.spellsKnown?.[level() - 1] || 4;
+    if (cur.includes(name)) setPickedSpells(cur.filter(s => s !== name));
+    else if (cur.length < max) setPickedSpells([...cur, name]);
+  }
+
+  // --- Generate Bio ---
+  async function generateBioField(field) {
+    setGenField(field);
+    try {
+      const prompt = `Race: ${race()}, Class: ${cls()}, Background: ${bg()}, Alignment: ${align()}. Generate ${field}.`;
+      let result = '';
+      for await (const chunk of callProvider([{ role: 'user', content: prompt }], GENERATE_BIO_SYSTEM)) {
+        result += chunk;
+      }
+      const text = result.trim();
+      if (field === 'appearance') setAppearance(text);
+      else if (field === 'personality') setPersonality(text);
+      else if (field === 'backstory') setBackstory(text);
+    } catch {}
+    setGenField('');
+  }
+
+  // --- Navigation ---
+  function next() {
+    if (currentStep() === 'skills' && isCaster() && !spellsLoaded()) loadSpells();
+    if (stepIdx() < totalSteps() - 1) setStepIdx(stepIdx() + 1);
+  }
+  function back() {
+    if (stepIdx() > 0) setStepIdx(stepIdx() - 1);
+  }
+
+  const canAdvance = () => {
+    const s = currentStep();
+    if (s === 'class') return !!(cls() && race());
+    if (s === 'background') return !!(bg() && align());
+    if (s === 'abilities') {
+      const m = abilityMethod();
+      if (m === 'standard') return Object.keys(stdAssign()).length === 6;
+      if (m === 'roll') return rolledScores().length === 6 && Object.keys(rollAssign()).length === 6;
+      return true;
+    }
+    if (s === 'skills') {
+      const c = CLASS_SKILL_CHOICES[cls()];
+      return !c || skillPicks().length === c.count;
+    }
+    if (s === 'spells') {
+      if (!isCaster()) return true;
+      const cd = classData();
+      return pickedCantrips().length === (cd?.cantripsKnown?.[level() - 1] || 2) &&
+             pickedSpells().length === (cd?.spellsKnown?.[level() - 1] || 4);
+    }
+    if (s === 'equipment') return true;
+    if (s === 'bio') return charName().trim().length > 0;
+    return true;
+  };
+
+  // --- Build Final Character ---
+  async function buildAndCommit() {
+    const cd = classData();
+    if (!cd || building()) return;
+    setBuilding(true);
+
+    try {
+      const abilities = finalAbilities();
+      const strMod = mod(abilities.str);
+      const abilMod = cls() === 'Fighter' ? strMod : dexMod();
+      const hp = hpMax();
+
+      const attacks = (cd.attacks || []).map(a => ({
+        ...a,
+        bonus: abilMod + profBonus(),
+        damage: a.damage.replace(/\+\d+/, `+${abilMod}`),
+      }));
+
+      const skills = {};
+      for (const s of bgSkills()) skills[s.toLowerCase().replace(/\s+/g, '')] = true;
+      for (const s of skillPicks()) skills[s.toLowerCase().replace(/\s+/g, '')] = true;
+
+      const spellSlots = cd.slotTable?.[level()] || {};
+      const resources = [];
+      if (cls() === 'Bard') {
+        const chaMod = mod(abilities.cha);
+        resources.push({
+          name: 'Bardic Inspiration', max: Math.max(1, chaMod), current: Math.max(1, chaMod),
+          die: level() >= 10 ? 'd10' : level() >= 5 ? 'd8' : 'd6',
+          restoresOn: level() >= 5 ? 'short rest' : 'long rest',
+        });
+      }
+      if (cls() === 'Fighter') {
+        resources.push({ name: 'Second Wind', max: 1, current: 1, restoresOn: 'short rest' });
+        if (level() >= 2) resources.push({ name: 'Action Surge', max: 1, current: 1, restoresOn: 'short rest' });
+      }
+      if (cls() === 'Rogue') {
+        resources.push({ name: 'Sneak Attack', max: 1, current: 1, die: `${Math.ceil(level() / 2)}d6`, restoresOn: 'turn' });
+      }
+
+      const features = await getClassFeatures(cls(), level());
+
+      const eqMode = equipMode();
+      const eqData = STARTING_EQUIPMENT[cls()];
+      const goldAmount = eqMode === 'gold'
+        ? (eqData?.goldOption || getStartingGold(level()))
+        : getStartingGold(level());
+      const items = eqMode === 'gold' ? [] :
+        eqMode === 'customize' ? getSelectedEquipment(cls(), equipChoices()) :
+        getDefaultEquipment(cls());
+
+      const character = {
+        id: `pc_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        name: charName().trim() || `${race()} ${cls()}`,
+        race: race(), class: cls(), subclass: '', level: level(), xp: 0,
+        background: bg(), alignment: align(), abilityScores: abilities,
+        hpMax: hp, hp, hpTemp: 0, ac: calcAC(),
+        speed: RACE_SPEED[race()] || 30,
+        hitDice: { die: cd.hitDie, total: level(), used: 0 },
+        savingThrows: cd.savingThrows, skills, proficiencies: cd.proficiencies, features,
+        cantrips: isCaster() ? pickedCantrips() : [],
+        knownSpells: isCaster() ? pickedSpells() : [],
+        spellSlots, currentSlots: { ...spellSlots }, resources,
+        languages: RACE_LANGUAGES[race()] || ['Common'], attacks,
+        color: CHAR_COLORS[(props.existingCount || 0) % CHAR_COLORS.length],
+        backstory: backstory(), appearance: appearance(), personality: personality(), notes: '',
+        conditions: [], concentration: null, exhaustion: 0, inspiration: false,
+        deathSaves: { successes: 0, failures: 0 }, familiar: null,
+      };
+
+      props.onComplete(character, goldAmount, items, eqMode === 'gold');
+    } finally {
+      setBuilding(false);
+    }
+  }
+
+  // ===================== RENDER =====================
+
+  return (
+    <div class="char-wizard">
+      {/* Top bar: back + progress */}
+      <div class="wiz-top">
+        <button class="builder-back" onClick={props.onBack}>&larr;</button>
+        <div class="wiz-progress">
+          <For each={activeSteps()}>
+            {(id, i) => (
+              <div class={`wiz-dot ${i() < stepIdx() ? 'done' : ''} ${i() === stepIdx() ? 'current' : ''}`} />
+            )}
+          </For>
+        </div>
+        <span class="wiz-step-label">{STEP_LABELS[currentStep()]}</span>
+      </div>
+
+      {/* Live stat preview */}
+      <Show when={cls() && race()}>
+        <div class="wiz-stats">
+          <span class="wiz-stat">HP {hpMax()}</span>
+          <span class="wiz-stat">AC {calcAC()}</span>
+          <span class="wiz-stat">+{profBonus()} prof</span>
+          <span class="wiz-stat">{RACE_SPEED[race()] || 30} ft</span>
+        </div>
+      </Show>
+
+      {/* Step content */}
+      <div class="wiz-content">
+
+        {/* STEP: Class & Race */}
+        <Show when={currentStep() === 'class'}>
+          <div class="wiz-section">
+            <label class="wiz-label">Class</label>
+            <div class="wiz-cards">
+              <For each={AVAILABLE_CLASSES}>
+                {(c) => (
+                  <button class={`wiz-card ${cls() === c ? 'active' : ''}`} onClick={() => setCls(c)}>
+                    <span class="wiz-card-name">{c}</span>
+                    <span class="wiz-card-desc">{CLASS_BLURBS[c] || CLASS_DATA[c]?.hitDie}</span>
+                  </button>
+                )}
+              </For>
+            </div>
+          </div>
+          <div class="wiz-section">
+            <label class="wiz-label">Race</label>
+            <div class="wiz-cards">
+              <For each={AVAILABLE_RACES}>
+                {(r) => (
+                  <button class={`wiz-card ${race() === r ? 'active' : ''}`} onClick={() => setRace(r)}>
+                    <span class="wiz-card-name">{r}</span>
+                    <span class="wiz-card-desc">{RACE_BLURBS[r] || ''}</span>
+                  </button>
+                )}
+              </For>
+            </div>
+          </div>
+          <div class="wiz-section">
+            <label class="wiz-label">Level {level()}</label>
+            <div class="wiz-level-row">
+              <button class="wiz-level-btn" onClick={() => setLevel(Math.max(1, level() - 1))}>-</button>
+              <span class="wiz-level-val">{level()}</span>
+              <button class="wiz-level-btn" onClick={() => setLevel(Math.min(10, level() + 1))}>+</button>
+            </div>
+          </div>
+        </Show>
+
+        {/* STEP: Background & Alignment */}
+        <Show when={currentStep() === 'background'}>
+          <div class="wiz-section">
+            <label class="wiz-label">Background</label>
+            <div class="wiz-bg-list">
+              <For each={BACKGROUNDS}>
+                {(b) => (
+                  <button class={`wiz-bg-card ${bg() === b.name ? 'active' : ''}`} onClick={() => setBg(b.name)}>
+                    <span class="wiz-bg-name">{b.name}</span>
+                    <span class="wiz-bg-desc">{b.desc}</span>
+                    <span class="wiz-bg-profs">Skills: {b.skillProfs.join(', ')}</span>
+                    <Show when={b.toolProfs}>
+                      <span class="wiz-bg-profs">Tools: {b.toolProfs.join(', ')}</span>
+                    </Show>
+                    <span class="wiz-bg-feature">{b.feature}</span>
+                  </button>
+                )}
+              </For>
+            </div>
+          </div>
+          <div class="wiz-section">
+            <label class="wiz-label">Alignment</label>
+            <div class="wiz-align-grid">
+              <For each={ALIGNMENTS}>
+                {(a) => (
+                  <button class={`wiz-align-chip ${align() === a ? 'active' : ''}`} onClick={() => setAlign(a)}>
+                    {a}
+                  </button>
+                )}
+              </For>
+            </div>
+          </div>
+        </Show>
+
+        {/* STEP: Abilities */}
+        <Show when={currentStep() === 'abilities'}>
+          <div class="wiz-section">
+            <label class="wiz-label">Method</label>
+            <div class="wiz-method-bar">
+              <button class={`wiz-method ${abilityMethod() === 'standard' ? 'active' : ''}`}
+                onClick={() => setAbilityMethod('standard')}>Standard Array</button>
+              <button class={`wiz-method ${abilityMethod() === 'roll' ? 'active' : ''}`}
+                onClick={() => setAbilityMethod('roll')}>Roll 4d6</button>
+              <button class={`wiz-method ${abilityMethod() === 'pointbuy' ? 'active' : ''}`}
+                onClick={() => setAbilityMethod('pointbuy')}>Point Buy</button>
+            </div>
+          </div>
+
+          {/* Standard Array */}
+          <Show when={abilityMethod() === 'standard'}>
+            <div class="wiz-section">
+              <label class="wiz-label">Tap a score, then tap an ability to assign</label>
+              <div class="wiz-score-pool">
+                <For each={unassignedStd()}>
+                  {(val) => (
+                    <button class={`wiz-score-chip ${selectedVal() === val ? 'selected' : ''}`}
+                      onClick={() => tapStdValue(val)}>{val}</button>
+                  )}
+                </For>
+              </div>
+              <div class="wiz-ability-grid">
+                <For each={ABILITY_NAMES}>
+                  {(ab) => {
+                    const assigned = () => stdAssign()[ab];
+                    const bonus = () => (RACE_BONUSES[race()] || {})[ab] || 0;
+                    const total = () => (assigned() || 10) + bonus();
+                    return (
+                      <button class={`wiz-ability-slot ${assigned() !== undefined ? 'filled' : ''}`}
+                        onClick={() => tapStdAbility(ab)}>
+                        <span class="wiz-ab-label">{ab.toUpperCase()}</span>
+                        <span class="wiz-ab-score">{assigned() !== undefined ? assigned() : '—'}</span>
+                        <Show when={bonus()}>
+                          <span class="wiz-ab-bonus">+{bonus()}</span>
+                        </Show>
+                        <span class="wiz-ab-total">{assigned() !== undefined ? `${total()} (${fmtMod(mod(total()))})` : ''}</span>
+                      </button>
+                    );
+                  }}
+                </For>
+              </div>
+            </div>
+          </Show>
+
+          {/* Roll 4d6 */}
+          <Show when={abilityMethod() === 'roll'}>
+            <div class="wiz-section">
+              <button class="wiz-roll-btn" onClick={rollAll}>
+                {rolledScores().length ? 'Re-Roll All' : 'Roll 4d6 Drop Lowest'}
+              </button>
+              <Show when={rolledScores().length > 0}>
+                <label class="wiz-label">Tap a roll, then tap an ability to assign</label>
+                <div class="wiz-score-pool">
+                  <For each={unassignedRollIndices()}>
+                    {(idx) => (
+                      <button class={`wiz-score-chip ${selectedRollIdx() === idx ? 'selected' : ''}`}
+                        onClick={() => tapRollIdx(idx)}>{rolledScores()[idx]}</button>
+                    )}
+                  </For>
+                </div>
+                <div class="wiz-ability-grid">
+                  <For each={ABILITY_NAMES}>
+                    {(ab) => {
+                      const val = () => rollAbilityValue(ab);
+                      const bonus = () => (RACE_BONUSES[race()] || {})[ab] || 0;
+                      const total = () => (val() || 10) + bonus();
+                      return (
+                        <button class={`wiz-ability-slot ${val() !== null ? 'filled' : ''}`}
+                          onClick={() => tapRollAbility(ab)}>
+                          <span class="wiz-ab-label">{ab.toUpperCase()}</span>
+                          <span class="wiz-ab-score">{val() !== null ? val() : '—'}</span>
+                          <Show when={bonus()}>
+                            <span class="wiz-ab-bonus">+{bonus()}</span>
+                          </Show>
+                          <span class="wiz-ab-total">{val() !== null ? `${total()} (${fmtMod(mod(total()))})` : ''}</span>
+                        </button>
+                      );
+                    }}
+                  </For>
+                </div>
+              </Show>
+            </div>
+          </Show>
+
+          {/* Point Buy */}
+          <Show when={abilityMethod() === 'pointbuy'}>
+            <div class="wiz-section">
+              <div class="wiz-pb-budget">
+                Points: <b>{pbRemaining()}</b> / 27
+              </div>
+              <div class="wiz-pb-grid">
+                <For each={ABILITY_NAMES}>
+                  {(ab) => {
+                    const score = () => pbScores()[ab];
+                    const bonus = () => (RACE_BONUSES[race()] || {})[ab] || 0;
+                    const total = () => score() + bonus();
+                    const cost = () => POINT_BUY_COSTS[score()] || 0;
+                    return (
+                      <div class="wiz-pb-row">
+                        <span class="wiz-pb-label">{ab.toUpperCase()}</span>
+                        <button class="wiz-pb-btn" onClick={() => pbAdjust(ab, -1)}
+                          disabled={score() <= 8}>-</button>
+                        <span class="wiz-pb-score">{score()}</span>
+                        <button class="wiz-pb-btn" onClick={() => pbAdjust(ab, 1)}
+                          disabled={score() >= 15 || pbRemaining() <= 0}>+</button>
+                        <Show when={bonus()}>
+                          <span class="wiz-ab-bonus">+{bonus()}</span>
+                        </Show>
+                        <span class="wiz-pb-total">{total()} ({fmtMod(mod(total()))})</span>
+                        <span class="wiz-pb-cost">{cost()}pt</span>
+                      </div>
+                    );
+                  }}
+                </For>
+              </div>
+            </div>
+          </Show>
+
+          {/* Race bonuses summary */}
+          <Show when={race()}>
+            <div class="wiz-race-bonus-note">
+              {race()} bonuses: {Object.entries(RACE_BONUSES[race()] || {}).map(([k, v]) => `${k.toUpperCase()} +${v}`).join(', ')}
+            </div>
+          </Show>
+        </Show>
+
+        {/* STEP: Skills */}
+        <Show when={currentStep() === 'skills'}>
+          <div class="wiz-section">
+            <Show when={bgSkills().length > 0}>
+              <label class="wiz-label">Background Skills (locked)</label>
+              <div class="wiz-skill-chips">
+                <For each={bgSkills()}>
+                  {(s) => <span class="wiz-skill-chip locked">{s}</span>}
+                </For>
+              </div>
+            </Show>
+            <label class="wiz-label">
+              Choose {skillChoiceData().count} class skill{skillChoiceData().count > 1 ? 's' : ''}
+              <span class="wiz-pick-count"> ({skillPicks().length}/{skillChoiceData().count})</span>
+            </label>
+            <div class="wiz-skill-chips">
+              <For each={availableSkills()}>
+                {(s) => (
+                  <button class={`wiz-skill-chip ${skillPicks().includes(s) ? 'active' : ''}`}
+                    onClick={() => toggleSkill(s)}>
+                    {s}
+                  </button>
+                )}
+              </For>
+            </div>
+          </div>
+        </Show>
+
+        {/* STEP: Spells */}
+        <Show when={currentStep() === 'spells'}>
+          <div class="wiz-section">
+            <label class="wiz-label">
+              Cantrips ({pickedCantrips().length}/{classData()?.cantripsKnown?.[level() - 1] || 2})
+            </label>
+            <div class="wiz-spell-chips">
+              <For each={spellPool().cantrips}>
+                {(s) => (
+                  <button class={`wiz-spell-chip ${pickedCantrips().includes(s) ? 'active' : ''}`}
+                    onClick={() => toggleCantrip(s)}>
+                    {s}
+                  </button>
+                )}
+              </For>
+            </div>
+          </div>
+          <div class="wiz-section">
+            <label class="wiz-label">
+              Spells Known ({pickedSpells().length}/{classData()?.spellsKnown?.[level() - 1] || 4})
+            </label>
+            <div class="wiz-spell-chips">
+              <For each={spellPool().leveled}>
+                {(s) => (
+                  <button class={`wiz-spell-chip ${pickedSpells().includes(s.name) ? 'active' : ''}`}
+                    onClick={() => toggleSpell(s.name)}>
+                    <span>{s.name}</span>
+                    <span class="wiz-spell-lv">Lv{s.level}</span>
+                  </button>
+                )}
+              </For>
+            </div>
+          </div>
+        </Show>
+
+        {/* STEP: Equipment */}
+        <Show when={currentStep() === 'equipment'}>
+          <Show when={STARTING_EQUIPMENT[cls()]} fallback={
+            <div class="wiz-section"><p class="wiz-muted">No equipment data for {cls()}</p></div>
+          }>
+            {(eqData) => {
+              const goldOpt = () => eqData().goldOption || getStartingGold(level());
+              const defaultItems = () => getDefaultEquipment(cls());
+              const customItems = () => getSelectedEquipment(cls(), equipChoices());
+              return (
+                <div class="wiz-section">
+                  <label class="wiz-label">Starting Equipment</label>
+                  <div class="equip-mode-bar">
+                    <button class={`equip-mode-chip ${equipMode() === 'default' ? 'active' : ''}`}
+                      onClick={() => setEquipMode('default')}>Default Pack</button>
+                    <button class={`equip-mode-chip ${equipMode() === 'customize' ? 'active' : ''}`}
+                      onClick={() => setEquipMode('customize')}>Customize</button>
+                    <button class={`equip-mode-chip ${equipMode() === 'gold' ? 'active' : ''}`}
+                      onClick={() => setEquipMode('gold')}>Take {goldOpt()} GP</button>
+                  </div>
+
+                  <Show when={equipMode() === 'default'}>
+                    <div class="equip-default-list">
+                      <For each={defaultItems()}>
+                        {(item) => <span class="equip-item-tag">{item.qty > 1 ? `${item.qty}x ` : ''}{item.name}</span>}
+                      </For>
+                    </div>
+                  </Show>
+
+                  <Show when={equipMode() === 'customize'}>
+                    <Show when={eqData().always?.length > 0}>
+                      <div class="equip-always">
+                        <For each={eqData().always}>
+                          {(item) => <span class="equip-item-tag">{item.qty > 1 ? `${item.qty}x ` : ''}{item.name}</span>}
+                        </For>
+                      </div>
+                    </Show>
+                    <For each={eqData().choices || []}>
+                      {(group, gi) => (
+                        <div class="equip-choice-group">
+                          <span class="equip-choice-label">{group.label}</span>
+                          <div class="equip-choice-options">
+                            <For each={group.options}>
+                              {(opt, oi) => (
+                                <button class={`equip-chip ${(equipChoices()[gi()] ?? 0) === oi() ? 'active' : ''}`}
+                                  onClick={() => setEquipChoices(p => ({ ...p, [gi()]: oi() }))}>
+                                  {opt.label}
+                                </button>
+                              )}
+                            </For>
+                          </div>
+                        </div>
+                      )}
+                    </For>
+                  </Show>
+
+                  <Show when={equipMode() === 'gold'}>
+                    <div class="equip-gold-msg">Start with {goldOpt()} GP — buy equipment during play</div>
+                  </Show>
+
+                  <div class="equip-summary">
+                    <span class="equip-gold">{getStartingGold(level())} GP</span>
+                    <Show when={equipMode() !== 'gold'}>
+                      <span class="equip-item-count">
+                        {(equipMode() === 'customize' ? customItems() : defaultItems()).length} items
+                      </span>
+                    </Show>
+                  </div>
+                </div>
+              );
+            }}
+          </Show>
+        </Show>
+
+        {/* STEP: Name & Bio */}
+        <Show when={currentStep() === 'bio'}>
+          <div class="wiz-section">
+            <input class="wiz-name-input" placeholder="Character name"
+              value={charName()} onInput={(e) => setCharName(e.target.value)} />
+          </div>
+
+          <div class="wiz-section">
+            <div class="wiz-bio-header">
+              <label class="wiz-label">Appearance</label>
+              <button class="wiz-gen-btn" onClick={() => generateBioField('appearance')}
+                disabled={genField() !== ''}>
+                {genField() === 'appearance' ? '...' : 'Generate'}
+              </button>
+            </div>
+            <textarea class="wiz-bio-input" rows="2" placeholder="How do they look?"
+              value={appearance()} onInput={(e) => setAppearance(e.target.value)} />
+          </div>
+
+          <div class="wiz-section">
+            <div class="wiz-bio-header">
+              <label class="wiz-label">Personality</label>
+              <button class="wiz-gen-btn" onClick={() => generateBioField('personality')}
+                disabled={genField() !== ''}>
+                {genField() === 'personality' ? '...' : 'Generate'}
+              </button>
+            </div>
+            <textarea class="wiz-bio-input" rows="3" placeholder="Traits, ideals, bonds, flaws..."
+              value={personality()} onInput={(e) => setPersonality(e.target.value)} />
+          </div>
+
+          <div class="wiz-section">
+            <div class="wiz-bio-header">
+              <label class="wiz-label">Backstory</label>
+              <button class="wiz-gen-btn" onClick={() => generateBioField('backstory')}
+                disabled={genField() !== ''}>
+                {genField() === 'backstory' ? '...' : 'Generate'}
+              </button>
+            </div>
+            <textarea class="wiz-bio-input" rows="4" placeholder="Origin, motivation, secrets..."
+              value={backstory()} onInput={(e) => setBackstory(e.target.value)} />
+          </div>
+
+          {/* Review summary */}
+          <div class="wiz-review">
+            <div class="wiz-review-line">
+              <b>{race()} {cls()}</b> Lv{level()} &middot; {bg()} &middot; {align()}
+            </div>
+            <div class="wiz-review-stats">
+              <For each={ABILITY_NAMES}>
+                {(ab) => <span class="wiz-review-ab">{ab.toUpperCase()} {finalAbilities()[ab]}</span>}
+              </For>
+            </div>
+            <div class="wiz-review-line">
+              HP {hpMax()} &middot; AC {calcAC()} &middot; Speed {RACE_SPEED[race()] || 30}
+            </div>
+            <Show when={skillPicks().length > 0 || bgSkills().length > 0}>
+              <div class="wiz-review-line">
+                Skills: {[...bgSkills(), ...skillPicks()].join(', ')}
+              </div>
+            </Show>
+            <Show when={isCaster() && pickedSpells().length > 0}>
+              <div class="wiz-review-line">
+                Spells: {[...pickedCantrips(), ...pickedSpells()].join(', ')}
+              </div>
+            </Show>
+          </div>
+        </Show>
+      </div>
+
+      {/* Bottom navigation */}
+      <div class="wiz-nav">
+        <Show when={stepIdx() > 0}>
+          <button class="wiz-back-btn" onClick={back}>Back</button>
+        </Show>
+        <div class="wiz-nav-spacer" />
+        <Show when={stepIdx() < totalSteps() - 1} fallback={
+          <button class="wiz-commit-btn" onClick={buildAndCommit}
+            disabled={!canAdvance() || building()}>
+            {building() ? 'Building...' : 'Use This Character'}
+          </button>
+        }>
+          <button class="wiz-next-btn" onClick={next} disabled={!canAdvance()}>Next</button>
+        </Show>
+      </div>
+    </div>
+  );
+}

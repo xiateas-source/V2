@@ -61,6 +61,8 @@ Your premise text here.
 
 Keep it short and evocative. The game AI will expand on it.`;
 
+export const GENERATE_BIO_SYSTEM = `Generate a brief, vivid D&D character description. You'll receive race, class, background, and alignment. Write 2-3 sentences for the requested field. No preamble, no labels — just the description. Keep it evocative but concise.`;
+
 export const CONTENT_STRUCTURING_SYSTEM = `You are parsing a D&D adventure module chapter. Extract structured data from the text provided.
 
 Output ONLY valid JSON (no prose, no markdown outside the JSON):

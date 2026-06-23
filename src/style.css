@@ -4233,6 +4233,573 @@ body {
   cursor: pointer;
 }
 
+/* --- CHARACTER WIZARD --- */
+
+.char-wizard {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.wiz-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.wiz-progress {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+  justify-content: center;
+}
+
+.wiz-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-border);
+  transition: all 0.2s;
+}
+
+.wiz-dot.done { background: var(--color-accent-dim); }
+.wiz-dot.current { background: var(--color-accent); transform: scale(1.3); }
+
+.wiz-step-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  min-width: 80px;
+  text-align: right;
+}
+
+.wiz-stats {
+  display: flex;
+  gap: var(--space-md);
+  padding: var(--space-xs) var(--space-md);
+  background: var(--color-surface-alt);
+  font-size: var(--font-size-sm);
+  flex-shrink: 0;
+  justify-content: center;
+}
+
+.wiz-stat {
+  color: var(--color-text-muted);
+}
+
+.wiz-stat b { color: var(--color-accent); font-weight: 700; }
+
+.wiz-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-md);
+}
+
+.wiz-section {
+  margin-bottom: var(--space-lg);
+}
+
+.wiz-label {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  margin-bottom: var(--space-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.wiz-pick-count {
+  text-transform: none;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+/* Class/Race cards */
+.wiz-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.wiz-card {
+  flex: 1 1 calc(50% - var(--space-sm));
+  min-width: 130px;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  text-align: left;
+  min-height: var(--touch-target);
+  color: var(--color-text);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wiz-card.active {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+
+.wiz-card-name { font-weight: 700; font-size: var(--font-size-base); }
+.wiz-card-desc { font-size: 0.75rem; opacity: 0.7; }
+.wiz-card.active .wiz-card-desc { opacity: 0.9; }
+
+/* Level picker */
+.wiz-level-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.wiz-level-btn {
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+}
+
+.wiz-level-btn:active { background: var(--color-accent); color: var(--color-bg); }
+
+.wiz-level-val {
+  font-size: 1.5rem;
+  font-weight: 700;
+  min-width: 32px;
+  text-align: center;
+}
+
+/* Background cards */
+.wiz-bg-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.wiz-bg-card {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  text-align: left;
+  color: var(--color-text);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wiz-bg-card.active {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-surface));
+}
+
+.wiz-bg-name { font-weight: 700; font-size: var(--font-size-base); }
+.wiz-bg-desc { font-size: 0.8rem; color: var(--color-text-muted); }
+.wiz-bg-profs { font-size: 0.75rem; color: var(--color-accent); }
+.wiz-bg-feature { font-size: 0.7rem; color: var(--color-text-muted); font-style: italic; }
+
+/* Alignment grid */
+.wiz-align-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-xs);
+}
+
+.wiz-align-chip {
+  padding: var(--space-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  min-height: 36px;
+}
+
+.wiz-align-chip.active {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border-color: var(--color-accent);
+}
+
+/* Ability method bar */
+.wiz-method-bar {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.wiz-method {
+  flex: 1;
+  padding: var(--space-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  min-height: var(--touch-target);
+}
+
+.wiz-method.active {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border-color: var(--color-accent);
+  font-weight: 700;
+}
+
+/* Score pool (standard array + roll) */
+.wiz-score-pool {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: center;
+  margin-bottom: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.wiz-score-chip {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wiz-score-chip.selected {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-bg);
+  box-shadow: 0 0 8px rgba(var(--color-accent), 0.3);
+}
+
+/* Ability grid */
+.wiz-ability-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+}
+
+.wiz-ability-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  min-height: 70px;
+  color: var(--color-text);
+}
+
+.wiz-ability-slot.filled {
+  border-color: var(--color-accent);
+}
+
+.wiz-ab-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.wiz-ab-score {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.wiz-ab-bonus {
+  font-size: 0.7rem;
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.wiz-ab-total {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+
+/* Roll button */
+.wiz-roll-btn {
+  width: 100%;
+  padding: var(--space-md);
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  min-height: var(--touch-target);
+  margin-bottom: var(--space-md);
+}
+
+/* Point buy */
+.wiz-pb-budget {
+  text-align: center;
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm);
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+}
+
+.wiz-pb-budget b { color: var(--color-accent); }
+
+.wiz-pb-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.wiz-pb-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+}
+
+.wiz-pb-label {
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  min-width: 32px;
+  color: var(--color-text-muted);
+}
+
+.wiz-pb-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+}
+
+.wiz-pb-btn:disabled { opacity: 0.3; }
+.wiz-pb-btn:active:not(:disabled) { background: var(--color-accent); color: var(--color-bg); }
+
+.wiz-pb-score {
+  font-size: 1.1rem;
+  font-weight: 700;
+  min-width: 24px;
+  text-align: center;
+}
+
+.wiz-pb-total {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  flex: 1;
+  text-align: right;
+}
+
+.wiz-pb-cost {
+  font-size: 0.7rem;
+  color: var(--color-accent-dim);
+  min-width: 24px;
+  text-align: right;
+}
+
+.wiz-race-bonus-note {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: var(--space-xs);
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-sm);
+}
+
+/* Skill chips */
+.wiz-skill-chips, .wiz-spell-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.wiz-skill-chip, .wiz-spell-chip {
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wiz-skill-chip.active, .wiz-spell-chip.active {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border-color: var(--color-accent);
+}
+
+.wiz-skill-chip.locked {
+  background: var(--color-surface-alt);
+  border-color: var(--color-accent-dim);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.wiz-spell-lv {
+  font-size: 0.65rem;
+  opacity: 0.7;
+  font-weight: 600;
+}
+
+/* Name & Bio */
+.wiz-name-input {
+  width: 100%;
+  padding: var(--space-md);
+  background: var(--color-input-bg);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-text);
+  text-align: center;
+  min-height: 56px;
+}
+
+.wiz-name-input:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.wiz-bio-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+}
+
+.wiz-bio-header .wiz-label { margin-bottom: 0; }
+
+.wiz-gen-btn {
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  color: var(--color-accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-height: 32px;
+}
+
+.wiz-gen-btn:disabled { opacity: 0.4; }
+
+.wiz-bio-input {
+  width: 100%;
+  padding: var(--space-sm);
+  background: var(--color-input-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.wiz-bio-input:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+/* Review panel */
+.wiz-review {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.wiz-review-line {
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+.wiz-review-stats {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.wiz-review-ab {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  padding: 2px 6px;
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-sm);
+}
+
+/* Bottom nav */
+.wiz-nav {
+  display: flex;
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  flex-shrink: 0;
+  gap: var(--space-sm);
+}
+
+.wiz-nav-spacer { flex: 1; }
+
+.wiz-back-btn {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: var(--font-size-base);
+  min-height: var(--touch-target);
+}
+
+.wiz-next-btn, .wiz-commit-btn {
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  min-height: var(--touch-target);
+}
+
+.wiz-next-btn:disabled, .wiz-commit-btn:disabled { opacity: 0.4; }
+
+.wiz-commit-btn {
+  background: var(--color-success);
+}
+
+.wiz-muted {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  text-align: center;
+  padding: var(--space-lg) 0;
+}
+
 /* Campaign Config */
 
 .campaign-config {
