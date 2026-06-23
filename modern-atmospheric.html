@@ -6,6 +6,7 @@
 <title>Tinkerer's Chronograph — modern, atmospheric</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500;600&display=swap');
+  @import url('https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css');
   :root{
     --bg:#14110c; --surface:#1e1a13; --surface-2:#272218; --raise:#2f2818;
     --line:rgba(201,162,90,.16); --line-soft:rgba(255,255,255,.05);
@@ -42,11 +43,13 @@
   .pc{flex:1;display:flex;gap:10px;align-items:center;}
   .ava{width:42px;height:42px;border-radius:12px;flex-shrink:0;position:relative;
     background:linear-gradient(150deg,#3a3020,#241d12);
-    display:flex;align-items:center;justify-content:center;font-size:20px;
+    display:flex;align-items:center;justify-content:center;
     box-shadow:0 0 0 1.5px var(--ring),0 2px 6px rgba(0,0,0,.4);}
-  .ava .cls{position:absolute;bottom:-5px;right:-5px;width:17px;height:17px;border-radius:6px;
+  .ava .mono{font-family:var(--disp);font-size:16px;color:#dcc8a0;letter-spacing:.02em;}
+  .ava .cls{position:absolute;bottom:-5px;right:-5px;width:18px;height:18px;border-radius:6px;
     background:var(--surface-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;
-    font-size:9px;color:var(--gold);}
+    color:var(--gold);}
+  .ava .cls i{font-size:10px;line-height:1;}
   .pi{flex:1;min-width:0;}
   .pi .nm{font-family:var(--serif);font-size:15px;font-weight:500;color:var(--text);letter-spacing:.01em;}
   .pi .sub{font-size:10px;color:var(--faint);margin-top:-1px;}
@@ -133,7 +136,7 @@
 
       <div class="party">
         <div class="pc" style="--ring:#46a374">
-          <div class="ava">🗡️<span class="cls">⚔</span></div>
+          <div class="ava"><span class="mono">I</span><span class="cls"><i class="ph ph-knife"></i></span></div>
           <div class="pi">
             <div class="nm">Ivy</div><div class="sub">Rogue 4</div>
             <div class="hp"><div class="bar"><div class="fill" style="width:100%;background:var(--ok);"></div></div><span class="n">31/31</span></div>
@@ -141,7 +144,7 @@
           </div>
         </div>
         <div class="pc" style="--ring:#8b6fd0">
-          <div class="ava">🎻<span class="cls">♪</span></div>
+          <div class="ava"><span class="mono">T</span><span class="cls"><i class="ph ph-music-notes"></i></span></div>
           <div class="pi">
             <div class="nm">Thorn</div><div class="sub">Bard 4</div>
             <div class="hp"><div class="bar"><div class="fill" style="width:66%;background:var(--warn);"></div></div><span class="n">18/27</span></div>
@@ -164,7 +167,7 @@
         <div>
           <div class="who">Dungeon Master</div>
           <div class="dm">The lodge's broken door hangs on one hinge. <em>Ivy</em>, your boots find old bloodstains beneath the ash — something moved through here recently, and not long ago. A low growl rolls out of the black doorway ahead, wet and deliberate.
-            <div class="tags"><span class="tag"><span class="i">⚔</span>Combat begins</span><span class="tag"><span class="i">+</span>Kobold</span><span class="tag"><span class="i">📍</span>Lodge interior</span></div>
+            <div class="tags"><span class="tag"><i class="ph ph-sword i"></i>Combat begins</span><span class="tag"><i class="ph ph-skull i"></i>Kobold</span><span class="tag"><i class="ph ph-map-pin i"></i>Lodge interior</span></div>
           </div>
         </div>
 
@@ -182,15 +185,15 @@
 
       <div class="input">
         <div class="field">What do you do?</div>
-        <div class="send">➤</div>
+        <div class="send"><i class="ph ph-paper-plane-right"></i></div>
       </div>
     </div>
 
     <div class="nav">
-      <div class="it"><span class="gi">⚖</span>Cargo</div>
-      <div class="it on"><span class="gi">📖</span>Play</div>
-      <div class="it"><span class="gi">🗺</span>Journal</div>
-      <div class="it"><span class="gi">⚙</span>Settings</div>
+      <div class="it"><span class="gi"><i class="ph ph-backpack"></i></span>Cargo</div>
+      <div class="it on"><span class="gi"><i class="ph ph-book-open"></i></span>Play</div>
+      <div class="it"><span class="gi"><i class="ph ph-compass"></i></span>Journal</div>
+      <div class="it"><span class="gi"><i class="ph ph-gear-six"></i></span>Settings</div>
     </div>
   </div></div>
 
@@ -199,7 +202,7 @@
     <div class="d">restraint · type hierarchy · gold used sparingly</div>
   </div>
   <div class="note">
-    Same soul, modern register: real type (<b>Cinzel</b> display + <b>EB Garamond</b> prose + <b>Inter</b> UI), flat panels with hairline borders, one gold accent used sparingly, and texture you feel (faint grain) — <b>no</b> leather, stitching, bevels or wax. Portraits keep the per-PC color ring. A <b>Texturelabs</b> paper layer can still sit underneath, kept subtle.
+    Emoji gone — replaced with one coherent professional icon set (<b>Phosphor</b>), tinted to the palette. Portraits are now clean <b>monogram avatars</b> (placeholder for real character art) with a per-PC color ring + class icon. Plus the modern type system (<b>Cinzel</b> + <b>EB Garamond</b> + <b>Inter</b>), flat panels, sparing gold, faint grain. (Icons + fonts load from CDN — needs internet to render; otherwise they fall back.)
   </div>
 </body>
 </html>
