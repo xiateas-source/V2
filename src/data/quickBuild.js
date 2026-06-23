@@ -271,6 +271,36 @@ export function rollPersonality(category) {
   return pool[Math.floor(Math.random() * pool.length)] || '';
 }
 
+// Roll a full structured personality set.
+export function rollTraits() {
+  return {
+    trait: rollPersonality('trait'), ideal: rollPersonality('ideal'),
+    bond: rollPersonality('bond'), flaw: rollPersonality('flaw'),
+  };
+}
+
+const FLAVOR_BUILD = ['lean', 'wiry', 'broad-shouldered', 'tall', 'compact', 'rangy', 'sturdy', 'willowy'];
+const FLAVOR_FEATURE = [
+  'a weathered face', 'sharp, watchful eyes', 'an easy grin', 'a quiet, guarded look',
+  'an old scar across one brow', 'calloused hands', 'a restless energy', 'a steady, level gaze',
+];
+
+// Zero-cost templated flavor for the creative fields, so any path can produce a
+// complete, "ready to play" character without an AI call. Player-owned text the
+// user can overwrite on the sheet at any time.
+export function randomFlavor({ race = '', className = '', background = '', traits = null } = {}) {
+  const build = FLAVOR_BUILD[Math.floor(Math.random() * FLAVOR_BUILD.length)];
+  const feature = FLAVOR_FEATURE[Math.floor(Math.random() * FLAVOR_FEATURE.length)];
+  const appearance = `A ${build} ${(race || 'wanderer').toLowerCase()} with ${feature}, carrying themselves like a ${(className || 'traveler').toLowerCase()} who has walked a few hard roads.`;
+
+  const bg = BACKGROUNDS.find(b => b.name === background);
+  const origin = bg ? bg.desc : 'They came up the hard way, learning to rely on their wits.';
+  const bond = traits?.bond ? ` ${traits.bond}` : '';
+  const backstory = `${origin}${bond}`.trim();
+
+  return { appearance, backstory };
+}
+
 // Compose the four structured fields into a single readable personality string
 // (for display on sheets that render the legacy personality field).
 export function composePersonality(traits) {

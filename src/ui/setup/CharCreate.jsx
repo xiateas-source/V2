@@ -6,7 +6,7 @@ import { normalizeCharacter, validateCharacter } from '../../content/normalizer.
 import {
   STARTING_EQUIPMENT, getStartingGold, getDefaultEquipment, getSelectedEquipment,
   AVAILABLE_CLASSES, AVAILABLE_RACES, BACKGROUNDS, ALIGNMENTS,
-  buildCharacter, rollPersonality, composePersonality
+  buildCharacter, composePersonality, rollTraits, randomFlavor
 } from '../../data/quickBuild.js';
 import { forgeCharacter, proficiencyBonus } from '../../data/forge.js';
 import CharWizard from './CharWizard.jsx';
@@ -135,12 +135,12 @@ export default function CharCreate(props) {
         for (const s of (bg.skillProfs || [])) {
           char.skills[s.toLowerCase().replace(/\s+/g, '')] = true;
         }
-        const traits = {
-          trait: rollPersonality('trait'), ideal: rollPersonality('ideal'),
-          bond: rollPersonality('bond'), flaw: rollPersonality('flaw'),
-        };
+        const traits = rollTraits();
         char.traits = traits;
         char.personality = composePersonality(traits);
+        const flavor = randomFlavor({ race, className, background: bg.name, traits });
+        char.appearance = flavor.appearance;
+        char.backstory = flavor.backstory;
         setQuickChar(char);
       }
     } finally {
@@ -157,10 +157,21 @@ export default function CharCreate(props) {
     const normalized = normalizeCharacter(charObj);
     if (!normalized) return;
 
-    // Apply the chosen background's skill proficiencies too, the way Guided
-    // Build does — so AI/imported characters get the full criteria.
-    const bgMatch = BACKGROUNDS.find(b => b.name === normalized.background);
+    // Guarantee the criteria the guided builder always produces — never rely on
+    // the AI/import to include them. Backfill background, alignment, traits, and
+    // bio when missing so every path yields a complete character.
+    const background = normalized.background || pickRandom(BACKGROUNDS).name;
+    const alignment = normalized.alignment || pickRandom(ALIGNMENTS);
+    const bgMatch = BACKGROUNDS.find(b => b.name === background);
     const extraSkills = bgMatch?.skillProfs || [];
+
+    const t = normalized.traits;
+    const traits = (t && (t.trait || t.ideal || t.bond || t.flaw)) ? t : rollTraits();
+    const flavor = randomFlavor({
+      race: normalized.race, className: normalized.class, background, traits,
+    });
+    const appearance = normalized.appearance || flavor.appearance;
+    const backstory = normalized.backstory || flavor.backstory;
 
     // Funnel through the Forge: keep the AI/import's creative choices (name,
     // race, class, ability scores, background, spells, traits, bio) but
@@ -174,16 +185,16 @@ export default function CharCreate(props) {
       subclass: normalized.subclass,
       level: normalized.level,
       abilityScores: normalized.abilityScores,
-      background: normalized.background,
-      alignment: normalized.alignment,
+      background,
+      alignment,
       skills: normalized.skills,
       extraSkills,
       cantrips: normalized.cantrips,
       knownSpells: normalized.knownSpells,
-      traits: normalized.traits,
-      appearance: normalized.appearance,
+      traits,
+      appearance,
       personality: normalized.personality,
-      backstory: normalized.backstory,
+      backstory,
       notes: normalized.notes,
       // pass-throughs the Forge keeps for unsupported classes:
       attacks: normalized.attacks,
