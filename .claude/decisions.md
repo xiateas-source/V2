@@ -89,6 +89,24 @@
 | **Turn prompt is derived from synced state, shown on all devices** | `combatState.currentTurn` already syncs via Firebase, so TurnPrompt is derived (no new synced field) and appears on every device at once. Non-blocking; any player can tap it. The app enforces turn ORDER, not which person acts. | 37 |
 | **`combatState.initiative` stored pre-sorted** | `currentTurn` was used as an index into the *sorted* list by the UI/prompt but advanced against the *unsorted* array — they disagreed whenever order differed. Now initiative is always stored sorted (highest first) and every consumer indexes it the same way. | 37 |
 | **Round marker beat + turn-prompt quick actions** | When the pointer wraps, a centered `⚔ Round N` system message drops into the narrative (anchor for condition/consequence timing). The turn prompt surfaces the active PC's attacks/spells as one-tap buttons that prefill the input (eyes-free, one-handed, kid-friendly; Law 3 + tap-to-source). | 37 |
+| **roll_request is code-enforced PC-only** | DM-rolls-enemies was prompt-only; the AI could target an enemy with a roll_request and the roll bar handed it to the player (bare d20, no mod). Now validation rejects any roll_request whose target isn't a PC (party/all/familiars excepted later). Law 2. | 37 |
+| **Combat tracker: live ally HP, minimize toggle** | Allies (PCs) render HP live from the character store (snapshot in the initiative entry drifted on heal/override/level-up); enemies render from the initiative entry, updated by the `hp` mechanic. Overlay has a minimize button (collapses to round/turn bar). Contract now requires an `hp` mechanic whenever ANY combatant takes damage/heals so enemy HP actually tracks. | 37 |
+| **Initiative rolls sourced from combatState, not events** | `combat_start`'s side-effect roll_requests were heard by nobody (no listener; `applyMechanics` only returns top-level mechanics), so initiative never surfaced and combat hung on turn 1. RollBar now derives Initiative prompts from PCs flagged `rollPending`. | 37 |
+
+## Onboarding & Character Creation
+
+| Decision | Rationale | Session |
+|----------|-----------|---------|
+| **Backstory/personality/appearance captured at creation + editable on sheet** | Onboarding regression: a prior (uncommitted, since-lost) build had these in the creation flow; deployed `main` had none. Added editable fields to the character preview (all 3 paths) saved on commit, plus an editable Bio tab on the character sheet (playerSet → synced) for after-creation edits/recovery. | 37 |
+| **NOT yet rebuilt: full D&D-Beyond-style onboarding** | Only the backstory piece was restored from memory. Manual stat-rolling and the other "multiple options" we'd cross-referenced (D&D Beyond import mapping, guided multi-step wizard) still need rebuilding — original spec was lost with the uncommitted build. | 37 |
+
+## Deployment
+
+| Decision | Rationale | Session |
+|----------|-----------|---------|
+| **Auto-deploy to Firebase Hosting on push to main** | `.github/workflows/deploy.yml` (FirebaseExtended/action-hosting-deploy). Requires repo secret `FIREBASE_SERVICE_ACCOUNT_PEBBLE_V2` (NOT YET SET — workflow red until added). Removes the manual deploy step; developer has no local deploy path. | 37 |
+| **Live site `pebble-v2.web.app` deploys from main `dist/`** | `firebase.json` site=pebble-v2, public=dist. Until the GH secret is set, deploys were run manually via `GOOGLE_APPLICATION_CREDENTIALS` + `firebase deploy`. Service-account key was shared via chat → MUST be rotated. | 37 |
+| **A deploy must check what's currently live first** | Deployed `main` over a more-complete (uncommitted) build, regressing the backstory editor. Lesson (CLAUDE.md): look at the target before overwriting. | 37 |
 
 ## Multi-Player
 

@@ -2,41 +2,45 @@
 
 ## Session 37 · 2026-06-23
 
-### Shipped
-- **Combat tracker + turn system rebuild** (merged to main)
-  - **Engine owns the turn pointer** (Law 2). The AI only narrates the turn it's handed and resolves NPCs/enemies up to the next PC; `advanceCombatToNextPC()` deterministically lands on the next living PC, skips downed combatants, wraps the round.
-  - **PC initiative now actually records.** Was the root bug — PCs sat at roll 0 forever. RollBar derives Initiative prompts straight from `combatState` (rollPending PCs), rolls d20+DEX, writes back, fires the kickoff.
-  - **`zone_add_enemy` no longer wipes the first enemy** (seeds combat before appending).
-  - **`initiative` stored pre-sorted**; `currentTurn` indexed consistently across UI/prompt/engine.
-  - **Enemy turns auto-stream; engine stops on each PC.** Mode-agnostic (single/multi only affects push + labels).
-  - **TurnPrompt.jsx** — derived from synced state, shows on all devices, any player taps; quick-action buttons (PC attacks/spells) prefill the input.
-  - **Round markers** (`⚔ Round N`) drop into narrative on each wrap.
-  - **roll_request is code-enforced PC-only** — the DM can no longer make the player roll for an enemy (rejected mechanic).
+### Shipped (all merged to main + deployed live to pebble-v2.web.app)
+- **Combat tracker + turn system rebuild**
+  - Engine owns the turn pointer (Law 2). `advanceCombatToNextPC()` in gates.js lands on the next living PC, skips downed, wraps the round. AI resolves NPCs/enemies up to the next PC and stops.
+  - PC initiative now records: RollBar derives Initiative prompts from `combatState` (PCs flagged `rollPending`), rolls d20+DEX, writes back, fires `combatKickoff`. (Was completely broken — combat hung on turn 1; side-effect roll_requests were heard by nobody.)
+  - `zone_add_enemy` seeds combat before appending (no more vanished first enemy). `initiative` stored pre-sorted; `currentTurn` indexed consistently.
+  - `TurnPrompt.jsx` — derived from synced state, shows on all devices, any player taps, quick-action buttons (attacks/spells) prefill input via `prefill-input` event.
+  - `⚔ Round N` markers in narrative on wrap.
+  - **Minimize toggle** on the overlay. **Live ally HP** (from char store) vs enemy HP (initiative entry).
+  - `roll_request` code-enforced PC-only (validation rejects enemy targets). Contract requires `hp` mechanic on any damage/heal so enemy HP tracks.
+- **Onboarding: backstory restored**
+  - Editable Appearance/Personality/Backstory in the character-creation preview (all 3 paths), saved on commit.
+  - Editable Bio tab on the character sheet (playerSet → synced) for editing/recovery after creation.
+- **Deploy pipeline**
+  - `.github/workflows/deploy.yml` — auto-deploy on push to main.
+  - Deployed manually several times via service-account key (network here can't reach Firebase normally; firebase-tools installed in node_modules).
 
-### Critical bugs caught pre-launch (fixed)
-- Initiative rolls never surfaced (combat_start side-effect roll_requests heard by nobody; `applyMechanics` only returns top-level mechanics). Combat would have hung on turn 1. Fixed by sourcing initiative prompts from combatState.
-- Enemy roll_request reached the roll bar (prompt-only rule, no code enforcement). Now rejected in validation.
+### Tests / build
+- 33 foundations tests pass; build clean. 6 turn-engine paths verified via scratch test (not committed).
 
-### Known issues / watch during play-test
-- AI stopping at each PC is **prompt-enforced** (contract + combat block), not code-enforced. Gate 2 flags it after the fact if the AI over-runs. Watch whether the AI reliably stops on PC turns.
-- Any narrative-tab message during your turn counts as your action (non-blocking by design). Use OOC for questions mid-combat or you may advance your own turn.
-- Gate 1 may false-positive-flag the kickoff if the AI echoes initiative numbers ("Ivy rolls 18"). Non-blocking flag only.
-- Enemy roll the AI tees up is currently *dropped* (rejected), not auto-resolved. Future option: engine auto-rolls enemies and feeds result back.
-- Container can't reach live AI or run firebase deploy — engine logic verified via tests, not a live AI combat exchange.
+### ⚠️ ACTION ITEMS FOR DEVELOPER (do these)
+1. **Rotate the Firebase service-account key** — it was shared via chat (exposed). Firebase Console → Project Settings → Service Accounts → delete key `26aa7b753c…` → generate new.
+2. **Add GitHub repo secret** `FIREBASE_SERVICE_ACCOUNT_PEBBLE_V2` = the new key JSON (Settings → Secrets and variables → Actions). Until then the deploy workflow shows red and auto-deploy won't fire.
 
-### Deploy state
-- **Merged to main + pushed** (main @ 1d7b543). Build verified (`npm run build` clean, dist/ ready).
-- **NOT deployed** — Firebase CLI unavailable in this environment. Deploy must run on a machine with firebase auth:
-  `git pull && npm install && npm run build && firebase deploy --only hosting`
+### Known issues / watch in play-test
+- AI stopping at each PC is prompt-enforced (contract + combat block), not code. Gate 2 flags over-runs. If it runs ahead often → add a code gate that truncates past a PC.
+- Enemy HP only moves if the AI emits an `hp` mechanic; Gate 3 flags damage narrated without one. If common → engine auto-apply damage from narration as fallback.
+- Narrative-tab message during your turn = your action (non-blocking by design). Use OOC for mid-combat questions.
+- Gate 1 may false-flag the kickoff if the AI echoes initiative numbers. Non-blocking.
+
+### DOC DEBT (important)
+- `.claude/` files drifted: only decisions.md, session-log.md, workboard.md (combat items) updated this session. **workboard.md is broadly stale** — it's a Phase-3 build plan still showing built features as `[ ]`. The app is far past that plan (deployed, playable). Needs a full reconciliation pass: walk the module map, mark what's actually built. architecture.md / ui-specs-v2.md not swept for this session's changes.
 
 ### Next Up
-1. Play-test combat live; confirm turn order holds and the AI stops on PCs.
-2. If AI over-runs turns: tighten contract or add a code gate that truncates narration past a PC.
-3. Optional: engine auto-roll for enemies (no DM stall).
-4. Optional: wire TurnPrompt → push notifications (multi-player).
-5. Manual "skip/pass turn" control.
+1. Play-test live combat — confirm turn order holds and AI stops on PCs.
+2. Rest of D&D-Beyond-style onboarding: **manual stat-rolling** + the other import/onboarding options we'd cross-referenced (spec was lost with an uncommitted build — re-decide).
+3. Reconcile workboard.md with reality (big cleanup).
+4. Optional combat: engine auto-roll enemies, manual skip/pass, push wired to TurnPrompt.
+5. Delete stale branches (session-start-protocol, transfer-v2-planning-docs); decide PR vs straight-to-main workflow.
 
 ### Branch State
-- Branch: `claude/combat-tracker-turn-system-uazlr9` (merged to main)
-- main last commit: 1d7b543
-- 33 foundations tests pass; 6 turn-engine paths verified via scratch test (not committed)
+- main @ 81d1f9c (+ this doc commit). Feature branch `claude/combat-tracker-turn-system-uazlr9` fast-forwarded to match main (0 ahead / 0 behind).
+- Other remote branches are stale: `claude/session-start-protocol-o8jf7j`, `claude/transfer-v2-planning-docs-hlibvu` (repo's original root — source of GitHub's "96 commits ahead" cosmetic note), `gh-pages`.
