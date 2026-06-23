@@ -33,37 +33,51 @@
   .hr{height:1px;background:var(--line-soft);}
 
   /* ── header ── */
-  .head{padding:14px 18px 11px;display:flex;align-items:center;gap:10px;}
+  .head{padding:11px 16px 9px;display:flex;align-items:center;gap:10px;}
   .head .loc{font-family:var(--disp);font-size:15px;letter-spacing:.08em;color:var(--text);text-transform:uppercase;}
   .head .meta{margin-left:auto;font-size:11px;color:var(--faint);text-align:right;line-height:1.35;}
   .head .meta b{color:var(--muted);font-weight:500;}
 
-  /* ── party ── */
-  .party{display:flex;gap:10px;padding:12px 18px 14px;}
-  .pc{flex:1;display:flex;gap:10px;align-items:center;}
-  .ava{width:42px;height:42px;border-radius:12px;flex-shrink:0;position:relative;
+  /* ── party: compact HUD frames ── */
+  .party{display:flex;gap:8px;padding:9px 14px 9px;}
+  .pc{flex:1;display:flex;gap:8px;align-items:center;padding:5px 8px 6px;border-radius:9px;
+    background:var(--surface);border:1px solid var(--line-soft);position:relative;}
+  .pc.active{border-color:var(--line);box-shadow:0 0 10px rgba(201,162,90,.10);}
+  .pc.active::before{content:'';position:absolute;left:0;top:7px;bottom:7px;width:2px;border-radius:0 2px 2px 0;background:var(--gold);}
+  .ava{width:34px;height:34px;border-radius:8px;flex-shrink:0;position:relative;
     background:linear-gradient(150deg,#3a3020,#241d12);
     display:flex;align-items:center;justify-content:center;
-    box-shadow:0 0 0 1.5px var(--ring),0 2px 6px rgba(0,0,0,.4);}
-  .ava .mono{font-family:var(--disp);font-size:16px;color:#dcc8a0;letter-spacing:.02em;}
-  .ava .cls{position:absolute;bottom:-5px;right:-5px;width:18px;height:18px;border-radius:6px;
-    background:var(--surface-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;
-    color:var(--gold);}
-  .ava .cls i{font-size:10px;line-height:1;}
+    box-shadow:0 0 0 1.5px var(--ring),inset 0 0 0 1px rgba(255,255,255,.04);}
+  .ava .mono{font-family:var(--disp);font-size:13px;color:#dcc8a0;}
+  .ava .cls{position:absolute;bottom:-4px;right:-4px;width:15px;height:15px;border-radius:5px;
+    background:var(--surface-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--gold);}
+  .ava .cls i{font-size:8px;line-height:1;}
   .pi{flex:1;min-width:0;}
-  .pi .nm{font-family:var(--serif);font-size:15px;font-weight:500;color:var(--text);letter-spacing:.01em;}
-  .pi .sub{font-size:10px;color:var(--faint);margin-top:-1px;}
-  .hp{display:flex;align-items:center;gap:6px;margin-top:6px;}
+  .nmrow{display:flex;align-items:center;gap:5px;}
+  .pi .nm{font-family:var(--serif);font-size:13.5px;font-weight:500;color:var(--text);line-height:1.1;}
+  .pi .lv{font-size:9px;color:var(--faint);}
+  .st{margin-left:auto;display:flex;gap:5px;align-items:center;color:var(--muted);}
+  .st i{font-size:12px;}
+  .st .warn{color:var(--warn);}
+  .hp{display:flex;align-items:center;gap:6px;margin-top:4px;}
   .hp .bar{flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.07);overflow:hidden;}
   .hp .fill{height:100%;border-radius:2px;}
-  .hp .n{font-size:10px;color:var(--muted);min-width:30px;text-align:right;font-variant-numeric:tabular-nums;}
-  .row{display:flex;gap:6px;margin-top:6px;align-items:center;}
-  .mini{font-size:9px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;}
-  .mini.warn{color:var(--warn);}
-  .ac{margin-left:auto;font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .hp .n{font-size:9px;color:var(--muted);min-width:34px;text-align:right;font-variant-numeric:tabular-nums;}
+  .acm{display:flex;align-items:center;gap:2px;font-size:9px;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .acm i{font-size:11px;}
 
   /* ── quests ── */
-  .quests{display:flex;gap:8px;padding:0 18px 14px;align-items:center;overflow:hidden;}
+  .quests{display:flex;gap:8px;padding:0 16px 9px;align-items:center;overflow:hidden;}
+
+  /* ── combat strip (game cue, shown only in combat) ── */
+  .combat{display:flex;align-items:center;gap:7px;margin:0 16px 9px;padding:5px 10px;border-radius:7px;
+    background:linear-gradient(90deg,rgba(207,91,70,.14),rgba(207,91,70,.04));border:1px solid rgba(207,91,70,.28);
+    font-size:10px;letter-spacing:.03em;color:#e6b6a6;}
+  .combat .lead{display:flex;align-items:center;gap:5px;color:var(--danger);font-weight:600;text-transform:uppercase;letter-spacing:.07em;}
+  .combat .lead i{font-size:13px;}
+  .combat .turn{color:var(--text);}
+  .combat .turn b{color:var(--gold);font-weight:600;}
+  .combat .order{margin-left:auto;color:var(--faint);font-variant-numeric:tabular-nums;}
   .qmain{display:flex;align-items:center;gap:7px;padding-left:9px;border-left:2px solid var(--gold);}
   .qmain .t{font-family:var(--disp);font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--gold);}
   .q{font-size:11px;color:var(--faint);white-space:nowrap;}
@@ -77,7 +91,7 @@
   .tab .b{font-size:9px;background:var(--gold);color:#1a1407;border-radius:9px;padding:0 5px;margin-left:5px;font-weight:600;}
 
   /* ── chat ── */
-  .feed{flex:1;min-height:0;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:18px;}
+  .feed{flex:1;min-height:0;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:16px;}
   .who{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-dim);margin-bottom:7px;}
   .dm{font-family:var(--serif);font-size:15.5px;line-height:1.68;color:#e4dccb;}
   .dm em{font-style:italic;color:var(--gold);}
@@ -101,7 +115,7 @@
     background:var(--gold);color:#1a1407;}
 
   /* ── input ── */
-  .input{padding:12px 16px 12px;display:flex;gap:11px;align-items:center;border-top:1px solid var(--line-soft);}
+  .input{padding:10px 14px;display:flex;gap:11px;align-items:center;border-top:1px solid var(--line-soft);}
   .field{flex:1;font-family:var(--serif);font-size:14px;color:var(--faint);padding:11px 16px;
     background:var(--surface);border:1px solid var(--line-soft);border-radius:22px;font-style:italic;}
   .send{width:44px;height:44px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
@@ -135,20 +149,20 @@
       <div class="hr"></div>
 
       <div class="party">
-        <div class="pc" style="--ring:#46a374">
+        <div class="pc active" style="--ring:#46a374">
           <div class="ava"><span class="mono">I</span><span class="cls"><i class="ph ph-knife"></i></span></div>
           <div class="pi">
-            <div class="nm">Ivy</div><div class="sub">Rogue 4</div>
-            <div class="hp"><div class="bar"><div class="fill" style="width:100%;background:var(--ok);"></div></div><span class="n">31/31</span></div>
-            <div class="row"><span class="mini">Hidden</span><span class="ac">AC 15</span></div>
+            <div class="nmrow"><span class="nm">Ivy</span><span class="lv">Rg 4</span>
+              <span class="st"><i class="ph ph-eye-closed" title="Hidden"></i></span></div>
+            <div class="hp"><div class="bar"><div class="fill" style="width:100%;background:var(--ok);"></div></div><span class="n">31/31</span><span class="acm"><i class="ph ph-shield"></i>15</span></div>
           </div>
         </div>
         <div class="pc" style="--ring:#8b6fd0">
           <div class="ava"><span class="mono">T</span><span class="cls"><i class="ph ph-music-notes"></i></span></div>
           <div class="pi">
-            <div class="nm">Thorn</div><div class="sub">Bard 4</div>
-            <div class="hp"><div class="bar"><div class="fill" style="width:66%;background:var(--warn);"></div></div><span class="n">18/27</span></div>
-            <div class="row"><span class="mini warn">Concentrating</span><span class="ac">AC 13</span></div>
+            <div class="nmrow"><span class="nm">Thorn</span><span class="lv">Bd 4</span>
+              <span class="st"><i class="ph ph-target warn" title="Concentrating"></i></span></div>
+            <div class="hp"><div class="bar"><div class="fill" style="width:66%;background:var(--warn);"></div></div><span class="n">18/27</span><span class="acm"><i class="ph ph-shield"></i>13</span></div>
           </div>
         </div>
       </div>
@@ -156,6 +170,12 @@
       <div class="quests">
         <span class="qmain"><span class="t">Stop the Cult</span></span>
         <span class="q">find the egg</span><span class="qdot">·</span><span class="q">rescue Leosin</span>
+      </div>
+
+      <div class="combat">
+        <span class="lead"><i class="ph ph-sword"></i>Round 1</span>
+        <span class="turn"><b>Ivy's turn</b></span>
+        <span class="order">Ivy › Kobold › Thorn</span>
       </div>
 
       <div class="tabs">
@@ -202,7 +222,7 @@
     <div class="d">restraint · type hierarchy · gold used sparingly</div>
   </div>
   <div class="note">
-    Emoji gone — replaced with one coherent professional icon set (<b>Phosphor</b>), tinted to the palette. Portraits are now clean <b>monogram avatars</b> (placeholder for real character art) with a per-PC color ring + class icon. Plus the modern type system (<b>Cinzel</b> + <b>EB Garamond</b> + <b>Inter</b>), flat panels, sparing gold, faint grain. (Icons + fonts load from CDN — needs internet to render; otherwise they fall back.)
+    Party shrunk to compact <b>HUD frames</b> (≈40% less height) so the chat owns the screen. Status is icons now (hidden / concentrating / shield-AC), and the <b>active character is highlighted</b> — that gold edge + the <b>combat strip</b> (Round / turn order) are the game cues, shown only in a fight. Spacing tightened throughout. (Icons + fonts load from CDN — needs internet.)
   </div>
 </body>
 </html>
