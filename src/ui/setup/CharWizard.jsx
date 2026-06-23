@@ -1,10 +1,11 @@
 import { createSignal, createEffect, Show, For } from 'solid-js';
 import {
-  AVAILABLE_CLASSES, AVAILABLE_RACES, CLASS_DATA, RACE_BONUSES, RACE_SPEED, RACE_LANGUAGES,
+  AVAILABLE_CLASSES, AVAILABLE_RACES, CLASS_DATA, RACE_BONUSES, RACE_SPEED,
   BACKGROUNDS, CLASS_SKILL_CHOICES, ALL_SKILLS, ALIGNMENTS,
-  STANDARD_ARRAY, STARTING_EQUIPMENT, getStartingGold, POINT_BUY_COSTS, CHAR_COLORS,
-  getDefaultEquipment, getSelectedEquipment, getClassFeatures
+  STANDARD_ARRAY, STARTING_EQUIPMENT, getStartingGold, POINT_BUY_COSTS,
+  getDefaultEquipment, getSelectedEquipment
 } from '../../data/quickBuild.js';
+import { forgeCharacter } from '../../data/forge.js';
 import { getByIndex } from '../../data/local.js';
 import { callProvider } from '../../ai/providers.js';
 import { GENERATE_BIO_SYSTEM } from '../../ai/setupPrompts.js';
@@ -363,46 +364,28 @@ export default function CharWizard(props) {
   };
 
   // --- Build Final Character ---
+  // The wizard collects intent; the Forge derives all mechanical fields.
   async function buildAndCommit() {
     const cd = classData();
     if (!cd || building()) return;
     setBuilding(true);
 
     try {
-      const abilities = finalAbilities();
-      const strMod = mod(abilities.str);
-      const abilMod = cls() === 'Fighter' ? strMod : dexMod();
-      const hp = hpMax();
-
-      const attacks = (cd.attacks || []).map(a => ({
-        ...a,
-        bonus: abilMod + profBonus(),
-        damage: a.damage.replace(/\+\d+/, `+${abilMod}`),
-      }));
-
       const skills = {};
       for (const s of bgSkills()) skills[s.toLowerCase().replace(/\s+/g, '')] = true;
       for (const s of skillPicks()) skills[s.toLowerCase().replace(/\s+/g, '')] = true;
 
-      const spellSlots = cd.slotTable?.[level()] || {};
-      const resources = [];
-      if (cls() === 'Bard') {
-        const chaMod = mod(abilities.cha);
-        resources.push({
-          name: 'Bardic Inspiration', max: Math.max(1, chaMod), current: Math.max(1, chaMod),
-          die: level() >= 10 ? 'd10' : level() >= 5 ? 'd8' : 'd6',
-          restoresOn: level() >= 5 ? 'short rest' : 'long rest',
-        });
-      }
-      if (cls() === 'Fighter') {
-        resources.push({ name: 'Second Wind', max: 1, current: 1, restoresOn: 'short rest' });
-        if (level() >= 2) resources.push({ name: 'Action Surge', max: 1, current: 1, restoresOn: 'short rest' });
-      }
-      if (cls() === 'Rogue') {
-        resources.push({ name: 'Sneak Attack', max: 1, current: 1, die: `${Math.ceil(level() / 2)}d6`, restoresOn: 'turn' });
-      }
-
-      const features = await getClassFeatures(cls(), level());
+      const character = await forgeCharacter({
+        name: charName().trim(),
+        race: race(), className: cls(), level: level(),
+        abilityScores: finalAbilities(),
+        background: bg(), alignment: align(),
+        skills,
+        cantrips: isCaster() ? pickedCantrips() : [],
+        knownSpells: isCaster() ? pickedSpells() : [],
+        appearance: appearance(), personality: personality(), backstory: backstory(),
+        existingCount: props.existingCount || 0,
+      });
 
       const eqMode = equipMode();
       const eqData = STARTING_EQUIPMENT[cls()];
@@ -412,25 +395,6 @@ export default function CharWizard(props) {
       const items = eqMode === 'gold' ? [] :
         eqMode === 'customize' ? getSelectedEquipment(cls(), equipChoices()) :
         getDefaultEquipment(cls());
-
-      const character = {
-        id: `pc_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-        name: charName().trim() || `${race()} ${cls()}`,
-        race: race(), class: cls(), subclass: '', level: level(), xp: 0,
-        background: bg(), alignment: align(), abilityScores: abilities,
-        hpMax: hp, hp, hpTemp: 0, ac: calcAC(),
-        speed: RACE_SPEED[race()] || 30,
-        hitDice: { die: cd.hitDie, total: level(), used: 0 },
-        savingThrows: cd.savingThrows, skills, proficiencies: cd.proficiencies, features,
-        cantrips: isCaster() ? pickedCantrips() : [],
-        knownSpells: isCaster() ? pickedSpells() : [],
-        spellSlots, currentSlots: { ...spellSlots }, resources,
-        languages: RACE_LANGUAGES[race()] || ['Common'], attacks,
-        color: CHAR_COLORS[(props.existingCount || 0) % CHAR_COLORS.length],
-        backstory: backstory(), appearance: appearance(), personality: personality(), notes: '',
-        conditions: [], concentration: null, exhaustion: 0, inspiration: false,
-        deathSaves: { successes: 0, failures: 0 }, familiar: null,
-      };
 
       props.onComplete(character, goldAmount, items, eqMode === 'gold');
     } finally {

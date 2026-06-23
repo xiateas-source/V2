@@ -6,8 +6,9 @@ import { normalizeCharacter, validateCharacter } from '../../content/normalizer.
 import {
   STARTING_EQUIPMENT, getStartingGold, getDefaultEquipment, getSelectedEquipment,
   AVAILABLE_CLASSES, AVAILABLE_RACES, BACKGROUNDS, ALIGNMENTS,
-  buildCharacter, CHAR_COLORS
+  buildCharacter
 } from '../../data/quickBuild.js';
+import { forgeCharacter, proficiencyBonus } from '../../data/forge.js';
 import CharWizard from './CharWizard.jsx';
 
 const QUICK_PICK_NAMES = {
@@ -142,13 +143,47 @@ export default function CharCreate(props) {
     setStore('campaign', 'characters', updated);
   }
 
-  function onCharParsed(charObj) {
+  async function onCharParsed(charObj) {
     const normalized = normalizeCharacter(charObj);
     if (!normalized) return;
-    normalized.color = CHAR_COLORS[store.campaign.characters.length % CHAR_COLORS.length];
-    const { valid, errors } = validateCharacter(normalized);
+
+    // Funnel through the Forge: keep the AI/import's creative choices (name,
+    // race, class, ability scores, background, spells, bio) but re-derive every
+    // mechanical field (HP, AC, attacks, resources, features, slots, prof). The
+    // AI cannot ship wrong math because the AI's math is never trusted.
+    const char = await forgeCharacter({
+      name: normalized.name,
+      race: normalized.race,
+      className: normalized.class,
+      subclass: normalized.subclass,
+      level: normalized.level,
+      abilityScores: normalized.abilityScores,
+      background: normalized.background,
+      alignment: normalized.alignment,
+      skills: normalized.skills,
+      cantrips: normalized.cantrips,
+      knownSpells: normalized.knownSpells,
+      appearance: normalized.appearance,
+      personality: normalized.personality,
+      backstory: normalized.backstory,
+      notes: normalized.notes,
+      // pass-throughs the Forge keeps for unsupported classes:
+      attacks: normalized.attacks,
+      features: normalized.features,
+      resources: normalized.resources,
+      proficiencies: normalized.proficiencies,
+      savingThrows: normalized.savingThrows,
+      languages: normalized.languages,
+      spellSlots: normalized.spellSlots,
+      hitDie: normalized.hitDice?.die,
+      ac: normalized.ac,
+      speed: normalized.speed,
+      existingCount: store.campaign.characters.length,
+    });
+
+    const { valid, errors } = validateCharacter(char);
     setDraftErrors(errors);
-    setDraft(normalized);
+    setDraft(char);
     setEquipChoices({});
     setEquipMode('default');
   }
@@ -351,7 +386,7 @@ function QuickPick(props) {
               <span class="qp-stat-label">Speed</span>
             </div>
             <div class="qp-stat">
-              <span class="qp-stat-val">+{char().profBonus || Math.floor((char().level - 1) / 4) + 2}</span>
+              <span class="qp-stat-val">+{proficiencyBonus(char().level)}</span>
               <span class="qp-stat-label">Prof</span>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import { getByIndex } from './local.js';
+import { forgeCharacter, autoAssignScores } from './forge.js';
 
 export const RACE_BONUSES = {
   'Human': { str: 1, dex: 1, con: 1, int: 1, wis: 1, cha: 1 },
@@ -216,114 +217,43 @@ export const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
 export const CHAR_COLORS = ['#4ae0a0', '#a070e0', '#e08040', '#4a9eff', '#e06080', '#e0d040', '#60c0e0'];
 export const POINT_BUY_COSTS = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };
 
+// Auto-build a complete character from minimal input. Assigns the standard
+// array optimally, auto-selects default spells for casters, then funnels the
+// intent through the Forge so all mechanical fields are derived in one place.
 export async function buildCharacter({ name, race, className, level }, existingCount = 0) {
   const classInfo = CLASS_DATA[className];
   if (!classInfo) return null;
 
-  const abilities = assignAbilities(classInfo.primaryAbilities, race);
-  const conMod = Math.floor((abilities.con - 10) / 2);
-  const dexMod = Math.floor((abilities.dex - 10) / 2);
-  const hitDieMax = parseInt(classInfo.hitDie.slice(1));
-  const hitDieAvg = Math.floor(hitDieMax / 2) + 1;
-  const hpMax = hitDieMax + conMod + (hitDieAvg + conMod) * (level - 1);
-  const profBonus = Math.floor((level - 1) / 4) + 2;
+  const abilityScores = autoAssignScores(className, race);
+  const { cantrips, knownSpells } = await autoSelectSpells(className, level);
 
-  let ac = classInfo.startingAC;
-  if (className === 'Rogue' || className === 'Bard') {
-    ac = 11 + dexMod;
-  }
-
-  const attacks = classInfo.attacks.map(a => {
-    const abilityMod = className === 'Fighter' ? Math.floor((abilities.str - 10) / 2) : dexMod;
-    return { ...a, bonus: abilityMod + profBonus, damage: a.damage.replace(/\+\d+/, `+${abilityMod}`) };
+  return forgeCharacter({
+    name, race, className, level, existingCount,
+    abilityScores, cantrips, knownSpells,
   });
-
-  let spellSlots = {};
-  let cantrips = [];
-  let knownSpells = [];
-  let resources = [];
-
-  if (className === 'Bard') {
-    spellSlots = classInfo.slotTable[level] || {};
-    cantrips = classInfo.cantrips || [];
-    const spellCount = classInfo.spellsKnown[level - 1] || 4;
-    try {
-      const bardSpells = await getByIndex('spells', 'class', 'Bard');
-      const maxSpellLevel = Math.max(...Object.keys(spellSlots).map(Number));
-      knownSpells = bardSpells
-        .filter(s => s.level > 0 && s.level <= maxSpellLevel)
-        .slice(0, spellCount)
-        .map(s => s.name);
-    } catch (_) {
-      knownSpells = ['Healing Word', 'Thunderwave', 'Faerie Fire', 'Dissonant Whispers'].slice(0, spellCount);
-    }
-    resources.push({ name: 'Bardic Inspiration', max: Math.floor((abilities.cha - 10) / 2) + (level >= 5 ? profBonus : 0) || 1, current: Math.floor((abilities.cha - 10) / 2) || 1, die: level >= 10 ? 'd10' : level >= 5 ? 'd8' : 'd6', restoresOn: level >= 5 ? 'short rest' : 'long rest' });
-  }
-
-  if (className === 'Fighter') {
-    resources.push({ name: 'Second Wind', max: 1, current: 1, restoresOn: 'short rest' });
-    if (level >= 2) resources.push({ name: 'Action Surge', max: 1, current: 1, restoresOn: 'short rest' });
-  }
-
-  if (className === 'Rogue') {
-    resources.push({ name: 'Sneak Attack', max: 1, current: 1, die: `${Math.ceil(level / 2)}d6`, restoresOn: 'turn' });
-  }
-
-  const features = await getClassFeatures(className, level);
-
-  return {
-    id: `pc_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-    name: name || `${race} ${className}`,
-    race,
-    class: className,
-    subclass: '',
-    level,
-    xp: 0,
-    background: '',
-    alignment: '',
-    abilityScores: abilities,
-    hpMax,
-    hp: hpMax,
-    hpTemp: 0,
-    ac,
-    speed: RACE_SPEED[race] || 30,
-    hitDice: { die: classInfo.hitDie, total: level, used: 0 },
-    savingThrows: classInfo.savingThrows,
-    skills: classInfo.skills,
-    proficiencies: classInfo.proficiencies,
-    features,
-    cantrips,
-    knownSpells,
-    spellSlots,
-    currentSlots: { ...spellSlots },
-    resources,
-    languages: RACE_LANGUAGES[race] || ['Common'],
-    attacks,
-    color: CHAR_COLORS[existingCount % CHAR_COLORS.length],
-    backstory: '',
-    appearance: '',
-    personality: '',
-    notes: '',
-    conditions: [],
-    concentration: null,
-    exhaustion: 0,
-    inspiration: false,
-    deathSaves: { successes: 0, failures: 0 },
-    familiar: null,
-  };
 }
 
-function assignAbilities(priority, race) {
-  const scores = [...STANDARD_ARRAY];
-  const result = { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 };
-  for (let i = 0; i < priority.length && i < scores.length; i++) {
-    result[priority[i]] = scores[i];
+// Pick sensible default cantrips/spells for a caster up to its known limits.
+export async function autoSelectSpells(className, level) {
+  const classInfo = CLASS_DATA[className];
+  if (!classInfo?.cantrips) return { cantrips: [], knownSpells: [] };
+
+  const slots = classInfo.slotTable?.[level] || {};
+  const maxSpellLevel = Math.max(0, ...Object.keys(slots).map(Number));
+  const spellCount = classInfo.spellsKnown?.[level - 1] || 4;
+  const cantrips = classInfo.cantrips || [];
+
+  let knownSpells = [];
+  try {
+    const pool = await getByIndex('spells', 'class', className);
+    knownSpells = pool
+      .filter(s => s.level > 0 && s.level <= maxSpellLevel)
+      .slice(0, spellCount)
+      .map(s => s.name);
+  } catch (_) {
+    knownSpells = ['Healing Word', 'Thunderwave', 'Faerie Fire', 'Dissonant Whispers'].slice(0, spellCount);
   }
-  const bonuses = RACE_BONUSES[race] || {};
-  for (const [key, val] of Object.entries(bonuses)) {
-    if (key in result) result[key] += val;
-  }
-  return result;
+  return { cantrips, knownSpells };
 }
 
 export async function getClassFeatures(className, level) {
