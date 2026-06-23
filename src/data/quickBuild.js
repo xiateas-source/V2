@@ -294,12 +294,10 @@ export async function buildCharacter({ name, race, className, level }, existingC
   const classInfo = CLASS_DATA[className];
   if (!classInfo) return null;
 
-  const abilityScores = autoAssignScores(className, race);
-  const { cantrips, knownSpells } = await autoSelectSpells(className, level);
-
+  // Scores are auto-assigned; spells are auto-filled by the Forge for casters.
   return forgeCharacter({
     name, race, className, level, existingCount,
-    abilityScores, cantrips, knownSpells,
+    abilityScores: autoAssignScores(className, race),
   });
 }
 
@@ -320,11 +318,21 @@ export async function autoSelectSpells(className, level) {
       .filter(s => s.level > 0 && s.level <= maxSpellLevel)
       .slice(0, spellCount)
       .map(s => s.name);
-  } catch (_) {
-    knownSpells = ['Healing Word', 'Thunderwave', 'Faerie Fire', 'Dissonant Whispers'].slice(0, spellCount);
+  } catch (_) {}
+
+  // Fall back whenever the lookup yields nothing — empty result OR error. The
+  // spell DB isn't always seeded when a character is built; a caster must never
+  // end up with zero spells.
+  if (knownSpells.length === 0) {
+    knownSpells = SPELL_FALLBACK.slice(0, spellCount);
   }
   return { cantrips, knownSpells };
 }
+
+const SPELL_FALLBACK = [
+  'Healing Word', 'Thunderwave', 'Faerie Fire', 'Dissonant Whispers',
+  'Charm Person', 'Cure Wounds', 'Sleep', 'Heroism', 'Bane', 'Detect Magic',
+];
 
 export async function getClassFeatures(className, level) {
   try {

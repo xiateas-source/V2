@@ -11,7 +11,7 @@
 
 import {
   CLASS_DATA, RACE_BONUSES, RACE_SPEED, RACE_LANGUAGES,
-  getClassFeatures, CHAR_COLORS, STANDARD_ARRAY, composePersonality,
+  getClassFeatures, CHAR_COLORS, STANDARD_ARRAY, composePersonality, autoSelectSpells,
 } from './quickBuild.js';
 
 const ABILITIES = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
@@ -141,8 +141,16 @@ export async function forgeCharacter(intent) {
   // --- Spellcasting ---
   const spellSlots = classInfo?.slotTable?.[level] || (supported ? {} : (intent.spellSlots || {}));
   const isCaster = !!(classInfo?.cantrips) || (!supported && (intent.cantrips?.length || intent.knownSpells?.length));
-  const cantrips = isCaster ? (intent.cantrips || []) : [];
-  const knownSpells = isCaster ? (intent.knownSpells || []) : [];
+  let cantrips = isCaster ? (intent.cantrips || []) : [];
+  let knownSpells = isCaster ? (intent.knownSpells || []) : [];
+  // A supported caster must never end up empty. If the door didn't supply
+  // spells (Quick Pick, AI/import that omitted them), auto-fill defaults here so
+  // every path produces a complete caster.
+  if (classInfo?.cantrips && (cantrips.length === 0 || knownSpells.length === 0)) {
+    const auto = await autoSelectSpells(className, level);
+    if (cantrips.length === 0) cantrips = auto.cantrips;
+    if (knownSpells.length === 0) knownSpells = auto.knownSpells;
+  }
 
   // --- Features ---
   let features;
