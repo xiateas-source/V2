@@ -1,5 +1,11 @@
 # Session Log — Handoff Note
 
+## Session 38 · 2026-06-23 — Reality reconciliation
+- Audit/cleanup session. First audit pass over-claimed ("deployed app, Phases 0–7 done") by reading file sizes as features — **corrected**. Verified reality lives in `.claude/audit-2026-06-23.md`.
+- **Verified tiering:** REAL = AI mechanics engine + backstory (active dev). LOST = fuller onboarding (manual stat-rolling, import mapping, guided wizard — uncommitted, buried by a deploy). MOCKUP = UI/container on pebble-v2. UNBUILT = everything else (`Treasury.jsx` is 1 line; most reference/manage screens are unwired shells).
+- **Open decision:** recover lost onboarding from Firebase Hosting → Release history (owner-only) vs. redo it. Then build the real UI/container on top of the working engine.
+- Branch: `claude/repo-audit-plan-optimization-9uixwi`.
+
 ## Session 37 · 2026-06-23
 
 ### Shipped (all merged to main + deployed live to pebble-v2.web.app)
