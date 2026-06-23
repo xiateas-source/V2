@@ -120,8 +120,6 @@ The five laws reinforce each other:
 ---
 
 ## OPEN QUESTIONS
-
-- **OOC & Rules channels** — V1 had three chat modes: Narrative (AI, in-character), Rules (AI, mechanical questions), and OOC (player-to-player, no AI). The function of each isn't clearly defined in the four-mode framework. Rules is reference via AI, which conflicts with Law 5 (free paths first). Needs design: what's static reference vs AI interpretation? Does Rules share narrative context or build its own prompt?
 - **Child-friendly view scope** — Ages 7-16 is a wide range. A 7-year-old needs icons and guided choices; a 16-year-old uses the full interface. What's the target? Simplified action picker? Read-aloud mode with TTS? Reduced UI that hides management complexity? Needs design based on actual play with the child.
 
 ---
