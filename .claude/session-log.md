@@ -1,44 +1,42 @@
 # Session Log — Handoff Note
 
-## Session 36 · 2026-06-21
+## Session 37 · 2026-06-23
 
 ### Shipped
-- **Play-test of full setup wizard** — Playwright + headless Chromium end-to-end verification
-  - All 6 screens render correctly: KeyGate → CharCreate (3 paths) → Campaign Config (3 paths) → Play Mode
-  - Quick Pick path fully functional: class/race/level/name → Build → preview with correct stats → Use This → commit
-  - Character preview shows HP, AC, Speed, ability scores with proper standard array assignment
-  - Campaign Config shows Fresh Campaign, Load Adventure, Upload Book cards + brainstorm button
-  - Start Adventure transitions to play mode with character banner, chat tabs, input bar, quick actions
-  - Zero console errors (app-level)
-  - Gemini API key validated via curl (key format: `AQ.Ab8...`) — works, hits free tier rate limit at 20 req/min
-  - Browser Gemini calls fail in container only (Chromium cert trust issue) — will work on real devices
+- **Combat tracker + turn system rebuild** (merged to main)
+  - **Engine owns the turn pointer** (Law 2). The AI only narrates the turn it's handed and resolves NPCs/enemies up to the next PC; `advanceCombatToNextPC()` deterministically lands on the next living PC, skips downed combatants, wraps the round.
+  - **PC initiative now actually records.** Was the root bug — PCs sat at roll 0 forever. RollBar derives Initiative prompts straight from `combatState` (rollPending PCs), rolls d20+DEX, writes back, fires the kickoff.
+  - **`zone_add_enemy` no longer wipes the first enemy** (seeds combat before appending).
+  - **`initiative` stored pre-sorted**; `currentTurn` indexed consistently across UI/prompt/engine.
+  - **Enemy turns auto-stream; engine stops on each PC.** Mode-agnostic (single/multi only affects push + labels).
+  - **TurnPrompt.jsx** — derived from synced state, shows on all devices, any player taps; quick-action buttons (PC attacks/spells) prefill the input.
+  - **Round markers** (`⚔ Round N`) drop into narrative on each wrap.
+  - **roll_request is code-enforced PC-only** — the DM can no longer make the player roll for an enemy (rejected mechanic).
 
-### Decisions Made (Session 36)
-- Play-testing uses Playwright + Chromium headless (no chromium-cli in this environment)
-- Container network blocks Chromium HTTPS to external APIs — not an app bug, verified via curl
-- Test artifacts (test-smoke.mjs, playwright dep) cleaned up after testing, not committed
+### Critical bugs caught pre-launch (fixed)
+- Initiative rolls never surfaced (combat_start side-effect roll_requests heard by nobody; `applyMechanics` only returns top-level mechanics). Combat would have hung on turn 1. Fixed by sourcing initiative prompts from combatState.
+- Enemy roll_request reached the roll bar (prompt-only rule, no code enforcement). Now rejected in validation.
 
-### Known Issues
-- No push notifications
-- ElevenLabs TTS not integrated
-- Citation linking (PHB page references) not built
-- AI character builder and campaign brainstorm untested with live AI (container limitation) — code paths verified structurally
-- Gate 7 only catches first matching skill action
-- Free tier Gemini rate limit: 20 req/min on gemini-2.5-flash-lite
+### Known issues / watch during play-test
+- AI stopping at each PC is **prompt-enforced** (contract + combat block), not code-enforced. Gate 2 flags it after the fact if the AI over-runs. Watch whether the AI reliably stops on PC turns.
+- Any narrative-tab message during your turn counts as your action (non-blocking by design). Use OOC for questions mid-combat or you may advance your own turn.
+- Gate 1 may false-positive-flag the kickoff if the AI echoes initiative numbers ("Ivy rolls 18"). Non-blocking flag only.
+- Enemy roll the AI tees up is currently *dropped* (rejected), not auto-resolved. Future option: engine auto-rolls enemies and feeds result back.
+- Container can't reach live AI or run firebase deploy — engine logic verified via tests, not a live AI combat exchange.
 
-### In Progress
-- Nothing mid-task — clean stopping point
+### Deploy state
+- **Merged to main + pushed** (main @ 1d7b543). Build verified (`npm run build` clean, dist/ ready).
+- **NOT deployed** — Firebase CLI unavailable in this environment. Deploy must run on a machine with firebase auth:
+  `git pull && npm install && npm run build && firebase deploy --only hosting`
 
 ### Next Up
-1. **Citation linking** — auto-link PHB references in AI responses
-2. **Rest buttons on CharSheet** — short/long rest as system operations
-3. **Checkpoint/rewind** — state snapshots at key moments
-4. **Level-up wizard** — triggered from XP threshold glow
-5. **Push notifications** — Web Push for multi-player awareness
+1. Play-test combat live; confirm turn order holds and the AI stops on PCs.
+2. If AI over-runs turns: tighten contract or add a code gate that truncates narration past a PC.
+3. Optional: engine auto-roll for enemies (no DM stall).
+4. Optional: wire TurnPrompt → push notifications (multi-player).
+5. Manual "skip/pass turn" control.
 
 ### Branch State
-- Branch: `claude/session-start-protocol-o8jf7j`
-- Last commit: c2742cd
-- All code committed and pushed
-- Not merged to main
-- 0 new commits this session (play-test only, no code changes needed)
+- Branch: `claude/combat-tracker-turn-system-uazlr9` (merged to main)
+- main last commit: 1d7b543
+- 33 foundations tests pass; 6 turn-engine paths verified via scratch test (not committed)
