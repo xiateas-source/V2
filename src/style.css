@@ -660,6 +660,66 @@ body {
   flex-wrap: wrap;
 }
 
+/* Combat turn handoff — shows on every device, any player can act */
+.turn-prompt {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-surface-alt);
+  border-top: 2px solid var(--color-accent);
+  flex-shrink: 0;
+}
+
+.turn-prompt-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.turn-prompt-icon {
+  font-size: var(--font-size-lg);
+}
+
+.turn-prompt-name {
+  font-weight: 700;
+  font-size: var(--font-size-base);
+  color: var(--color-accent);
+  flex: 1;
+}
+
+.turn-prompt-round {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.turn-prompt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.turn-action-btn {
+  min-height: var(--touch-target);
+  padding: 0 var(--space-md);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+}
+
+.turn-action-btn:active {
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+
+/* Round marker — centered combat beat in the narrative stream */
+.msg-system.msg-combat-event,
+.msg-system[data-kind="combat_event"] {
+  color: var(--color-accent);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
 .roll-info {
   display: flex;
   gap: var(--space-xs);

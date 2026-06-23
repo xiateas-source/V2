@@ -1,5 +1,5 @@
 import { createSignal, createMemo, Show, For } from 'solid-js';
-import { store } from '../../state/index.js';
+import { store, setStore } from '../../state/index.js';
 import { sendMsg, isSending } from '../../ai/engine.js';
 
 const SKILL_ABILITY = {
@@ -43,6 +43,11 @@ function getSkillBonus(pc, skillName) {
   if (lower === 'attackroll' || lower === 'attack') {
     if (pc.attacks?.length > 0) return pc.attacks[0].bonus || 0;
     return 0;
+  }
+
+  // Initiative — d20 + DEX modifier
+  if (lower === 'initiative') {
+    return getModifier(pc.abilityScores.dex);
   }
 
   const ability = SKILL_ABILITY[lower] || SKILL_ABILITY[skillName.toLowerCase()];
@@ -164,9 +169,55 @@ export default function RollBar() {
     setRollResults(prev => ({ ...prev, [roll.id]: { d1, d2 } }));
   }
 
+  function submitInitiative(rolls, results) {
+    const combat = store.campaign.combatState;
+    let initiative = combat.initiative.map(c => ({ ...c }));
+    const order = [];
+
+    for (const roll of rolls) {
+      const res = results[roll.id];
+      if (!res) continue;
+      const p = findPC(roll.pcName);
+      const mod = p ? getSkillBonus(p, roll.skill) : 0;
+      let d20;
+      if (roll.advState === 'advantage') d20 = Math.max(res.d1, res.d2);
+      else if (roll.advState === 'disadvantage') d20 = Math.min(res.d1, res.d2);
+      else d20 = res.d1;
+      const total = d20 + mod;
+      const idx = initiative.findIndex(c => c.name.toLowerCase() === roll.pcName.toLowerCase());
+      if (idx >= 0) initiative[idx] = { ...initiative[idx], roll: total, rollPending: false };
+    }
+
+    // Clear any leftover pending flags and sort the order (highest first).
+    initiative = initiative.map(c => (c.rollPending ? { ...c, rollPending: false } : c));
+    initiative.sort((a, b) => b.roll - a.roll);
+    for (const c of initiative) order.push(`${c.name} ${c.roll}`);
+
+    setStore('campaign', 'combatState', 'initiative', initiative);
+    setStore('campaign', 'combatState', 'currentTurn', 0);
+
+    setRollResults({});
+    setSubmitted(new Set());
+
+    // Kickoff: the AI sets the scene / resolves any enemies ahead of the first
+    // PC, then the turn engine lands the pointer on that PC.
+    sendMsg(`Initiative rolled — turn order: ${order.join(', ')}. Begin combat.`, {
+      tab: 'narrative',
+      combatKickoff: true,
+    });
+  }
+
   function submitAll() {
     const rolls = allPendingRolls();
     const results = rollResults();
+
+    // Initiative phase: write rolls straight into the tracker (no AI round-trip
+    // for a player's own roll into their own slot), then kick off the fight.
+    if (store.campaign.combatState.active && rolls.some(r => r.skill.toLowerCase() === 'initiative')) {
+      submitInitiative(rolls, results);
+      return;
+    }
+
     const lines = [];
 
     for (const roll of rolls) {

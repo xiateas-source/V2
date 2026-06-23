@@ -138,21 +138,31 @@ export function genLedger(mode = 'compact') {
 }
 
 function buildCombatBlock(combat) {
-  const sorted = [...combat.initiative].sort((a, b) => b.roll - a.roll);
-  const currentCombatant = sorted[combat.currentTurn];
-  const lines = [`ACTIVE COMBAT — ROUND ${combat.round} — ${currentCombatant?.name || 'Unknown'}'s turn`];
+  // initiative is stored already sorted (highest roll first); currentTurn
+  // indexes it directly — same index the UI and turn engine use.
+  const init = combat.initiative;
+  const awaiting = init.some(c => c.rollPending);
+  const current = init[combat.currentTurn];
+  const lines = [];
+
+  if (awaiting) {
+    lines.push(`COMBAT STARTING — ROUND ${combat.round}. The players are rolling for initiative.`);
+  } else {
+    lines.push(`ACTIVE COMBAT — ROUND ${combat.round} — ${current?.name || 'Unknown'}'s turn`);
+  }
 
   lines.push('Initiative order:');
-  for (let i = 0; i < sorted.length; i++) {
-    const c = sorted[i];
-    const marker = i === combat.currentTurn ? '>>>' : '   ';
+  for (let i = 0; i < init.length; i++) {
+    const c = init[i];
+    const marker = i === combat.currentTurn && !awaiting ? '>>>' : '   ';
     const tag = c.type === 'pc' ? '[PC]' : '[NPC]';
     const dead = c.hp <= 0 ? ' [DOWN]' : '';
-    lines.push(`${marker} ${c.roll} ${c.name} ${tag} HP:${c.hp}/${c.hpMax} AC:${c.ac} Zone:${c.zone}${dead}`);
+    const roll = c.rollPending ? '??' : c.roll;
+    lines.push(`${marker} ${roll} ${c.name} ${tag} HP:${c.hp}/${c.hpMax} AC:${c.ac} Zone:${c.zone}${dead}`);
   }
 
   const byZone = {};
-  for (const c of sorted) {
+  for (const c of init) {
     const zone = c.zone || 'front';
     if (!byZone[zone]) byZone[zone] = [];
     byZone[zone].push(c);
@@ -166,6 +176,20 @@ function buildCombatBlock(combat) {
     for (const c of combatants) {
       lines.push(`    ${c.name}(${c.type === 'pc' ? 'PC' : 'NPC'}) HP:${c.hp}/${c.hpMax}`);
     }
+  }
+
+  lines.push('');
+  if (awaiting) {
+    lines.push('TURN STRUCTURE: Do NOT resolve any turns yet. Set the scene, build tension, and wait for the initiative order to be rolled. No combatant acts until initiative is set.');
+  } else {
+    lines.push('TURN STRUCTURE (the app enforces turn order — follow it exactly):');
+    if (current?.type === 'pc') {
+      lines.push(`- It is ${current.name}'s turn — a PLAYER CHARACTER. The player has declared their action; resolve ONLY the action the player stated for ${current.name}.`);
+    } else if (current) {
+      lines.push(`- It is ${current.name}'s turn — an NPC/enemy. Roll its dice yourself and narrate its turn.`);
+    }
+    lines.push('- After the current actor, continue in initiative order, rolling dice yourself for every NPC/enemy, until you reach the NEXT player character. Then STOP and state that it is their turn.');
+    lines.push('- NEVER declare, resolve, or invent an action for a player character the player did not direct. NEVER skip or advance past a player character. The app moves the turn pointer.');
   }
 
   return lines.join('\n');

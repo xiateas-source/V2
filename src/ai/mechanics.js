@@ -731,6 +731,9 @@ const DISPATCH = {
   },
 
   zone_add_enemy(value) {
+    // Seed combat (PCs) FIRST so the enemy is appended to the existing roster
+    // instead of being wiped by combat_start rebuilding initiative from scratch.
+    if (!store.campaign.combatState.active) DISPATCH.combat_start('');
     const [name, hp, ac, zone, init] = value.split('|').map(s => s.trim());
     const initiative = [...store.campaign.combatState.initiative, {
       name, roll: parseInt(init, 10) || 0, type: 'npc',
@@ -739,7 +742,6 @@ const DISPATCH = {
     }];
     initiative.sort((a, b) => b.roll - a.roll);
     aiSet('combatState.initiative', initiative);
-    if (!store.campaign.combatState.active) DISPATCH.combat_start('');
   },
 
   zone_move(value) {

@@ -1,4 +1,4 @@
-import { createSignal, Show, lazy, Suspense } from 'solid-js';
+import { createSignal, Show, lazy, Suspense, onMount, onCleanup } from 'solid-js';
 import { isSending, stopGeneration } from '../../ai/engine.js';
 import { sendMsg, sendTableTalk } from '../../ai/engine.js';
 import DiceRoller from './DiceRoller.jsx';
@@ -11,6 +11,15 @@ export default function InputBar(props) {
   const [showTest, setShowTest] = createSignal(false);
   const [showDice, setShowDice] = createSignal(false);
   let inputRef;
+
+  // Combat turn prompt quick-actions prefill the input so the player can finish
+  // the action (add a target) before sending.
+  function onPrefill(e) {
+    setText(e.detail?.text || '');
+    inputRef?.focus();
+  }
+  onMount(() => window.addEventListener('prefill-input', onPrefill));
+  onCleanup(() => window.removeEventListener('prefill-input', onPrefill));
 
   async function handleSend() {
     const msg = text().trim();
