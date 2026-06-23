@@ -96,6 +96,7 @@ export const DEFAULT_CHARACTER = {
   alignment: '',
   languages: [],
   attacks: [],
+  traits: { trait: '', ideal: '', bond: '', flaw: '' },
   color: '#4a9eff',
 
   hp: 0,

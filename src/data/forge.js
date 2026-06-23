@@ -11,7 +11,7 @@
 
 import {
   CLASS_DATA, RACE_BONUSES, RACE_SPEED, RACE_LANGUAGES,
-  getClassFeatures, CHAR_COLORS, STANDARD_ARRAY,
+  getClassFeatures, CHAR_COLORS, STANDARD_ARRAY, composePersonality,
 } from './quickBuild.js';
 
 const ABILITIES = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
@@ -165,6 +165,17 @@ export async function forgeCharacter(intent) {
   const languages = RACE_LANGUAGES[race] || intent.languages || ['Common'];
   const speed = RACE_SPEED[race] || intent.speed || 30;
 
+  // Structured roleplay fields (Trait/Ideal/Bond/Flaw). Compose a readable
+  // personality string so legacy sheets render it; keep the structure too.
+  const traits = {
+    trait: intent.traits?.trait || '',
+    ideal: intent.traits?.ideal || '',
+    bond: intent.traits?.bond || '',
+    flaw: intent.traits?.flaw || '',
+  };
+  const composedPersonality = composePersonality(traits);
+  const personality = intent.personality || composedPersonality;
+
   return {
     id: intent.id || `pc_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     name: intent.name || `${race} ${className}`.trim() || 'Adventurer',
@@ -193,10 +204,11 @@ export async function forgeCharacter(intent) {
     resources,
     languages,
     attacks,
+    traits,
     color: intent.color || CHAR_COLORS[(intent.existingCount || 0) % CHAR_COLORS.length],
     backstory: intent.backstory || '',
     appearance: intent.appearance || '',
-    personality: intent.personality || '',
+    personality,
     notes: intent.notes || '',
     conditions: [],
     concentration: null,

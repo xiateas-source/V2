@@ -213,6 +213,76 @@ export const ALIGNMENTS = [
   'Lawful Evil', 'Neutral Evil', 'Chaotic Evil',
 ];
 
+// PHB suggested characteristics — generic tables used by the wizard's roll
+// buttons and Quick Pick. Player-owned roleplay fields (Law 2: player-owned).
+export const PERSONALITY_TABLES = {
+  trait: [
+    'I idolize a particular hero, and constantly refer to their deeds.',
+    'I can find common ground between the fiercest enemies.',
+    "I'm full of inspiring proverbs for every occasion.",
+    'I judge people by their actions, not their words.',
+    'I have a crude sense of humor that gets me into trouble.',
+    'I face problems head-on — a simple, direct solution is best.',
+    'I misuse long words in an attempt to sound smarter.',
+    "I'm always calm, no matter what the situation.",
+    "I've seen too much to be shocked by anything anymore.",
+    "I'm slow to trust members of other races, tribes, and societies.",
+  ],
+  ideal: [
+    'Greater Good. My gifts are meant to be shared with all, not hoarded.',
+    'Freedom. Chains are meant to be broken, as are those who forge them.',
+    'Power. I will do whatever it takes to become the strongest.',
+    "Honor. I don't steal from others in the trade.",
+    'Knowledge. The path to power and self-improvement is through learning.',
+    'Glory. I must earn glory in battle, for myself and my people.',
+    "Independence. I'm a free spirit — no one tells me what to do.",
+    "Redemption. There's a spark of good in everyone.",
+    'Tradition. The stories and customs of the past must be preserved.',
+    'Change. Life is like the seasons, in constant change.',
+  ],
+  bond: [
+    'I would lay down my life for the people I served with.',
+    'I owe my life to the person who took me in when I was orphaned.',
+    'A mistake I made cost someone their life. Never again.',
+    'I protect those who cannot protect themselves.',
+    'My family, clan, or tribe is the most important thing in my life.',
+    'I will face any challenge to win the approval of my mentor.',
+    "Someone powerful killed someone I love. Someday, I'll have my revenge.",
+    'I owe a debt I can never fully repay.',
+    'I want to be famous, whatever it takes.',
+    'I work to preserve a library, university, scriptorium, or monastery.',
+  ],
+  flaw: [
+    "I can't resist a pretty face — or a full coin purse.",
+    "I have a 'tell' that reveals when I'm lying.",
+    'I turn tail and run when things look bad.',
+    'A tyrant who rules my land will stop at nothing to see me dead.',
+    'I am convinced no one could ever fool me — yet I am easily fooled.',
+    'My sharp tongue lands me in trouble more often than not.',
+    "I'd rather kill someone in their sleep than fight fair.",
+    'Once someone questions my courage, I never back down.',
+    'I have a weakness for the vices of the city.',
+    "I'm too greedy for my own good.",
+  ],
+};
+
+export function rollPersonality(category) {
+  const pool = PERSONALITY_TABLES[category] || [];
+  return pool[Math.floor(Math.random() * pool.length)] || '';
+}
+
+// Compose the four structured fields into a single readable personality string
+// (for display on sheets that render the legacy personality field).
+export function composePersonality(traits) {
+  if (!traits) return '';
+  const parts = [];
+  if (traits.trait) parts.push(traits.trait);
+  if (traits.ideal) parts.push(`Ideal: ${traits.ideal}`);
+  if (traits.bond) parts.push(`Bond: ${traits.bond}`);
+  if (traits.flaw) parts.push(`Flaw: ${traits.flaw}`);
+  return parts.join('\n');
+}
+
 export const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
 export const CHAR_COLORS = ['#4ae0a0', '#a070e0', '#e08040', '#4a9eff', '#e06080', '#e0d040', '#60c0e0'];
 export const POINT_BUY_COSTS = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };

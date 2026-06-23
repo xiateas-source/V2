@@ -1,11 +1,19 @@
-import { createSignal, createEffect, Show, For } from 'solid-js';
+import { createSignal, createEffect, onMount, Show, For } from 'solid-js';
 import {
   AVAILABLE_CLASSES, AVAILABLE_RACES, CLASS_DATA, RACE_BONUSES, RACE_SPEED,
   BACKGROUNDS, CLASS_SKILL_CHOICES, ALL_SKILLS, ALIGNMENTS,
   STANDARD_ARRAY, STARTING_EQUIPMENT, getStartingGold, POINT_BUY_COSTS,
-  getDefaultEquipment, getSelectedEquipment
+  getDefaultEquipment, getSelectedEquipment, rollPersonality
 } from '../../data/quickBuild.js';
 import { forgeCharacter } from '../../data/forge.js';
+
+const DRAFT_KEY = 'tp_wizard_draft';
+const TIBF = [
+  { key: 'trait', label: 'Personality Trait', rows: 2, placeholder: 'A distinctive habit, quirk, or attitude…' },
+  { key: 'ideal', label: 'Ideal', rows: 2, placeholder: 'A principle they strive toward…' },
+  { key: 'bond', label: 'Bond', rows: 2, placeholder: 'A person, place, or cause they hold dear…' },
+  { key: 'flaw', label: 'Flaw', rows: 2, placeholder: 'A weakness, vice, or fear…' },
+];
 import { getByIndex } from '../../data/local.js';
 import { callProvider } from '../../ai/providers.js';
 import { GENERATE_BIO_SYSTEM } from '../../ai/setupPrompts.js';
@@ -82,21 +90,106 @@ export default function CharWizard(props) {
   // Step 7: Name & Bio
   const [charName, setCharName] = createSignal('');
   const [appearance, setAppearance] = createSignal('');
-  const [personality, setPersonality] = createSignal('');
+  const [pTrait, setPTrait] = createSignal('');
+  const [pIdeal, setPIdeal] = createSignal('');
+  const [pBond, setPBond] = createSignal('');
+  const [pFlaw, setPFlaw] = createSignal('');
   const [backstory, setBackstory] = createSignal('');
   const [genField, setGenField] = createSignal('');
   const [building, setBuilding] = createSignal(false);
 
-  // Reset downstream when class changes
+  const tibfSig = {
+    trait: [pTrait, setPTrait], ideal: [pIdeal, setPIdeal],
+    bond: [pBond, setPBond], flaw: [pFlaw, setPFlaw],
+  };
+  const traitsObj = () => ({ trait: pTrait(), ideal: pIdeal(), bond: pBond(), flaw: pFlaw() });
+  function rollTibf(key) { tibfSig[key][1](rollPersonality(key)); }
+  function rollAllTibf() { for (const k of Object.keys(tibfSig)) tibfSig[k][1](rollPersonality(k)); }
+
+  // Reset downstream when class *changes* to a different class. Tracking the
+  // previous value (rather than firing on every cls() read) keeps draft restore
+  // from wiping skills/spells/equipment when it rehydrates the class.
+  let prevCls = '';
   createEffect(() => {
-    const _ = cls();
-    setSkillPicks([]);
-    setPickedCantrips([]);
-    setPickedSpells([]);
-    setSpellsLoaded(false);
-    setEquipMode('default');
-    setEquipChoices({});
+    const c = cls();
+    if (prevCls && prevCls !== c) {
+      setSkillPicks([]);
+      setPickedCantrips([]);
+      setPickedSpells([]);
+      setSpellsLoaded(false);
+      setEquipMode('default');
+      setEquipChoices({});
+    }
+    prevCls = c;
   });
+
+  // --- Draft persistence (Law 3: partial attention, interruptible) ---
+  function snapshot() {
+    return {
+      stepIdx: stepIdx(), cls: cls(), race: race(), level: level(),
+      bg: bg(), align: align(), abilityMethod: abilityMethod(),
+      stdAssign: stdAssign(), rolledScores: rolledScores(), rollAssign: rollAssign(),
+      pbScores: pbScores(), skillPicks: skillPicks(),
+      pickedCantrips: pickedCantrips(), pickedSpells: pickedSpells(),
+      equipMode: equipMode(), equipChoices: equipChoices(),
+      charName: charName(), appearance: appearance(),
+      pTrait: pTrait(), pIdeal: pIdeal(), pBond: pBond(), pFlaw: pFlaw(),
+      backstory: backstory(),
+    };
+  }
+
+  function restore(d) {
+    if (!d) return;
+    setCls(d.cls || ''); setRace(d.race || ''); setLevel(d.level || 1);
+    setBg(d.bg || ''); setAlign(d.align || '');
+    setAbilityMethod(d.abilityMethod || 'standard');
+    setStdAssign(d.stdAssign || {}); setRolledScores(d.rolledScores || []);
+    setRollAssign(d.rollAssign || {});
+    setPbScores(d.pbScores || { str: 8, dex: 8, con: 8, int: 8, wis: 8, cha: 8 });
+    setSkillPicks(d.skillPicks || []);
+    setPickedCantrips(d.pickedCantrips || []); setPickedSpells(d.pickedSpells || []);
+    setSpellsLoaded(false);
+    setEquipMode(d.equipMode || 'default'); setEquipChoices(d.equipChoices || {});
+    setCharName(d.charName || ''); setAppearance(d.appearance || '');
+    setPTrait(d.pTrait || ''); setPIdeal(d.pIdeal || '');
+    setPBond(d.pBond || ''); setPFlaw(d.pFlaw || '');
+    setBackstory(d.backstory || '');
+    setStepIdx(d.stepIdx || 0);
+  }
+
+  const [resumed, setResumed] = createSignal(false);
+  onMount(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const d = JSON.parse(raw);
+        if (d && (d.cls || d.race || d.charName)) { restore(d); setResumed(true); }
+      }
+    } catch {}
+  });
+
+  // Persist on any change.
+  createEffect(() => {
+    const data = snapshot();
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(data)); } catch {}
+  });
+
+  function clearDraft() {
+    try { localStorage.removeItem(DRAFT_KEY); } catch {}
+  }
+
+  function startOver() {
+    clearDraft();
+    setStepIdx(0); setCls(''); setRace(''); setLevel(1);
+    setBg(''); setAlign(''); setAbilityMethod('standard');
+    setStdAssign({}); setRolledScores([]); setRollAssign({});
+    setPbScores({ str: 8, dex: 8, con: 8, int: 8, wis: 8, cha: 8 });
+    setSkillPicks([]); setPickedCantrips([]); setPickedSpells([]); setSpellsLoaded(false);
+    setEquipMode('default'); setEquipChoices({});
+    setCharName(''); setAppearance(''); setBackstory('');
+    setPTrait(''); setPIdeal(''); setPBond(''); setPFlaw('');
+    setResumed(false);
+  }
 
   // Derived
   const classData = () => CLASS_DATA[cls()] || null;
@@ -162,6 +255,17 @@ export default function CharWizard(props) {
   const bgSkills = () => bgData()?.skillProfs || [];
 
   // --- Standard Array ---
+  // PHB Quick Build: assign the standard array in the class's recommended
+  // ability priority order.
+  function recommendStandard() {
+    const priority = classData()?.primaryAbilities || ['str', 'con', 'dex', 'wis', 'int', 'cha'];
+    const pool = [...STANDARD_ARRAY];
+    const assign = {};
+    priority.forEach((ab, i) => { if (i < pool.length) assign[ab] = pool[i]; });
+    setStdAssign(assign);
+    setSelectedVal(null);
+  }
+
   const unassignedStd = () => {
     const assigned = Object.values(stdAssign());
     const pool = [...STANDARD_ARRAY];
@@ -323,7 +427,6 @@ export default function CharWizard(props) {
       }
       const text = result.trim();
       if (field === 'appearance') setAppearance(text);
-      else if (field === 'personality') setPersonality(text);
       else if (field === 'backstory') setBackstory(text);
     } catch {}
     setGenField('');
@@ -383,7 +486,7 @@ export default function CharWizard(props) {
         skills,
         cantrips: isCaster() ? pickedCantrips() : [],
         knownSpells: isCaster() ? pickedSpells() : [],
-        appearance: appearance(), personality: personality(), backstory: backstory(),
+        appearance: appearance(), traits: traitsObj(), backstory: backstory(),
         existingCount: props.existingCount || 0,
       });
 
@@ -396,6 +499,7 @@ export default function CharWizard(props) {
         eqMode === 'customize' ? getSelectedEquipment(cls(), equipChoices()) :
         getDefaultEquipment(cls());
 
+      clearDraft();
       props.onComplete(character, goldAmount, items, eqMode === 'gold');
     } finally {
       setBuilding(false);
@@ -417,7 +521,11 @@ export default function CharWizard(props) {
           </For>
         </div>
         <span class="wiz-step-label">{STEP_LABELS[currentStep()]}</span>
+        <button class="wiz-startover" onClick={startOver}>Start over</button>
       </div>
+      <Show when={resumed()}>
+        <div class="wiz-resumed">↩ Resumed your in-progress character</div>
+      </Show>
 
       {/* Live stat preview */}
       <Show when={cls() && race()}>
@@ -521,7 +629,10 @@ export default function CharWizard(props) {
           {/* Standard Array */}
           <Show when={abilityMethod() === 'standard'}>
             <div class="wiz-section">
-              <label class="wiz-label">Tap a score, then tap an ability to assign</label>
+              <div class="wiz-bio-header">
+                <label class="wiz-label">Tap a score, then tap an ability to assign</label>
+                <button class="wiz-gen-btn" onClick={recommendStandard}>Recommended</button>
+              </div>
               <div class="wiz-score-pool">
                 <For each={unassignedStd()}>
                   {(val) => (
@@ -794,13 +905,20 @@ export default function CharWizard(props) {
           <div class="wiz-section">
             <div class="wiz-bio-header">
               <label class="wiz-label">Personality</label>
-              <button class="wiz-gen-btn" onClick={() => generateBioField('personality')}
-                disabled={genField() !== ''}>
-                {genField() === 'personality' ? '...' : 'Generate'}
-              </button>
+              <button class="wiz-gen-btn" onClick={rollAllTibf}>🎲 Roll all</button>
             </div>
-            <textarea class="wiz-bio-input" rows="3" placeholder="Traits, ideals, bonds, flaws..."
-              value={personality()} onInput={(e) => setPersonality(e.target.value)} />
+            <For each={TIBF}>
+              {(f) => (
+                <div class="wiz-tibf">
+                  <div class="wiz-tibf-head">
+                    <span class="wiz-tibf-label">{f.label}</span>
+                    <button class="wiz-tibf-roll" onClick={() => rollTibf(f.key)}>🎲</button>
+                  </div>
+                  <textarea class="wiz-bio-input" rows={f.rows} placeholder={f.placeholder}
+                    value={tibfSig[f.key][0]()} onInput={(e) => tibfSig[f.key][1](e.target.value)} />
+                </div>
+              )}
+            </For>
           </div>
 
           <div class="wiz-section">
@@ -836,6 +954,14 @@ export default function CharWizard(props) {
             <Show when={isCaster() && pickedSpells().length > 0}>
               <div class="wiz-review-line">
                 Spells: {[...pickedCantrips(), ...pickedSpells()].join(', ')}
+              </div>
+            </Show>
+            <Show when={pTrait() || pIdeal() || pBond() || pFlaw()}>
+              <div class="wiz-review-line wiz-review-tibf">
+                <Show when={pTrait()}><span>{pTrait()}</span></Show>
+                <Show when={pIdeal()}><span><b>Ideal:</b> {pIdeal()}</span></Show>
+                <Show when={pBond()}><span><b>Bond:</b> {pBond()}</span></Show>
+                <Show when={pFlaw()}><span><b>Flaw:</b> {pFlaw()}</span></Show>
               </div>
             </Show>
           </div>

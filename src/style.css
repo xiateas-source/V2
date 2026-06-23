@@ -5049,6 +5049,60 @@ body {
   outline: none;
 }
 
+/* Trait / Ideal / Bond / Flaw */
+.wiz-tibf {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: var(--space-sm);
+}
+
+.wiz-tibf-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wiz-tibf-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.wiz-tibf-roll {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  width: 36px;
+  min-height: 32px;
+  padding: 0;
+}
+
+.wiz-tibf-roll:active { background: var(--color-surface-alt); }
+
+/* Start over / resumed banner */
+.wiz-startover {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  padding: 4px 6px;
+  flex-shrink: 0;
+}
+
+.wiz-startover:active { color: var(--color-danger); }
+
+.wiz-resumed {
+  font-size: 0.75rem;
+  color: var(--color-accent);
+  background: var(--color-surface-alt);
+  padding: 6px var(--space-md);
+  text-align: center;
+}
+
 /* Review panel */
 .wiz-review {
   background: var(--color-surface);
@@ -5063,6 +5117,16 @@ body {
 .wiz-review-line {
   font-size: var(--font-size-sm);
   color: var(--color-text);
+}
+
+.wiz-review-tibf {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-xs);
 }
 
 .wiz-review-stats {

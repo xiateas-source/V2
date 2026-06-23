@@ -6,7 +6,7 @@ import { normalizeCharacter, validateCharacter } from '../../content/normalizer.
 import {
   STARTING_EQUIPMENT, getStartingGold, getDefaultEquipment, getSelectedEquipment,
   AVAILABLE_CLASSES, AVAILABLE_RACES, BACKGROUNDS, ALIGNMENTS,
-  buildCharacter
+  buildCharacter, rollPersonality, composePersonality
 } from '../../data/quickBuild.js';
 import { forgeCharacter, proficiencyBonus } from '../../data/forge.js';
 import CharWizard from './CharWizard.jsx';
@@ -135,6 +135,12 @@ export default function CharCreate(props) {
         for (const s of (bg.skillProfs || [])) {
           char.skills[s.toLowerCase().replace(/\s+/g, '')] = true;
         }
+        const traits = {
+          trait: rollPersonality('trait'), ideal: rollPersonality('ideal'),
+          bond: rollPersonality('bond'), flaw: rollPersonality('flaw'),
+        };
+        char.traits = traits;
+        char.personality = composePersonality(traits);
         setQuickChar(char);
       }
     } finally {
