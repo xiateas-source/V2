@@ -147,14 +147,17 @@ Overlay state lives in component state (React), not in persisted `state`. If the
 **Narrative tab:**
 - Placeholder: "What do you do?"
 - Send button: ⚡ (sends to full AI pipeline)
+- Stop button replaces send during streaming
+- Dice roller icon
 - Input is always AI-directed (every message goes through buildPrompt)
-- Suggestion chips above input (contextual: combat actions, exploration, rest, etc.)
 
 **OOC tab:**
 - Placeholder: "Talk to the party..."
-- Send button: 💬 (sends as player text, no AI)
-- "Ask DM" button: 🧙 (sends last player message to advisory AI)
-- Suggestion chips: strategy prompts, "Ask DM" shortcut, common questions
+- Two buttons side by side:
+  - Send (💬) — sends as player text, no AI
+  - Ask DM (🧙) — sends to advisory AI (no mechanics, no state changes)
+
+> Suggestion chips were cut (decisions.md S30, confirmed S31). Quick Actions FAB + Ask DM replace the need.
 
 ### Tab State
 - Each tab remembers its scroll position independently

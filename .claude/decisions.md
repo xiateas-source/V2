@@ -15,13 +15,14 @@
 | Dispatch table pattern for mechanics | Built in v1 Session 29. Each mechanic key registers a handler. Extensible without touching core. | 29 |
 | v1 stays live while v2 is built | No migration pressure. Other player keeps using v1. V2 launches when it can run a full session. | 30 |
 | Separate Firebase project for v2 | New API keys, new database. Clean break, no data collision with v1. | 30 |
+| **Build order: interface first (Phases 3→4→5→6→0→1→2→7→8)** | Engine is partly built but the playable experience doesn't exist (S39 Reality Snapshot). Agents kept mistaking engine code for a working game. Building UI phases first prevents this confusion and gives the engine a home. Phases 0–2 specs are written; the work is filling implementation gaps after the interface holds. | 40 |
 
 ## Modes & Navigation
 
 | Decision | Rationale | Session |
 |----------|-----------|---------|
 | Four modes: setup, play, reference, manage | Every feature belongs to exactly one mode. Setup is onramp (locked after launch). Play is the session. Reference is mid-session orientation. Manage is between sessions. | 30 |
-| Bottom nav: Cargo / Journal / Settings | Combat and level-up are event-driven overlays, not tabs. Dice roller is inline icon. | 30 |
+| Bottom nav: Cargo / Journal / Settings (3 items, no Play button) | Combat and level-up are event-driven overlays, not tabs. Dice roller is inline icon. Play is the default home screen, not a nav destination. S39 mockup explored a 4th "Play" item — rejected S40. | 30→40 |
 | Combat overlay, not combat tab | Appears when combat starts, disappears when it ends. Not a permanent nav destination. | 30 |
 | Level-up wizard is event-driven | Triggers on XP threshold, not from a button. Overlay that appears when conditions are met. | 30 |
 | Setup locks after campaign launch | One-way transition. Setup → Play. No going back without intentional manage mode access. | 30 |
@@ -61,6 +62,7 @@
 | Decision | Rationale | Session |
 |----------|-----------|---------|
 | Field ownership: AI / Player / System | No field writable by more than one owner. AI writes via mechanics pipeline. Player writes via editors. System writes via wizards. | 30 |
+| `background` and `alignment` are system-owned | Set at creation via wizard, locked during play, editable via manual override (unlock). Background is a one-time choice. Alignment can shift but locking it behind unlock keeps changes deliberate. | 40 |
 | Checkpoint/rewind in play mode, not manage | Safety nets must be accessible mid-session. Law 2: "when enforcement fails, the player can rewind." | 30 |
 | Relationships array dropped | Redundant with NPC tracker dispositions. One home for data. | 30 |
 

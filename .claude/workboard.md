@@ -92,7 +92,7 @@ S37: **"shipped, deployed, playable."** S38: **"mockup only, throwaway."** Devel
 
 ### Honest "what's left" (build-forward priorities)
 0. **BUILD THE INTERFACE.** The connective play surface — the body the engine/combat/onboarding plug into. This is the gate everything else waits behind.
-   - **S39 progress:** play-screen **visual style** prototyped in `modern-atmospheric.html` (modern/atmospheric, Phosphor icons, serif+sans type, party HUD, situation bar w/ consequence overflow, dice d20, listen, tap-to-source). Strong working direction, **not yet formally locked**. Open: nav 3-item vs 4-item (Play), review items 5–9. Next: lock style → build in SolidJS starting with the persistence spine.
+   - **S39 progress:** play-screen **visual style** prototyped in `modern-atmospheric.html` (modern/atmospheric, Phosphor icons, serif+sans type, party HUD, situation bar w/ consequence overflow, dice d20, listen, tap-to-source). Strong working direction, **not yet formally locked**. **Nav resolved (S40): 3-item** (Cargo / Journal / Settings). Open: review items 5–9. Next: lock style → build in SolidJS starting with the persistence spine.
 1. **Persistence spine (part of the interface):** `sync.js` writes campaign state to **Firebase only** — no local save, and boot never reloads a campaign (`loadCampaignFromCloud` exists but is never called). So every reload wipes `campaign.id` → back to step-0 onboarding, nothing endures. The architecture.md "offline→localStorage, reconcile on reconnect" (Law 1) is **NOT implemented.** Build local-first persistence + boot restore as part of the interface.
 2. ⛔ True stubs to fill *after* the interface holds: Treasury, Glossary, SessionReview, Contracts, ContentImport, SessionZero.
 3. ◻️ Absent: multiplayer identity, push notifications, child view (AppSimple), shared bundles, state migration.
@@ -112,21 +112,19 @@ S37: **"shipped, deployed, playable."** S38: **"mockup only, throwaway."** Devel
 
 ## Spec Dependencies — What to spec before each phase
 
-> Rule: **data shapes** must be specced before the phase that writes to them. **UI specs** can wait until the phase that displays them.
+> Rule: **data shapes** must be specced before the phase that writes to them. **UI specs** can wait until the phase that displays them. Build order is now interface-first (see Build Order below).
 
-| Phase | Must be specced first | Status | Can wait until display phase |
-|-------|----------------------|--------|------------------------------|
-| **Phase 0: Foundation** | Campaign data shape, system data shape, color themes | ✅ All done | — |
-| **Phase 1: Core Loop** | All mechanic target data shapes — quest, NPC, location, item, consequence, combat, economy. Chat messages. | ✅ All done. Chat spec (`chat-system-spec-v2.md`), characters, Journal data shapes (quests, NPCs, locations, consequences, secrets, townRep, chapters, moduleProgress) fully specced from v1 real data. | Journal UI, Cargo UI, Treasury UI |
-| **Phase 2: Gates** | Field ownership registry, validation rules per gate | ✅ Ownership done. Gate rules defined. | Gate UI (pills, overlays) |
-| **Phase 3: Play Mode UI** | Combat state shape, overlay behavior specs | ✅ Combat fully specced (`ui-specs-v2.md` §5). Overlays specced in `chat-system-spec-v2.md`. | — |
-| **Phase 4: Reference Mode** | Nothing new — reads existing state | ✅ All UI specs complete (`ui-specs-v2.md` §1–5). | Journal UI, Cargo UI, Treasury UI, CharSheet — all specced |
+| Phase | Must be specced first | Status | Spec locations |
+|-------|----------------------|--------|----------------|
+| **Phase 3: Play Mode UI** | Visual style, chat system, overlay behavior, combat state | ✅ Visual style: `modern-atmospheric.html`. Chat: `chat-system-spec-v2.md`. Combat: `ui-specs-v2.md` §5. Overlays: `chat-system-spec-v2.md`. S39 decisions in `decisions.md`. | workboard §Phase 3, decisions.md (S39) |
+| **Phase 4: Reference Mode** | Nothing new — reads existing state | ✅ All UI specs complete (`ui-specs-v2.md` §1–5). | workboard §Phase 4 |
 | **Phase 5: Setup Mode** | Session Zero flow, char creation wizard fields | ❌ Not specced | — |
 | **Phase 6: Manage Mode** | — | — | DevTools, contracts editor, session review |
+| **Phase 0: Foundation** | Campaign data shape, system data shape, color themes | ✅ All done | workboard §Phase 0 |
+| **Phase 1: Core Loop** | All mechanic target data shapes, chat messages | ✅ All done. | workboard §Phase 1, `chat-system-spec-v2.md` |
+| **Phase 2: Gates** | Field ownership registry, validation rules per gate | ✅ Ownership done. Gate rules defined. | workboard §Phase 2, `enforcement-spec.md` |
 | **Phase 7: Content Pipeline** | Episode/module tracking data shape | ❌ Not specced | — |
-| **Phase 8: Multi-Player** | Player identity/onboarding flow | ⚠️ Partially specced | Child-friendly view |
-
-**Build order:** Phase 0 now (no spec needed) → Phase 1 (all data shapes now available from v1 engine dump) → Phase 2 → spec as needed from there.
+| **Phase 8: Multi-Player** | Player identity/onboarding flow | ⚠️ Partially specced | — |
 
 ---
 
@@ -134,7 +132,7 @@ S37: **"shipped, deployed, playable."** S38: **"mockup only, throwaway."** Devel
 
 | File | Use During |
 |------|-----------|
-| `.claude/chat-system-spec-v2.md` | Phase 1 (chat system), Phase 3 (overlays, streaming) |
+| `.claude/chat-system-spec-v2.md` | Phase 3 (chat UI, overlays, streaming, input bar) |
 | `.claude/ui-specs-v2.md` | Phase 3–4 (CharSheet, Cargo, Treasury, Journal, Combat) |
 | `.claude/player-requests-v2.md` | Every phase — cross-cutting UX requirements, ✅ = must preserve |
 | `.claude/v1-engine-dump.md` | Phase 1–2 (mechanic key mapping, validation, pre-parse rejections, real data shapes) |
@@ -1442,41 +1440,10 @@ Accessed via lock icon / edit button on character sheet. Full form-based editor 
 | Episode/module tracking triggers | Location-based? Quest-based? AI-detected? | Phase 7 |
 | Quick Actions action list | What actions, system vs AI directed, FAB ergonomics | Phase 3 |
 | ~~V1 data migration~~ | **Decided: fresh start.** V1 stays live for reference. V2 launches with a new campaign. No migration code needed. | Resolved |
-| ~~OOC & Rules channels~~ | **Decided: two tabs.** Narrative (full AI) + OOC (player text + Ask DM button). Rules tab eliminated. See design below. | Resolved |
+| ~~OOC & Rules channels~~ | **Decided: two tabs.** Narrative (full AI) + OOC (player text + Ask DM button). Rules tab eliminated. | Resolved |
+| ~~Bottom nav 3 vs 4 items~~ | **Decided: 3 items** (Cargo / Journal / Settings). Play is the default home, not a nav destination. 4th "Play" button from S39 mockup rejected. | Resolved (S40) |
 
-### OOC & Rules channels — DECIDED
-
-**V1 had three channels** — Narrative (always AI), Rules (always AI), OOC (player text + Ask DM button). In practice, Rules and OOC described the same function. Players used both for rules questions. OOC was also used for app issues the AI couldn't fix.
-
-**V2 design: two tabs.**
-
-**Narrative tab** — The game. Full AI context (ledger + chat history + contracts + module content). Emits mechanics, advances the story. This is the play session.
-
-**OOC tab** — Everything else. Player text by default (no AI cost). Ask DM button for on-demand AI:
-- Gets full situation context: Narrative history + OOC history + character data + compendium data pulled from IndexedDB
-- System instruction: "advisory only — answer the question, don't emit mechanics, don't advance the game state"
-- Handles: rules interpretation, theorycrafting ("what would happen if..."), rules lookups the compendium can't answer alone
-- Ask DM interception layer catches app issues ("can't modify expertise") and routes to system tools before hitting AI
-- Ask DM data injection pulls relevant compendium entries into prompt so answers are grounded in actual app data
-- Citation linking auto-links spell names, feat names, PHB references to compendium entries
-
-**What moved where:**
-- Rules lookup ("what does Mending do?") → reference mode / compendium (free, no AI)
-- State lookup ("what's in my inventory?") → reference mode / Cargo (free, no AI)
-- App issues ("can't edit expertise") → Ask DM interception → system tools (no AI)
-- Rules interpretation ("can Slasher sneak attack with a thrown handaxe?") → Ask DM (AI, advisory only)
-- Theorycrafting ("what if we cast Silence on the lair?") → Ask DM (AI, advisory only, situation-aware)
-- Player chat ("everyone ready?") → OOC text (no AI)
-
-**Proposed design (pending confirmation):**
-- **Narrative tab** — Full AI context (ledger + chat history + contracts + module content). The main play experience.
-- **Rules tab** — AI with ledger + character data + rules contracts only. No narrative history. Cheaper prompt, focused answers. System prompt says "answer D&D rules questions using the character and campaign data provided."
-- **OOC tab** — Plain text, no AI. Player-to-player messages synced via Firebase. Minimal UI.
-- **App issues** — Not a chat channel. System operations UI in manage mode + Quick Actions for common fixes.
-
-### V1 data migration — DECIDED
-
-**Fresh start.** V1 stays live for reference. V2 launches with a new campaign. No migration code needed.
+> OOC/Rules design details in `decisions.md` (S31) and `chat-system-spec-v2.md`. V1 data migration: fresh start (S31).
 
 ---
 
@@ -1490,26 +1457,24 @@ Accessed via lock icon / edit button on character sheet. Full form-based editor 
 
 ---
 
-## Build Order
+## Build Order — Revised S40
 
-Phases are roughly sequential but overlap where practical:
+> **Interface first.** The engine is the real asset but the playable experience doesn't exist (see Reality Snapshot). Building UI phases first prevents agents from mistaking engine code for a working game. Phases 1–2 (core loop, gates) are partly built already; they get finished after the interface gives them a home.
 
-1. **Phase 0** → scaffold + state + Firebase + seed data (foundation)
-2. **Phase 1** → core loop MVP including AI contract text + memory management (can play a session, no enforcement)
-3. **Phase 2** → enforcement gates (build one at a time, test in play)
-4. **Phase 3** → play mode UI (make it feel like an app, not a terminal)
-5. **Phase 4** → reference mode (mid-session orientation)
-6. **Phase 5** → setup mode (first-launch experience)
-7. **Phase 6** → manage mode (between-session tools)
+1. **Phase 3** → play mode UI (make it feel like an app, not a terminal)
+2. **Phase 4** → reference mode (mid-session orientation)
+3. **Phase 5** → setup mode (first-launch experience)
+4. **Phase 6** → manage mode (between-session tools)
+5. **Phase 0** → scaffold gaps (persistence spine, seed data gaps, remaining plumbing)
+6. **Phase 1** → core loop completion (AI contracts, memory management, provider hardening)
+7. **Phase 2** → enforcement gates (build one at a time, test in play)
 8. **Phase 7** → content pipeline (replace hardcoded data)
 9. **Phase 8** → multi-player + polish (second player joins)
 
 **Key dependencies:**
-- AI contract text (Phase 1) is a writing task — can start during Phase 0 scaffolding
-- Memory management (Phase 1) is needed before any session longer than ~20 messages
-- Color palette (open question) blocks visual polish but not functionality — build with placeholders
-- Seed data (Phase 0) is the bridge: v1 constants in IndexedDB before content pipeline exists
-- Previously On (Phase 3) depends on memory.js from Phase 1
-- Gates (Phase 2) can interleave with play UI (Phase 3) — build a gate, build a UI piece, test in play, repeat
-- Content pipeline (Phase 7) can start earlier — normalizer and IndexedDB layer are independent of UI
-- V1 data migration (if chosen) is a one-time manage mode tool, not a prerequisite for anything
+- Phase 3 uses the existing engine code as-is — the play surface wraps what's already built
+- Persistence spine (local-first save + boot restore) is part of Phase 3, not Phase 0 — it's what makes the interface survive reload
+- Previously On (Phase 3) depends on memory.js — build the UI shell first, wire memory when Phase 1 completes
+- Gates (Phase 2) interleave with play UI naturally — build a gate, test it against the real interface
+- Phases 0–2 specs (data shapes, ownership, gate rules) are already written and still valid — the work is filling implementation gaps, not re-speccing
+- Content pipeline (Phase 7) can start earlier if needed — normalizer and IndexedDB are independent of UI

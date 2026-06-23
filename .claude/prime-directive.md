@@ -76,7 +76,7 @@ V1 was 29 sessions of discovery. V2 is the intentional rebuild — modular, test
 
 V2 is built to last. If it needs a V3, the architecture supports evolution — but the goal is a finished product, not a perpetual prototype. It's done when a full session runs without the developer needing to fix anything. The developer is a player, the session is the test environment, and the app improves every time it's played. Dev tools are play tools. V1 stays live for the other player while V2 is built and tested. No migration pressure — V2 launches when it can run a full session.
 
-The app is the development environment. The developer plays alongside the other player, spotting failures, flagging issues, and fixing state live. Dev tools aren't hidden behind mode friction — they live inside play. The `//` command line, the flag system, the rewind stack, the contract verifier are first-class play tools, not debug afterthoughts. The app gets better every session because the developer is in every session.
+The app is the development environment. The developer plays alongside the other player, spotting failures, flagging issues, and fixing state live. Dev tools aren't hidden behind mode friction — they live inside play. The flag system, the rewind stack, the contract verifier are first-class play tools, not debug afterthoughts. The app gets better every session because the developer is in every session.
 
 The Five Laws live in `CLAUDE.md` where they auto-load every session — the development AI can't drift from rules it reads every time. The full directive, V1 lessons, and design history stay in `prime-directive.md` as deep reference, read when decisions need grounding, not every session. Session handoff and active work load at startup; everything else loads on demand. The development AI has the same memory problem as the game AI — the docs are the fix for both.
 
@@ -120,7 +120,10 @@ The five laws reinforce each other:
 ---
 
 ## OPEN QUESTIONS
+
 - **Child-friendly view scope** — Ages 7-16 is a wide range. A 7-year-old needs icons and guided choices; a 16-year-old uses the full interface. What's the target? Simplified action picker? Read-aloud mode with TTS? Reduced UI that hides management complexity? Needs design based on actual play with the child.
+
+> OOC/Rules channels — **resolved** (decisions.md S31): two tabs (Narrative + OOC). Rules tab eliminated. Ask DM button in OOC handles rules interpretation. Static lookups go through reference mode (free).
 
 ---
 

@@ -17,13 +17,13 @@ Extracted from v1 codebase (src/main.js, features.md, ai-failures.md). Each spec
 | Field | Owner | Can Edit | AI Can Write | Notes |
 |-------|-------|----------|-------------|-------|
 | `name` | Player | Always | No | Identity field |
-| `race` | Player | Setup only | No | Set once, class change = new character |
+| `race` | System | Creation wizard | No | System-owned (S31). Affects bonuses. Set once at creation. |
 | `class` | System | Level-up wizard | No | Set by wizard, never by AI mechanic |
 | `subclass` | System | Level-up wizard | No | |
 | `level` | System | Level-up wizard | No | XP threshold triggers wizard |
-| `background` | Player | Setup only | No | |
-| `alignment` | Player | Always | No | |
-| `hp` | System + AI | Combat tab +/- | Yes (`hp:` mechanic) | AI can deal damage/heal. Player can manual adjust. Clamped to 0–hp_max |
+| `background` | System | Creation wizard | No | System-owned. Set at creation, locked during play. |
+| `alignment` | System | Creation wizard | No | System-owned. Set at creation, editable via manual override (unlock). |
+| `hp` | AI (player override) | Vitals tab +/- | Yes (`hp:` mechanic) | AI-owned (S31). Player inline +/- uses `aiSet()` with `player_override` flag, logged for audit. Clamped to 0–hp_max |
 | `hp_max` | System | Level-up wizard only | No | hp_max guard rejects AI writes |
 | `hp_temp` | System + AI | Combat tab | Yes (`hp_temp:` mechanic) | Temporary HP |
 | `ac` | Player | Edit mode | No | Could be calc'd in V2 (base + armor + shield + dex) |
@@ -55,6 +55,8 @@ Extracted from v1 codebase (src/main.js, features.md, ai-failures.md). Each spec
 
 ### V2 Layout — Mobile Phone (one screen, 6 tabs)
 
+> **Note:** Tab names and contents updated to match decisions.md (S31). See workboard.md Phase 4 for the full authoritative spec (header, swipe, lock bar, "what changed" badges, roll-anything, etc.).
+
 ```
 ┌─────────────────────────────────────┐
 │ [←]  Slasher                    [🔒] │  ← fixed header: name, lock toggle
@@ -66,8 +68,8 @@ Extracted from v1 codebase (src/main.js, features.md, ai-failures.md). Each spec
 │ Prof: +2  PP: 14  ☆ Inspiration      │
 │ ───── XP: 900 / 2700 ─────────────  │  ← XP bar (tappable)
 ├─────────────────────────────────────┤
-│ [Core] [Skills] [Combat] [Spells]    │  ← 6 tab row
-│ [Gear] [Features]                    │
+│ [Stats] [Vitals] [Spells] [Features] │  ← 6 tab row
+│ [Equipment] [Bio]                    │
 ├─────────────────────────────────────┤
 │                                     │
 │  (tab content scrolls here)         │
@@ -77,17 +79,17 @@ Extracted from v1 codebase (src/main.js, features.md, ai-failures.md). Each spec
 
 ### Tab Contents
 
-**Core** — 3×2 ability score grid (large number + modifier, tappable to roll). Saving throws list (prof dot + modifier, tappable to roll). Passive Perception/Insight/Prof bonus tiles.
+**Stats** — 3×2 ability score grid (large number + modifier, tappable to roll). Saving throws list (prof dot + modifier, tappable to roll). Skills (18 rows, prof/expertise dots, tappable to roll). Quick reference: Initiative, Proficiency bonus, Speed, Passive Perception, Passive Investigation.
 
-**Skills** — 18 skill rows: prof dot (empty/filled/double for expertise) + skill name + ability tag + modifier. Each row tappable → roll with modifier. Sorted alphabetically.
+**Vitals** — HP controls (+/- buttons with amount input, temp HP). AC display with source breakdown. Attacks (tappable to roll). Conditions (chip row + duration counters). Concentration badge with end button. Death saves (heart/skull pips). Hit dice pips (tap to spend, shows heal estimate). Exhaustion pips (0–6). Familiar/mount card (if any). Rest buttons (Short/Long).
 
-**Combat** — HP controls (+/- buttons with amount input, temp HP). Conditions (chip row + picker dropdown). Concentration badge with end button. Death saves (heart/skull pips). Hit dice pips (tap to spend, shows heal estimate). Exhaustion pips (0–6). Attacks table (name/bonus/damage/notes).
+**Spells** — Spell Save DC / Spell Attack (tappable) / Spellcasting Ability at top. Concentration pinned spell with End button. Spell slot pips per level. Known spells grouped by level (expand for casting time, range, duration, V/S/M component badges, description). Cantrips. Browse Compendium button.
 
-**Spells** — Spell slot grid (level rows with pip toggles). Spellbook list (grouped by level, sorted alpha within level). Each spell: name, school tag, casting time, components. Tap → spell detail. Add from compendium or manual. Import from JSON.
+**Features** — Class features (sorted by acquisition level). Racial traits. Resources with pip counters (Second Wind, Action Surge, Superiority Dice, etc.). Feats. Proficiency tag chips.
 
-**Gear** — Personal inventory split into Equipped (weapons/armor/shield) and Carried (everything else). Each item: name, qty, weight, type, notes. Chip layout with tap-to-expand edit. Carry weight / capacity display. Familiar section (if has familiar): name, type, AC, HP, abilities.
+**Equipment** — Encumbrance bar (current weight / STR×15 capacity). Items with type tags and acquisition metadata. Party currency footer with "Tap for full Treasury" link. "Wagon & Hoard in Cargo tab" link.
 
-**Features** — Class/race features text block (system-owned, set by wizard). Resources with pip counters (Second Wind 1/1, Action Surge 1/1, etc.). Relationships (from/to/disposition). Backstory fields (origin, motivation, secret). Personality/ideals/bonds/flaws.
+**Bio** — Race reference card (from compendium: lore, traits, size, speed, age). Identity (Background, Alignment, Languages — system-owned). Appearance, Personality, Backstory, Notes (player-owned, tap to edit).
 
 ### Tap Flows
 
@@ -432,17 +434,14 @@ encounterPresets: [{name, enemies: "Name:HP:AC, ..."}]
 ┌─────────────────────────────────────┐
 │ No active combat                    │
 │                                     │
-│ [Add Combatant]  [Load Preset]      │
+│ [Add Combatant]                     │
 │ Name: [___] HP: [__] AC: [__]      │
 │                                     │
 │ ── Rest ──                          │
 │ [Short Rest]  [Long Rest]           │
-│                                     │
-│ ── Encounter Presets ──             │
-│ [Cultists ×4] [Guard Drake ×2]      │
-│ [+ Save New Preset]                 │
 └─────────────────────────────────────┘
 ```
+> Encounter presets iceboxed (decisions.md S30→31). Could return via content pipeline JSON import.
 
 ### Turn Enforcement (V2 Gate 2)
 1. Combat starts → initiative order established
