@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerer's Chronograph — Gothic Fantasy (live)</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    /* dark wood backdrop, pure CSS — no image files */
+    background:
+      repeating-linear-gradient(90deg, rgba(0,0,0,.18) 0 2px, rgba(255,255,255,.012) 2px 5px, rgba(0,0,0,.10) 5px 9px),
+      repeating-linear-gradient(88deg, rgba(0,0,0,.22) 0 40px, rgba(120,75,35,.05) 40px 90px),
+      radial-gradient(120% 80% at 50% 0%, #4a3018 0%, #2c1a0c 55%, #160d05 100%);
+    font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+    padding:18px 12px 40px; color:#e9dcc0;
+  }
+  .title {
+    font-size:24px; letter-spacing:.14em; color:#e8c98a; margin:6px 0 16px; text-align:center;
+    text-shadow:0 1px 0 #1a0f04, 0 2px 3px rgba(0,0,0,.6);
+    font-variant:small-caps;
+  }
+
+  /* ── phone ── */
+  .phone {
+    width:360px; max-width:96vw; border-radius:34px; overflow:hidden;
+    border:3px solid #0c0c0e; box-shadow:0 18px 50px rgba(0,0,0,.6), inset 0 0 0 2px #2a2a2e;
+    display:flex; flex-direction:column; height:740px;
+    background:#1c130a;
+  }
+  .screen {
+    flex:1; display:flex; flex-direction:column; overflow:hidden;
+    /* inner wood, slightly warmer */
+    background:
+      repeating-linear-gradient(91deg, rgba(0,0,0,.16) 0 3px, rgba(255,220,160,.018) 3px 7px),
+      linear-gradient(160deg, #3a2614 0%, #271809 60%, #1c1207 100%);
+  }
+
+  /* gilded frame helper */
+  .gild {
+    border-radius:10px; padding:2px;
+    background:linear-gradient(150deg, #e8c98a 0%, #9a6f33 18%, #5a3e1c 40%, #caa15c 62%, #7a5424 84%, #e3c07e 100%);
+    box-shadow:0 3px 10px rgba(0,0,0,.5), inset 0 0 4px rgba(0,0,0,.4);
+  }
+  /* parchment fill inside frames */
+  .parch {
+    border-radius:8px;
+    background:
+      radial-gradient(80% 120% at 30% 10%, rgba(255,250,235,.55), rgba(0,0,0,0) 60%),
+      repeating-radial-gradient(circle at 70% 30%, rgba(120,90,50,.05) 0 3px, rgba(0,0,0,0) 3px 7px),
+      linear-gradient(160deg, #e9d2 0%, #d8c49a 0%, #cbb487 55%, #b89c6c 100%);
+    color:#3a2a16;
+  }
+
+  .header { padding:10px 12px 6px; }
+  .loc-frame { }
+  .loc-frame .parch { padding:8px 12px; display:flex; align-items:center; gap:8px; }
+  .loc-name { font-weight:700; font-size:15px; font-variant:small-caps; letter-spacing:.04em; color:#3a2410; }
+  .loc-meta { margin-left:auto; font-size:11px; color:#6a5535; font-style:italic; }
+
+  .tiles { display:flex; gap:10px; padding:6px 12px 4px; }
+  .tile .parch { padding:8px; display:flex; flex-direction:column; align-items:center; gap:5px; }
+  .portrait {
+    width:54px; height:54px; border-radius:8px; border:2px solid #7a5424;
+    background:radial-gradient(circle at 40% 35%, #b8895a, #6a4526);
+    display:flex; align-items:center; justify-content:center; font-size:22px;
+    box-shadow:inset 0 0 8px rgba(0,0,0,.45);
+  }
+  .tname { font-weight:700; font-size:13px; color:#3a2410; font-variant:small-caps; }
+  .tmeta { font-size:10px; color:#6a5535; }
+  .thp-track { width:100%; height:6px; border-radius:4px; background:#7a623e; overflow:hidden; box-shadow:inset 0 1px 2px rgba(0,0,0,.5); }
+  .thp-fill { height:100%; }
+
+  .chips { display:flex; gap:7px; padding:6px 12px; overflow:hidden; }
+  .chip { font-size:10px; padding:4px 9px; border-radius:5px; white-space:nowrap;
+    background:linear-gradient(160deg,#46341c,#2e2012); color:#d8b878; border:1px solid #6a4a22; box-shadow:0 1px 3px rgba(0,0,0,.4); }
+  .chip.main { background:linear-gradient(160deg,#8a5e22,#5a3c14); color:#f3dca0; border-color:#b8893f; }
+
+  .tabbar { display:flex; gap:6px; padding:4px 12px 0; }
+  .tab { font-size:12px; padding:6px 14px; border-radius:7px 7px 0 0; color:#a98c5f; font-variant:small-caps; letter-spacing:.05em;
+    background:linear-gradient(180deg,#2c1e10,#241809); border:1px solid #46341c; border-bottom:none; }
+  .tab.on { color:#3a2410; font-weight:700; background:linear-gradient(180deg,#d8c49a,#c2ad7e); border-color:#7a5424; }
+
+  .feed-frame { flex:1; padding:0 12px 8px; min-height:0; }
+  .feed { height:100%; }
+  .feed .parch { height:100%; padding:12px; overflow:hidden; display:flex; flex-direction:column; gap:11px; }
+  .who { font-size:9px; text-transform:uppercase; letter-spacing:.1em; color:#8a6a3a; margin-bottom:3px; font-family:Georgia,serif; }
+  .dm-body { font-size:13px; line-height:1.5; color:#3a2a16; }
+  .dm-body em { color:#7a4a18; font-style:italic; }
+  .pills { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  .pill { font-size:10px; padding:2px 8px; border-radius:4px; background:linear-gradient(160deg,#5a3c16,#3e2a10); color:#e8c98a; border:1px solid #8a6128; }
+  .me { align-self:flex-end; max-width:82%; }
+  .me .leather { padding:8px 12px; border-radius:10px 10px 2px 10px; font-size:12px; color:#ecd9b0;
+    background:linear-gradient(160deg,#3a2a1a,#241608); border:1px solid #5a3e1c; box-shadow:0 2px 5px rgba(0,0,0,.4); }
+
+  .inputrow { padding:8px 12px 10px; display:flex; gap:8px; align-items:center; }
+  .field-frame { flex:1; }
+  .field-frame .parch { padding:9px 12px; font-size:12px; color:#6a5535; font-style:italic; }
+  .send {
+    width:42px; height:42px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(150deg,#e8c98a,#9a6f33 55%,#6a4520); color:#2a1a08; font-size:18px;
+    box-shadow:0 3px 8px rgba(0,0,0,.5), inset 0 1px 2px rgba(255,255,255,.4); border:1px solid #7a5424;
+  }
+
+  .nav { display:flex; padding:6px 8px 12px; gap:6px; background:linear-gradient(180deg,#1f1409,#160d05); border-top:1px solid #3a2614; }
+  .nav .it { flex:1; text-align:center; font-size:10px; color:#8a6a3a; padding:6px 0; font-variant:small-caps; letter-spacing:.04em; }
+  .nav .it .gi { display:block; font-size:17px; margin-bottom:2px; filter:sepia(.4); }
+  .nav .it.on { color:#e8c98a; }
+
+  .caption { margin-top:14px; text-align:center; }
+  .caption .n { font-size:16px; color:#e8c98a; font-variant:small-caps; letter-spacing:.06em; }
+  .caption .d { font-size:12px; color:#a98c5f; font-style:italic; margin-top:2px; }
+  .note { max-width:360px; font-size:11px; color:#9a8666; line-height:1.5; margin-top:14px; text-align:center; font-family:-apple-system,system-ui,sans-serif; }
+</style>
+</head>
+<body>
+  <div class="title">Tinkerer's Chronograph</div>
+
+  <div class="phone"><div class="screen">
+    <div class="header">
+      <div class="loc-frame gild"><div class="parch">
+        <span class="loc-name">⛬ Hunting Lodge Ruins</span>
+        <span class="loc-meta">Day 26 · 1:15 AM · Clear</span>
+      </div></div>
+    </div>
+
+    <div class="tiles">
+      <div class="tile gild"><div class="parch">
+        <div class="portrait">🪶</div>
+        <div class="tname">Ivy</div><div class="tmeta">Rogue 4 · 31/31</div>
+        <div class="thp-track"><div class="thp-fill" style="width:100%;background:linear-gradient(90deg,#6a8a3a,#9bc24e);"></div></div>
+      </div></div>
+      <div class="tile gild"><div class="parch">
+        <div class="portrait">🎻</div>
+        <div class="tname">Thorn</div><div class="tmeta">Bard 4 · 18/27</div>
+        <div class="thp-track"><div class="thp-fill" style="width:66%;background:linear-gradient(90deg,#b8862e,#e0a83e);"></div></div>
+      </div></div>
+    </div>
+
+    <div class="chips">
+      <span class="chip main">★ Stop the cult</span>
+      <span class="chip">Find the egg</span>
+      <span class="chip">Rescue Leosin</span>
+    </div>
+
+    <div class="tabbar">
+      <span class="tab on">Narrative</span>
+      <span class="tab">OOC</span>
+    </div>
+
+    <div class="feed-frame"><div class="feed gild"><div class="parch">
+      <div>
+        <div class="who">Dungeon Master</div>
+        <div class="dm-body">The lodge's broken door hangs on one hinge. <em>Ivy</em>, your boots find old bloodstains beneath the ash — something moved through here recently. A low growl rolls out of the dark.</div>
+        <div class="pills"><span class="pill">⚔ Combat</span><span class="pill">+1 Kobold</span></div>
+      </div>
+      <div class="me"><div class="leather">I ready my crossbow and creep toward the growl.</div></div>
+      <div>
+        <div class="who">Dungeon Master</div>
+        <div class="dm-body"><em>Roll Stealth</em> — DC 13 to close the distance unseen.</div>
+      </div>
+    </div></div></div>
+
+    <div class="inputrow">
+      <div class="field-frame gild"><div class="parch">Speak your move…</div></div>
+      <div class="send">➤</div>
+    </div>
+
+    <div class="nav">
+      <div class="it"><span class="gi">⚖</span>Cargo</div>
+      <div class="it on"><span class="gi">⛬</span>Play</div>
+      <div class="it"><span class="gi">📖</span>Journal</div>
+      <div class="it"><span class="gi">⚙</span>Settings</div>
+    </div>
+  </div></div>
+
+  <div class="caption">
+    <div class="n">Gothic Fantasy</div>
+    <div class="d">Textural · Atmospheric · Gritty</div>
+  </div>
+  <div class="note">
+    All texture/framing is pure CSS — no image files, so it stays free & fast. The gold + parchment + wood here is <b>one</b> theme; the same frames re-tint for all 20 palettes by swapping color variables. Portraits would be per-character art (generated or uploaded).
+  </div>
+</body>
+</html>
