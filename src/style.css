@@ -3726,8 +3726,8 @@ body {
 }
 
 .charcreate-paths, .config-paths {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: var(--spacing-sm);
 }
 
@@ -3735,21 +3735,122 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-md);
+  justify-content: center;
+  gap: 6px;
+  padding: var(--spacing-md) var(--spacing-sm);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text);
   text-align: center;
-  min-height: var(--touch-target);
+  min-height: 90px;
+  transition: background 0.15s;
 }
 
 .path-card:active { background: var(--color-surface-alt); }
 
-.path-icon { font-size: 1.5rem; }
-.path-label { font-weight: 600; font-size: var(--font-size-base); }
-.path-desc { font-size: var(--font-size-sm); color: var(--color-text-muted); }
+.path-card-featured {
+  grid-column: 1 / -1;
+  background: var(--color-surface);
+  border-color: var(--color-accent);
+  border-width: 2px;
+  min-height: 80px;
+  flex-direction: row;
+  gap: var(--spacing-sm);
+  justify-content: flex-start;
+  padding: var(--spacing-md);
+}
+
+.path-card-featured .path-icon { font-size: 2rem; }
+.path-card-featured .path-label { font-size: var(--font-size-base); }
+.path-card-featured .path-desc { text-align: left; }
+
+.path-icon { font-size: 1.5rem; line-height: 1; }
+.path-label { font-weight: 600; font-size: var(--font-size-sm); }
+.path-desc { font-size: var(--font-size-xs); color: var(--color-text-muted); line-height: 1.3; }
+
+/* Party Roster */
+.charcreate-roster {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.roster-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.roster-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.roster-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+}
+
+.roster-chip-color {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: none;
+}
+
+.roster-chip-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.roster-chip-name {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.roster-chip-meta {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.roster-chip-remove {
+  background: none;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.roster-chip-remove:active {
+  background: var(--color-danger);
+  color: #fff;
+  border-color: var(--color-danger);
+}
 
 /* AI Builder */
 
@@ -3866,7 +3967,234 @@ body {
   align-self: center;
 }
 
-/* Quick Build */
+/* Quick Pick */
+
+.quick-pick {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.qp-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.qp-title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.qp-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-xl) 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.qp-dice-spin {
+  font-size: 2.5rem;
+  animation: qp-spin 0.8s ease-in-out infinite;
+}
+
+@keyframes qp-spin {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(180deg) scale(1.1); }
+  100% { transform: rotate(360deg); }
+}
+
+.qp-card {
+  background: var(--color-surface);
+  border: 2px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.qp-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.qp-card-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.qp-card-identity {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.qp-card-name {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.qp-card-meta {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.qp-card-level {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-accent);
+  background: var(--color-surface-alt);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+}
+
+.qp-card-stats {
+  display: flex;
+  justify-content: space-around;
+  padding: var(--spacing-sm) 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.qp-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.qp-stat-val {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+}
+
+.qp-stat-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.qp-card-abilities {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+
+.qp-ability {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 2px;
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-sm);
+}
+
+.qp-ab-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.qp-ab-score {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+}
+
+.qp-ab-mod {
+  font-size: var(--font-size-xs);
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+}
+
+.qp-card-detail {
+  display: flex;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.qp-card-detail span::after {
+  content: ' · ';
+  color: var(--color-border);
+}
+
+.qp-card-detail span:last-child::after { content: ''; }
+
+.qp-card-features, .qp-card-attacks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.qp-feature-tag {
+  font-size: var(--font-size-xs);
+  background: var(--color-surface-alt);
+  color: var(--color-text-secondary);
+  padding: 3px 8px;
+  border-radius: 10px;
+}
+
+.qp-attack-tag {
+  font-size: var(--font-size-xs);
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-family: var(--font-mono);
+}
+
+.qp-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.qp-reroll {
+  flex: 1;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  min-height: var(--touch-target);
+}
+
+.qp-reroll:active { background: var(--color-surface-alt); }
+.qp-reroll:disabled { opacity: 0.5; }
+
+.qp-use {
+  flex: 2;
+  background: var(--color-success);
+  color: var(--color-bg);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  min-height: var(--touch-target);
+}
+
+.qp-use:active { filter: brightness(0.9); }
+
+/* Quick Build (legacy) */
 
 .qb-name {
   width: 100%;
@@ -4202,36 +4530,7 @@ body {
   text-align: center;
 }
 
-.charcreate-existing {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-xs);
-  padding-top: var(--spacing-sm);
-}
-
-.existing-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: var(--radius-lg);
-  font-size: var(--font-size-sm);
-  color: #fff;
-  font-weight: 600;
-}
-
-.existing-chip-remove {
-  background: rgba(0,0,0,0.3);
-  border: none;
-  color: #fff;
-  border-radius: 50%;
-  width: 1.2rem;
-  height: 1.2rem;
-  font-size: 0.8rem;
-  line-height: 1;
-  padding: 0;
-  cursor: pointer;
-}
+/* charcreate-existing replaced by roster-chip styles above */
 
 /* --- CHARACTER WIZARD --- */
 

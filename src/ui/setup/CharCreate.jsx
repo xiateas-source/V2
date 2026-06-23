@@ -3,8 +3,22 @@ import { store, setStore } from '../../state/index.js';
 import { callProvider } from '../../ai/providers.js';
 import { CHAR_BUILDER_SYSTEM } from '../../ai/setupPrompts.js';
 import { normalizeCharacter, validateCharacter } from '../../content/normalizer.js';
-import { STARTING_EQUIPMENT, getStartingGold, getDefaultEquipment, getSelectedEquipment } from '../../data/quickBuild.js';
+import {
+  STARTING_EQUIPMENT, getStartingGold, getDefaultEquipment, getSelectedEquipment,
+  AVAILABLE_CLASSES, AVAILABLE_RACES, BACKGROUNDS, ALIGNMENTS,
+  buildCharacter, CHAR_COLORS
+} from '../../data/quickBuild.js';
 import CharWizard from './CharWizard.jsx';
+
+const QUICK_PICK_NAMES = {
+  Fighter: ['Kael', 'Brynn', 'Tormund', 'Seraphina', 'Draven', 'Isolde', 'Gareth', 'Nyx'],
+  Rogue: ['Shade', 'Whisper', 'Dax', 'Lyra', 'Corvus', 'Mira', 'Finch', 'Vex'],
+  Bard: ['Melody', 'Cadence', 'Puck', 'Rhyme', 'Seren', 'Dori', 'Vesper', 'Lark'],
+};
+
+function pickRandom(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
 
 export default function CharCreate(props) {
   const [mode, setMode] = createSignal(null);
@@ -12,6 +26,10 @@ export default function CharCreate(props) {
   const [draftErrors, setDraftErrors] = createSignal([]);
   const [equipChoices, setEquipChoices] = createSignal({});
   const [equipMode, setEquipMode] = createSignal('default');
+
+  // Quick Pick state
+  const [quickChar, setQuickChar] = createSignal(null);
+  const [quickLoading, setQuickLoading] = createSignal(false);
 
   function commitCharacter() {
     const char = draft();
@@ -72,6 +90,53 @@ export default function CharCreate(props) {
     setMode(null);
   }
 
+  function commitQuickChar() {
+    const char = quickChar();
+    if (!char) return;
+    const idx = store.campaign.characters.length;
+    setStore('campaign', 'characters', idx, char);
+
+    const items = getDefaultEquipment(char.class);
+    if (items.length > 0) {
+      const carried = { ...store.campaign.inventory.carried };
+      carried[char.id] = items.map(i => ({ name: i.name, qty: i.qty, type: i.type, attunement: 'none', weight: i.weight || 0 }));
+      setStore('campaign', 'inventory', 'carried', carried);
+    }
+    const gold = getStartingGold(char.level || 1);
+    if (idx === 0) setStore('campaign', 'gold', 'gp', gold);
+    else setStore('campaign', 'gold', 'gp', store.campaign.gold.gp + gold);
+
+    setQuickChar(null);
+    setMode(null);
+  }
+
+  async function rollQuickPick() {
+    setQuickLoading(true);
+    try {
+      const className = pickRandom(AVAILABLE_CLASSES);
+      const race = pickRandom(AVAILABLE_RACES);
+      const bg = pickRandom(BACKGROUNDS);
+      const alignment = pickRandom(ALIGNMENTS);
+      const names = QUICK_PICK_NAMES[className] || QUICK_PICK_NAMES.Fighter;
+      const name = pickRandom(names);
+
+      const char = await buildCharacter(
+        { name, race, className, level: 1 },
+        store.campaign.characters.length
+      );
+      if (char) {
+        char.background = bg.name;
+        char.alignment = alignment;
+        for (const s of (bg.skillProfs || [])) {
+          char.skills[s.toLowerCase().replace(/\s+/g, '')] = true;
+        }
+        setQuickChar(char);
+      }
+    } finally {
+      setQuickLoading(false);
+    }
+  }
+
   function removeCharacter(idx) {
     const updated = store.campaign.characters.filter((_, i) => i !== idx);
     setStore('campaign', 'characters', updated);
@@ -80,7 +145,7 @@ export default function CharCreate(props) {
   function onCharParsed(charObj) {
     const normalized = normalizeCharacter(charObj);
     if (!normalized) return;
-    normalized.color = ['#4ae0a0', '#a070e0', '#e08040', '#4a9eff', '#e06080'][store.campaign.characters.length % 5];
+    normalized.color = CHAR_COLORS[store.campaign.characters.length % CHAR_COLORS.length];
     const { valid, errors } = validateCharacter(normalized);
     setDraftErrors(errors);
     setDraft(normalized);
@@ -94,28 +159,63 @@ export default function CharCreate(props) {
 
   return (
     <div class="charcreate">
-      <h2 class="charcreate-title">Create Character</h2>
+      <Show when={store.campaign.characters.length > 0}>
+        <div class="charcreate-roster">
+          <div class="roster-label">Party</div>
+          <div class="roster-chips">
+            <For each={store.campaign.characters}>
+              {(pc, i) => (
+                <div class="roster-chip" style={{ 'border-color': pc.color }}>
+                  <span class="roster-chip-color" style={{ background: pc.color }} />
+                  <div class="roster-chip-info">
+                    <span class="roster-chip-name">{pc.name}</span>
+                    <span class="roster-chip-meta">{pc.race} {pc.class} Lv{pc.level}</span>
+                  </div>
+                  <button class="roster-chip-remove" onClick={() => removeCharacter(i())}>×</button>
+                </div>
+              )}
+            </For>
+          </div>
+        </div>
+      </Show>
 
       <Show when={!mode()}>
+        <h2 class="charcreate-title">
+          {store.campaign.characters.length === 0 ? 'Create Your Character' : 'Add Character'}
+        </h2>
         <div class="charcreate-paths">
-          <button class="path-card" onClick={() => setMode('ai')}>
-            <span class="path-icon">💬</span>
-            <span class="path-label">Talk to AI</span>
-            <span class="path-desc">Describe your character idea</span>
-          </button>
-          <button class="path-card" onClick={() => setMode('paste')}>
-            <span class="path-icon">📋</span>
-            <span class="path-label">Paste JSON</span>
-            <span class="path-desc">From Gemini, ChatGPT, etc.</span>
+          <button class="path-card path-card-featured" onClick={() => { setMode('quick'); rollQuickPick(); }}>
+            <span class="path-icon">🎲</span>
+            <span class="path-label">Quick Pick</span>
+            <span class="path-desc">Random character, ready to play</span>
           </button>
           <button class="path-card" onClick={() => setMode('wizard')}>
             <span class="path-icon">🧙</span>
             <span class="path-label">Guided Build</span>
-            <span class="path-desc">Step-by-step character creation</span>
+            <span class="path-desc">Step-by-step creation</span>
+          </button>
+          <button class="path-card" onClick={() => setMode('ai')}>
+            <span class="path-icon">💬</span>
+            <span class="path-label">Talk to AI</span>
+            <span class="path-desc">Describe your idea</span>
+          </button>
+          <button class="path-card" onClick={() => setMode('paste')}>
+            <span class="path-icon">📋</span>
+            <span class="path-label">Import JSON</span>
+            <span class="path-desc">From other tools</span>
           </button>
         </div>
       </Show>
 
+      <Show when={mode() === 'quick'}>
+        <QuickPick
+          char={quickChar()}
+          loading={quickLoading()}
+          onReroll={rollQuickPick}
+          onUse={commitQuickChar}
+          onBack={() => { setMode(null); setQuickChar(null); }}
+        />
+      </Show>
       <Show when={mode() === 'ai'}>
         <AIBuilder onParsed={onCharParsed} onBack={() => setMode(null)} />
       </Show>
@@ -201,17 +301,108 @@ export default function CharCreate(props) {
           </button>
         </div>
       </Show>
+    </div>
+  );
+}
 
-      <Show when={store.campaign.characters.length > 0}>
-        <div class="charcreate-existing">
-          <For each={store.campaign.characters}>
-            {(pc, i) => (
-              <span class="existing-chip" style={{ background: pc.color }}>
-                {pc.name}
-                <button class="existing-chip-remove" onClick={() => removeCharacter(i())}>×</button>
-              </span>
-            )}
-          </For>
+function QuickPick(props) {
+  const char = () => props.char;
+  const mod = (score) => {
+    const m = Math.floor((score - 10) / 2);
+    return m >= 0 ? `+${m}` : `${m}`;
+  };
+
+  return (
+    <div class="quick-pick">
+      <div class="qp-header">
+        <button class="builder-back" onClick={props.onBack}>&larr;</button>
+        <span class="qp-title">Quick Pick</span>
+      </div>
+
+      <Show when={props.loading}>
+        <div class="qp-loading">
+          <div class="qp-dice-spin">🎲</div>
+          <span>Rolling a character...</span>
+        </div>
+      </Show>
+
+      <Show when={char() && !props.loading}>
+        <div class="qp-card" style={{ 'border-color': char().color }}>
+          <div class="qp-card-header">
+            <span class="qp-card-color" style={{ background: char().color }} />
+            <div class="qp-card-identity">
+              <span class="qp-card-name">{char().name}</span>
+              <span class="qp-card-meta">{char().race} {char().class}</span>
+            </div>
+            <span class="qp-card-level">Lv{char().level}</span>
+          </div>
+
+          <div class="qp-card-stats">
+            <div class="qp-stat">
+              <span class="qp-stat-val">{char().hpMax}</span>
+              <span class="qp-stat-label">HP</span>
+            </div>
+            <div class="qp-stat">
+              <span class="qp-stat-val">{char().ac}</span>
+              <span class="qp-stat-label">AC</span>
+            </div>
+            <div class="qp-stat">
+              <span class="qp-stat-val">{char().speed}</span>
+              <span class="qp-stat-label">Speed</span>
+            </div>
+            <div class="qp-stat">
+              <span class="qp-stat-val">+{char().profBonus || Math.floor((char().level - 1) / 4) + 2}</span>
+              <span class="qp-stat-label">Prof</span>
+            </div>
+          </div>
+
+          <div class="qp-card-abilities">
+            <For each={Object.entries(char().abilityScores)}>
+              {([k, v]) => (
+                <div class="qp-ability">
+                  <span class="qp-ab-label">{k.toUpperCase()}</span>
+                  <span class="qp-ab-score">{v}</span>
+                  <span class="qp-ab-mod">{mod(v)}</span>
+                </div>
+              )}
+            </For>
+          </div>
+
+          <Show when={char().background || char().alignment}>
+            <div class="qp-card-detail">
+              <Show when={char().background}><span>{char().background}</span></Show>
+              <Show when={char().alignment}><span>{char().alignment}</span></Show>
+            </div>
+          </Show>
+
+          <Show when={char().features?.length > 0}>
+            <div class="qp-card-features">
+              <For each={char().features}>
+                {(f) => <span class="qp-feature-tag">{f}</span>}
+              </For>
+            </div>
+          </Show>
+
+          <Show when={char().attacks?.length > 0}>
+            <div class="qp-card-attacks">
+              <For each={char().attacks}>
+                {(a) => (
+                  <span class="qp-attack-tag">
+                    {a.name} {a.bonus >= 0 ? '+' : ''}{a.bonus} · {a.damage}
+                  </span>
+                )}
+              </For>
+            </div>
+          </Show>
+        </div>
+
+        <div class="qp-actions">
+          <button class="qp-reroll" onClick={props.onReroll} disabled={props.loading}>
+            🎲 Re-roll
+          </button>
+          <button class="qp-use" onClick={props.onUse}>
+            Use This Character
+          </button>
         </div>
       </Show>
     </div>
