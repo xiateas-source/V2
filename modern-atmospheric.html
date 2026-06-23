@@ -106,8 +106,12 @@
   /* roll request — clean card */
   .roll{align-self:stretch;display:flex;align-items:center;gap:13px;padding:12px 14px;border-radius:14px;
     background:var(--surface);border:1px solid var(--line);}
-  .die{width:38px;height:38px;flex-shrink:0;border-radius:10px;border:1.5px solid var(--gold);
-    display:flex;align-items:center;justify-content:center;font-family:var(--disp);font-size:12px;color:var(--gold);}
+  .die{width:40px;height:40px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--gold);}
+  .die .d20{width:36px;height:36px;}
+  /* d20 icon — inline SVG, strokes inherit color */
+  .d20{display:block;}
+  .d20 *{fill:none;stroke:currentColor;stroke-width:1.3;stroke-linejoin:round;stroke-linecap:round;}
+  .d20 .face{fill:currentColor;fill-opacity:.10;}
   .rt{flex:1;}
   .rt .a{font-family:var(--serif);font-size:14px;color:var(--text);}
   .rt .b{font-size:11px;color:var(--faint);margin-top:1px;}
@@ -118,6 +122,9 @@
   .input{padding:10px 14px;display:flex;gap:11px;align-items:center;border-top:1px solid var(--line-soft);}
   .field{flex:1;font-family:var(--serif);font-size:14px;color:var(--faint);padding:11px 16px;
     background:var(--surface);border:1px solid var(--line-soft);border-radius:22px;font-style:italic;}
+  .dice{width:44px;height:44px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    background:var(--surface);border:1px solid var(--line);color:var(--gold);}
+  .dice .d20{width:24px;height:24px;}
   .send{width:44px;height:44px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
     background:var(--gold);color:#1a1407;font-size:17px;box-shadow:0 3px 10px rgba(201,162,90,.25);}
 
@@ -197,7 +204,13 @@
         </div>
 
         <div class="roll">
-          <div class="die">d20</div>
+          <div class="die">
+            <svg class="d20" viewBox="0 0 24 24" aria-hidden="true">
+              <polygon points="12,1.5 21.1,6.75 21.1,17.25 12,22.5 2.9,17.25 2.9,6.75"/>
+              <polygon class="face" points="12,6 17.5,15.5 6.5,15.5"/>
+              <path d="M12,1.5 L12,6 M21.1,6.75 L17.5,15.5 M2.9,6.75 L6.5,15.5 M21.1,17.25 L17.5,15.5 M2.9,17.25 L6.5,15.5 M12,22.5 L6.5,15.5 M12,22.5 L17.5,15.5"/>
+            </svg>
+          </div>
           <div class="rt"><div class="a">Stealth check</div><div class="b">Ivy · DC 13 · close in unseen</div></div>
           <div class="rgo">Roll</div>
         </div>
@@ -205,6 +218,13 @@
 
       <div class="input">
         <div class="field">What do you do?</div>
+        <div class="dice">
+          <svg class="d20" viewBox="0 0 24 24" aria-hidden="true">
+            <polygon points="12,1.5 21.1,6.75 21.1,17.25 12,22.5 2.9,17.25 2.9,6.75"/>
+            <polygon class="face" points="12,6 17.5,15.5 6.5,15.5"/>
+            <path d="M12,1.5 L12,6 M21.1,6.75 L17.5,15.5 M2.9,6.75 L6.5,15.5 M21.1,17.25 L17.5,15.5 M2.9,17.25 L6.5,15.5 M12,22.5 L6.5,15.5 M12,22.5 L17.5,15.5"/>
+          </svg>
+        </div>
         <div class="send"><i class="ph ph-paper-plane-right"></i></div>
       </div>
     </div>
@@ -222,7 +242,7 @@
     <div class="d">restraint · type hierarchy · gold used sparingly</div>
   </div>
   <div class="note">
-    Party shrunk to compact <b>HUD frames</b> (≈40% less height) so the chat owns the screen. Status is icons now (hidden / concentrating / shield-AC), and the <b>active character is highlighted</b> — that gold edge + the <b>combat strip</b> (Round / turn order) are the game cues, shown only in a fight. Spacing tightened throughout. (Icons + fonts load from CDN — needs internet.)
+    Added a real <b>d20 icon</b> (inline SVG, palette-tinted) — the roll prompt is now an actual die, and the input bar has a <b>dice-roller button</b>. Plus the compact party HUD frames, active-turn highlight, and combat strip. Full polyhedral set (d4–d20) would live in the dice-roller overlay. (Icons + fonts load from CDN — needs internet.)
   </div>
 </body>
 </html>
