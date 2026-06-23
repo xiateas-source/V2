@@ -184,7 +184,7 @@ v2/
     └── settings/      ← theme, tts, push
 ```
 
-**Offline behavior (Law 1):** When Firebase is unreachable, state writes to localStorage. When connection returns, reconcile using clock-independent merge (ID-based dedup, local wins on conflict). 3-second dirty-edit guard on all Firebase writes.
+**Offline behavior (Law 1) — ⚠ DESIGN INTENT, NOT YET IMPLEMENTED (S39):** *Intended:* when Firebase is unreachable, state writes to localStorage; on reconnect, reconcile via clock-independent merge (ID-based dedup, local wins). *Reality:* `data/sync.js` writes campaign state to **Firebase only** — no local save, and boot never reloads a campaign. This is the persistence spine to build first (see workboard Reality Snapshot). The 3-second dirty-edit guard does exist.
 
 **Item data split:** Compendium items (from sourcebooks) → IndexedDB. AI-generated items (created during play) → Firebase as inventory game state with structured properties via mechanics pipeline.
 
@@ -194,7 +194,7 @@ v2/
 
 **Seed data:** On first launch, static JSON files (bundled with app) populate IndexedDB: 94 spells, 44 feats, 97 glossary terms, XP thresholds, 3 class progressions, 16 maneuvers. One-time load before content pipeline exists.
 
-**Error recovery:** When callAI() fails, retry + provider fallback. When Firebase disconnects, continue locally and reconcile on reconnect. When AI returns unparseable mechanics, drift detectors flag it, rewind is available.
+**Error recovery:** When callAI() fails, retry + provider fallback (built). When AI returns unparseable mechanics, drift detectors flag it, rewind is available (built). "When Firebase disconnects, continue locally and reconcile on reconnect" is ⚠ **not yet implemented** — see Offline behavior note above.
 
 ### 5. CONTENT — The import pipeline
 
