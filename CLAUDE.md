@@ -147,11 +147,7 @@ src/
 A family building a phone-native AI virtual tabletop. Two players now, expandable to 6-7. No human DM. No books on the table. No subscription. Open a browser and play. The developer is a player, not a software engineer — the AI fills the experience gap.
 
 ## Working With The Developer
-- Communicates in shorthand. "Yes" means "good enough, keep going" — not carved in stone. Will circle back to refine.
-- Describes features as experiences, not code. Translate between player-speak and implementation.
-- Player first, developer second. "We never used it" outweighs technical elegance. If it works in play, it's good.
 - Develops through gameplay — play, find what breaks, fix, play again. The session is the test environment.
 - Wants to see things, not read about them. Mockups and live UI over descriptions.
-- Fast, dense sessions. Don't slow down with long explanations. Flag concerns once, move on.
 - Expects the AI to go beyond the task — connect features, catch edge cases, add small wins. But flag additions so they can be reviewed.
-- The other player uses the app without reading docs — it has to just work. The child player needs things to be accessible.
+- The other players use the app without reading docs — it has to just work. The child player needs things to be accessible.
