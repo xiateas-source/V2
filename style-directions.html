@@ -3,206 +3,165 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>V2 — Visual Style Directions</title>
+<title>V2 — Style Directions (one palette, three styles)</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: #0c0c10;
-    color: #ddd;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    padding: 24px 12px 60px;
+  /* ONE fixed palette for all three — so only STYLE differs, not color.
+     (Any of the 20/40 rotating themes would swap these values identically.) */
+  :root {
+    --bg:#15151c; --surface:#1f1f2a; --surface-alt:#2a2a37; --text:#e7e3d8;
+    --muted:#8b8678; --accent:#c9a25a; --accent-ink:#1a1407;
+    --border:#31313f; --me:#3a3550; --me-text:#efe9f4;
+    --ok:#4caf50; --warn:#e0a83e; --bad:#e05a4e; --pill-bg:#243024; --pill-ink:#7fce82;
   }
-  .intro { max-width: 1200px; margin: 0 auto 28px; text-align: center; }
-  .intro h1 { font-size: 22px; margin-bottom: 6px; }
-  .intro p { color: #999; font-size: 14px; line-height: 1.5; }
-  .lineup {
-    display: flex; flex-wrap: wrap; gap: 28px;
-    justify-content: center; align-items: flex-start; max-width: 1300px; margin: 0 auto;
-  }
-  .col { width: 360px; }
-  .col-label { text-align: center; margin-bottom: 10px; }
-  .col-label .name { font-size: 16px; font-weight: 700; }
-  .col-label .desc { font-size: 12px; color: #888; margin-top: 2px; line-height: 1.4; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0b0b0f; color:#ddd; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; padding:24px 12px 60px; }
+  .intro { max-width:1200px; margin:0 auto 26px; text-align:center; }
+  .intro h1 { font-size:21px; margin-bottom:6px; }
+  .intro p { color:#9a9a9a; font-size:13px; line-height:1.5; }
+  .intro b { color:#c9a25a; }
+  .lineup { display:flex; flex-wrap:wrap; gap:30px; justify-content:center; align-items:flex-start; max-width:1320px; margin:0 auto; }
+  .col { width:360px; }
+  .col-label { text-align:center; margin-bottom:10px; }
+  .col-label .name { font-size:16px; font-weight:700; color:#e7e3d8; }
+  .col-label .desc { font-size:12px; color:#888; margin-top:3px; line-height:1.45; }
+  .phone { width:360px; height:744px; border-radius:36px; overflow:hidden; border:3px solid #2a2a32; display:flex; flex-direction:column; }
+  .screen { flex:1; display:flex; flex-direction:column; overflow:hidden; background:var(--bg); color:var(--text); }
 
-  /* phone frame */
-  .phone {
-    width: 360px; height: 740px; border-radius: 36px; overflow: hidden;
-    border: 3px solid #2a2a32; display: flex; flex-direction: column; position: relative;
-  }
-  .screen { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-
-  /* shared structural pieces (skinned per style via CSS vars) */
-  .banner { display:flex; align-items:center; gap:10px; padding:10px 14px; font-size:12px; }
-  .banner .loc { font-weight:700; }
-  .banner .dot { opacity:.5; }
-  .tiles { display:flex; gap:8px; padding:8px 12px; }
-  .tile { flex:1; padding:8px 10px; }
-  .tile .nm { font-size:13px; font-weight:700; display:flex; justify-content:space-between; }
-  .tile .cls { font-size:10px; opacity:.7; }
-  .hpbar { height:5px; border-radius:3px; margin:6px 0 4px; overflow:hidden; }
+  /* ===== shared skeleton (geometry overridden per style) ===== */
+  .banner { display:flex; align-items:center; gap:8px; background:var(--surface); border-bottom:1px solid var(--border); color:var(--muted); }
+  .banner .loc { color:var(--text); font-weight:600; }
+  .banner .dot { opacity:.45; }
+  .tiles { display:flex; background:var(--bg); }
+  .tile { flex:1; background:var(--surface); }
+  .tile .nm { font-weight:700; display:flex; justify-content:space-between; align-items:baseline; }
+  .tile .cls { color:var(--muted); }
+  .hpbar { background:var(--surface-alt); overflow:hidden; }
   .hpfill { height:100%; }
-  .tile .hp { font-size:11px; }
-  .situ { display:flex; gap:6px; padding:4px 12px 8px; font-size:11px; overflow:hidden; }
-  .chip { padding:3px 9px; border-radius:20px; white-space:nowrap; }
-  .feed { flex:1; padding:10px 14px; display:flex; flex-direction:column; gap:12px; overflow:hidden; }
-  .msg { font-size:13px; line-height:1.5; }
-  .msg.dm .who { font-size:10px; text-transform:uppercase; letter-spacing:.06em; opacity:.6; margin-bottom:3px; }
-  .msg.dm .body { }
-  .msg.dm .body em { font-style:italic; }
-  .pills { display:flex; gap:6px; margin-top:7px; flex-wrap:wrap; }
-  .pill { font-size:10px; padding:2px 8px; border-radius:5px; }
-  .msg.me { align-self:flex-end; max-width:80%; padding:8px 12px; }
-  .msg.me .body { font-size:13px; }
-  .tabs { display:flex; gap:4px; padding:6px 12px 0; font-size:12px; }
-  .tab { padding:5px 12px; }
-  .input { display:flex; gap:8px; padding:10px 12px; align-items:center; }
-  .field { flex:1; padding:9px 12px; font-size:13px; }
-  .send { padding:9px 14px; font-weight:700; font-size:13px; }
-  .nav { display:flex; }
-  .nav .it { flex:1; text-align:center; padding:11px 0 14px; font-size:11px; }
+  .situ { display:flex; gap:6px; overflow:hidden; background:var(--bg); }
+  .chip { white-space:nowrap; background:var(--surface-alt); color:var(--muted); }
+  .chip.main { background:var(--accent); color:var(--accent-ink); font-weight:700; }
+  .tabs { display:flex; background:var(--bg); }
+  .tab { color:var(--muted); }
+  .tab.on { color:var(--text); }
+  .feed { flex:1; display:flex; flex-direction:column; overflow:hidden; background:var(--bg); }
+  .msg.dm .who { color:var(--muted); text-transform:uppercase; letter-spacing:.07em; }
+  .msg.dm .body em { color:var(--accent); font-style:italic; }
+  .pills { display:flex; gap:6px; flex-wrap:wrap; }
+  .pill { background:var(--pill-bg); color:var(--pill-ink); }
+  .msg.me { align-self:flex-end; background:var(--me); color:var(--me-text); }
+  .input { display:flex; align-items:center; background:var(--surface); border-top:1px solid var(--border); }
+  .field { flex:1; background:var(--bg); border:1px solid var(--border); color:var(--text); }
+  .send { background:var(--accent); color:var(--accent-ink); font-weight:700; }
+  .nav { display:flex; background:var(--bg); border-top:1px solid var(--border); }
+  .nav .it { flex:1; text-align:center; color:var(--muted); }
+  .nav .it.on { color:var(--accent); }
 
-  /* ════════ A · "Hearth" — warm immersive fantasy ════════ */
-  .hearth .screen { background:#1a1410; color:#e8ddc8; font-family: Georgia, 'Times New Roman', serif; }
-  .hearth .banner { background:#241a13; border-bottom:1px solid #3a2a1d; color:#c9a86a; }
-  .hearth .banner .loc { color:#e8c98a; }
-  .hearth .tiles { background:#1a1410; }
-  .hearth .tile { background:#241a13; border:1px solid #3a2a1d; border-radius:8px; }
-  .hearth .hpbar { background:#3a2a1d; }
-  .hearth .situ .chip { background:#2e2117; color:#c9a86a; border:1px solid #4a3420; }
-  .hearth .situ .chip.main { background:#5a3e1c; color:#f0d9a0; }
-  .hearth .feed { }
-  .hearth .msg.dm .who { color:#b8923f; }
-  .hearth .msg.dm .body { color:#e8ddc8; }
-  .hearth .pill { background:#3a2a16; color:#e0b860; border:1px solid #5a4220; }
-  .hearth .msg.me { background:#3a2c1d; border-radius:12px 12px 3px 12px; color:#f0e6d2; }
-  .hearth .tabs .tab { color:#9a8666; border-bottom:2px solid transparent; }
-  .hearth .tabs .tab.on { color:#e8c98a; border-bottom:2px solid #c9a86a; }
-  .hearth .input { background:#241a13; border-top:1px solid #3a2a1d; }
-  .hearth .field { background:#14100b; border:1px solid #3a2a1d; border-radius:18px; color:#e8ddc8; }
-  .hearth .send { background:#7a5320; color:#f6e8c8; border-radius:18px; }
-  .hearth .nav { background:#14100b; border-top:1px solid #3a2a1d; }
-  .hearth .nav .it { color:#9a8666; }
-  .hearth .nav .it.on { color:#e8c98a; }
+  /* ════ 1 · DENSE — info-first, compact, v1 heritage ════ */
+  .dense .banner { padding:7px 12px; font-size:11px; }
+  .dense .tiles { padding:6px 10px; gap:6px; }
+  .dense .tile { padding:6px 8px; border:1px solid var(--border); border-radius:4px; }
+  .dense .tile .nm { font-size:12px; } .dense .tile .cls { font-size:9px; }
+  .dense .hpbar { height:4px; border-radius:2px; margin:4px 0 2px; }
+  .dense .tile .hp { font-size:10px; }
+  .dense .situ { padding:2px 10px 6px; font-size:10px; }
+  .dense .chip { padding:2px 7px; border-radius:3px; }
+  .dense .tabs { padding:4px 10px 0; gap:2px; font-size:11px; }
+  .dense .tab { padding:4px 10px; border-bottom:2px solid transparent; }
+  .dense .tab.on { border-bottom:2px solid var(--accent); }
+  .dense .feed { padding:8px 10px; gap:8px; }
+  .dense .msg { font-size:12px; line-height:1.42; }
+  .dense .msg.dm .who { font-size:9px; margin-bottom:2px; }
+  .dense .pills { margin-top:5px; } .dense .pill { font-size:9px; padding:1px 6px; border-radius:3px; }
+  .dense .msg.me { max-width:82%; padding:6px 9px; border-radius:6px 6px 1px 6px; font-size:12px; }
+  .dense .input { padding:8px 10px; gap:6px; }
+  .dense .field { padding:7px 10px; border-radius:5px; font-size:12px; }
+  .dense .send { padding:7px 11px; border-radius:5px; font-size:12px; }
+  .dense .nav .it { padding:9px 0 12px; font-size:10px; }
 
-  /* ════════ B · "Codex" — clean modern utility app ════════ */
-  .codex .screen { background:#101216; color:#e6e9ef; }
-  .codex .banner { background:#161a21; border-bottom:1px solid #232a35; color:#7d8694; }
-  .codex .banner .loc { color:#e6e9ef; }
-  .codex .tiles { background:#101216; }
-  .codex .tile { background:#161a21; border-radius:10px; }
-  .codex .hpbar { background:#232a35; }
-  .codex .situ .chip { background:#1b212b; color:#9aa4b2; }
-  .codex .situ .chip.main { background:#1d3a5f; color:#7cc0ff; }
-  .codex .msg.dm .who { color:#6b7686; }
-  .codex .msg.dm .body { color:#dfe3ea; }
-  .codex .pill { background:#16302a; color:#46d6a8; }
-  .codex .msg.me { background:#2563eb; border-radius:14px 14px 4px 14px; color:#fff; }
-  .codex .tabs .tab { color:#6b7686; border-bottom:2px solid transparent; }
-  .codex .tabs .tab.on { color:#e6e9ef; border-bottom:2px solid #2563eb; }
-  .codex .input { background:#161a21; border-top:1px solid #232a35; }
-  .codex .field { background:#0c0e12; border:1px solid #2a3340; border-radius:10px; color:#e6e9ef; }
-  .codex .send { background:#2563eb; color:#fff; border-radius:10px; }
-  .codex .nav { background:#0c0e12; border-top:1px solid #232a35; }
-  .codex .nav .it { color:#6b7686; }
-  .codex .nav .it.on { color:#7cc0ff; }
+  /* ════ 2 · AIRY — editorial, spacious, prose-forward chat ════ */
+  .airy .banner { padding:13px 18px; font-size:12px; gap:10px; }
+  .airy .tiles { padding:12px 16px; gap:12px; }
+  .airy .tile { padding:12px 14px; border-radius:10px; }
+  .airy .tile .nm { font-size:15px; } .airy .tile .cls { font-size:11px; margin-top:1px; }
+  .airy .hpbar { height:6px; border-radius:3px; margin:9px 0 5px; }
+  .airy .tile .hp { font-size:12px; font-weight:600; }
+  .airy .situ { padding:4px 16px 12px; font-size:12px; gap:8px; }
+  .airy .chip { padding:5px 12px; border-radius:20px; }
+  .airy .tabs { padding:6px 16px 0; gap:6px; font-size:13px; }
+  .airy .tab { padding:7px 4px; margin-right:10px; border-bottom:2px solid transparent; }
+  .airy .tab.on { border-bottom:2px solid var(--accent); }
+  .airy .feed { padding:16px 18px; gap:20px; }
+  .airy .msg { font-size:15px; line-height:1.62; }
+  /* DM as full-width prose, no bubble — reads like a story */
+  .airy .msg.dm .who { font-size:10px; margin-bottom:6px; }
+  .airy .pills { margin-top:11px; } .airy .pill { font-size:11px; padding:3px 10px; border-radius:6px; }
+  .airy .msg.me { max-width:78%; padding:10px 14px; border-radius:14px 14px 4px 14px; font-size:14px; }
+  .airy .input { padding:12px 16px; gap:10px; }
+  .airy .field { padding:11px 15px; border-radius:24px; font-size:14px; }
+  .airy .send { padding:11px 18px; border-radius:24px; }
+  .airy .nav .it { padding:13px 0 16px; font-size:11px; }
 
-  /* ════════ C · "Storybook" — soft, friendly, kid-accessible ════════ */
-  .story .screen { background:#f4efe6; color:#3a3530; }
-  .story .banner { background:#fff; border-bottom:2px solid #ece3d3; color:#9a8f7d; }
-  .story .banner .loc { color:#5a4a8a; }
-  .story .tiles { background:#f4efe6; }
-  .story .tile { background:#fff; border-radius:16px; box-shadow:0 2px 6px rgba(120,100,80,.10); }
-  .story .hpbar { background:#ece3d3; }
-  .story .situ .chip { background:#fff; color:#7a6f5d; box-shadow:0 1px 3px rgba(120,100,80,.12); }
-  .story .situ .chip.main { background:#7c6bd0; color:#fff; }
-  .story .msg.dm .who { color:#9a8f7d; }
-  .story .msg.dm .body { color:#3a3530; }
-  .story .pill { background:#e6f7ee; color:#2a9d6e; border-radius:10px; }
-  .story .msg.me { background:#7c6bd0; border-radius:18px 18px 6px 18px; color:#fff; }
-  .story .tabs .tab { color:#9a8f7d; }
-  .story .tabs .tab.on { color:#5a4a8a; font-weight:700; }
-  .story .input { background:#fff; border-top:2px solid #ece3d3; }
-  .story .field { background:#f4efe6; border:2px solid #ece3d3; border-radius:22px; color:#3a3530; }
-  .story .send { background:#7c6bd0; color:#fff; border-radius:22px; }
-  .story .nav { background:#fff; border-top:2px solid #ece3d3; }
-  .story .nav .it { color:#9a8f7d; }
-  .story .nav .it.on { color:#7c6bd0; font-weight:700; }
+  /* ════ 3 · TACTILE — chunky cards, shadows, bubble chat, big targets ════ */
+  .tactile .screen { background:var(--bg); }
+  .tactile .banner { padding:12px 16px; font-size:12px; gap:8px; background:var(--surface); border-bottom:none; box-shadow:0 2px 8px rgba(0,0,0,.35); position:relative; z-index:2; }
+  .tactile .tiles { padding:12px; gap:10px; }
+  .tactile .tile { padding:12px; border-radius:18px; box-shadow:0 3px 10px rgba(0,0,0,.35); }
+  .tactile .tile .nm { font-size:14px; } .tactile .tile .cls { font-size:11px; }
+  .tactile .hpbar { height:8px; border-radius:6px; margin:9px 0 4px; }
+  .tactile .tile .hp { font-size:12px; }
+  .tactile .situ { padding:2px 12px 12px; font-size:12px; gap:8px; }
+  .tactile .chip { padding:6px 13px; border-radius:16px; box-shadow:0 2px 6px rgba(0,0,0,.3); }
+  .tactile .tabs { padding:6px 12px 2px; gap:8px; font-size:13px; }
+  .tactile .tab { padding:7px 16px; border-radius:16px; }
+  .tactile .tab.on { background:var(--surface-alt); color:var(--text); font-weight:700; }
+  .tactile .feed { padding:14px 12px; gap:14px; }
+  .tactile .msg { font-size:14px; line-height:1.55; }
+  .tactile .msg.dm .body { background:var(--surface); padding:12px 14px; border-radius:18px 18px 18px 6px; box-shadow:0 2px 8px rgba(0,0,0,.3); }
+  .tactile .msg.dm .who { font-size:10px; margin:0 0 6px 4px; }
+  .tactile .pills { margin-top:10px; } .tactile .pill { font-size:11px; padding:4px 11px; border-radius:14px; }
+  .tactile .msg.me { max-width:80%; padding:11px 15px; border-radius:20px 20px 6px 20px; font-size:14px; box-shadow:0 2px 8px rgba(0,0,0,.3); }
+  .tactile .input { padding:12px; gap:10px; border-top:none; box-shadow:0 -2px 10px rgba(0,0,0,.35); }
+  .tactile .field { padding:13px 16px; border-radius:26px; border:none; font-size:14px; background:var(--surface-alt); }
+  .tactile .send { padding:13px 20px; border-radius:26px; }
+  .tactile .nav { border-top:none; box-shadow:0 -2px 10px rgba(0,0,0,.35); }
+  .tactile .nav .it { padding:14px 0 18px; font-size:12px; }
 </style>
 </head>
 <body>
   <div class="intro">
-    <h1>Pick a feel — three directions for the play screen</h1>
-    <p>Same screen, three skins. This is about the <b>vibe</b> (color, shape, type), not the final layout.<br>Open on your phone. Tell me which one feels like Tinklepebble — or what to pull from each.</p>
+    <h1>Three <b>styles</b> — one palette, so only the structure differs</h1>
+    <p>Same colors (a single dark theme) across all three. What changes is the <b>style</b>:<br>
+       density, type size, corner/shape language, and how the chat reads. Pick the skeleton; color rotates on top.</p>
   </div>
-
   <div class="lineup" id="lineup"></div>
 
   <script>
-    // one content template, stamped into each style — so only the look differs
     function screen() {
       return `
-        <div class="banner">
-          <span class="loc">🏚 Hunting Lodge Ruins</span>
-          <span class="dot">·</span><span>Day 26, 1:15 AM</span>
-          <span class="dot">·</span><span>Clear</span>
-        </div>
+        <div class="banner"><span class="loc">🏚 Hunting Lodge Ruins</span><span class="dot">·</span><span>Day 26, 1:15 AM</span><span class="dot">·</span><span>Clear</span></div>
         <div class="tiles">
-          <div class="tile">
-            <div class="nm">Ivy <span class="hp">31/31</span></div>
-            <div class="cls">Rogue 4</div>
-            <div class="hpbar"><div class="hpfill" style="width:100%;background:#4caf50;"></div></div>
-          </div>
-          <div class="tile">
-            <div class="nm">Thorn <span class="hp">18/27</span></div>
-            <div class="cls">Bard 4</div>
-            <div class="hpbar"><div class="hpfill" style="width:66%;background:#e0a83e;"></div></div>
-          </div>
+          <div class="tile"><div class="nm">Ivy <span class="hp">31/31</span></div><div class="cls">Rogue 4</div><div class="hpbar"><div class="hpfill" style="width:100%;background:var(--ok);"></div></div></div>
+          <div class="tile"><div class="nm">Thorn <span class="hp">18/27</span></div><div class="cls">Bard 4</div><div class="hpbar"><div class="hpfill" style="width:66%;background:var(--warn);"></div></div></div>
         </div>
-        <div class="situ">
-          <span class="chip main">★ Stop the cult</span>
-          <span class="chip">Find the egg</span>
-          <span class="chip">Rescue Leosin</span>
-        </div>
-        <div class="tabs">
-          <span class="tab on">Narrative</span>
-          <span class="tab">OOC</span>
-        </div>
+        <div class="situ"><span class="chip main">★ Stop the cult</span><span class="chip">Find the egg</span><span class="chip">Rescue Leosin</span></div>
+        <div class="tabs"><span class="tab on">Narrative</span><span class="tab">OOC</span></div>
         <div class="feed">
-          <div class="msg dm">
-            <div class="who">Dungeon Master</div>
-            <div class="body">The lodge's broken door hangs on one hinge. <em>Ivy</em>, your boots find old bloodstains beneath the ash. Something moved through here — recently. A low growl rolls out of the dark.
-              <div class="pills"><span class="pill">⚔ Combat</span><span class="pill">+1 Kobold</span></div>
-            </div>
-          </div>
+          <div class="msg dm"><div class="who">Dungeon Master</div><div class="body">The lodge's broken door hangs on one hinge. <em>Ivy</em>, your boots find old bloodstains beneath the ash — something moved through here recently. A low growl rolls out of the dark.<div class="pills"><span class="pill">⚔ Combat</span><span class="pill">+1 Kobold</span></div></div></div>
           <div class="msg me"><div class="body">I ready my crossbow and creep toward the growl.</div></div>
-          <div class="msg dm">
-            <div class="who">Dungeon Master</div>
-            <div class="body"><em>Roll Stealth</em> — DC 13 to stay unseen as you close the distance.</div>
-          </div>
+          <div class="msg dm"><div class="who">Dungeon Master</div><div class="body"><em>Roll Stealth</em> — DC 13 to close the distance unseen.</div></div>
         </div>
-        <div class="input">
-          <input class="field" placeholder="What do you do?" />
-          <span class="send">Send</span>
-        </div>
-        <div class="nav">
-          <span class="it">Cargo</span>
-          <span class="it on">Play</span>
-          <span class="it">Journal</span>
-          <span class="it">Settings</span>
-        </div>
+        <div class="input"><input class="field" placeholder="What do you do?" /><span class="send">Send</span></div>
+        <div class="nav"><span class="it">Cargo</span><span class="it on">Play</span><span class="it">Journal</span><span class="it">Settings</span></div>
       `;
     }
     const styles = [
-      { cls:'hearth', name:'A · Hearth', desc:'Warm, immersive fantasy. Serif, candlelit, feels like a story being told.' },
-      { cls:'codex',  name:'B · Codex',  desc:'Clean modern app. High-contrast, fast, one-handed. Game-as-tool.' },
-      { cls:'story',  name:'C · Storybook', desc:'Soft, friendly, light. Rounded, gentle — easiest for the kid player.' },
+      { cls:'dense',   name:'1 · Dense',   desc:'Info-first, compact, hairline borders. Most on screen at once (v1 heritage).' },
+      { cls:'airy',    name:'2 · Airy',    desc:'Spacious, larger type. DM reads as full-width prose, not a bubble. Calm, story-forward.' },
+      { cls:'tactile', name:'3 · Tactile', desc:'Chunky rounded cards, soft shadows, bubble chat, big touch targets. Easiest one-handed / for the kid.' },
     ];
     document.getElementById('lineup').innerHTML = styles.map(s => `
-      <div class="col">
-        <div class="col-label"><div class="name">${s.name}</div><div class="desc">${s.desc}</div></div>
-        <div class="phone ${s.cls}"><div class="screen">${screen()}</div></div>
-      </div>
-    `).join('');
+      <div class="col"><div class="col-label"><div class="name">${s.name}</div><div class="desc">${s.desc}</div></div>
+      <div class="phone ${s.cls}"><div class="screen">${screen()}</div></div></div>`).join('');
   </script>
 </body>
 </html>
