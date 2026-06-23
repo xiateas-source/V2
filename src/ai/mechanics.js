@@ -150,6 +150,18 @@ function checkRejection(mech) {
       return `${name} already in combat`;
     }
   }
+  if (mech.key === 'roll_request') {
+    // Law 2: the DM rolls for NPCs/enemies itself. A roll_request must target a
+    // player character — anything else is rejected so it never reaches the roll
+    // bar. (Party-wide rolls and the player's own creatures are allowed.)
+    const parts = mech.value.split('|').map(s => s.trim());
+    const target = (parts[2] || '').replace(/\s*\(.*\)$/, '');
+    const lower = target.toLowerCase();
+    const isPartyWide = lower === 'party' || lower === 'all' || lower === '';
+    if (!isPartyWide && !findPC(target)) {
+      return `roll_request target "${target}" is not a player character — the DM rolls for NPCs/enemies`;
+    }
+  }
   if (['income', 'gp', 'sp', 'cp', 'ep', 'pp'].includes(mech.key) && /xp/i.test(mech.value)) {
     return 'XP is not currency';
   }
