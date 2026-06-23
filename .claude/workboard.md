@@ -2,6 +2,87 @@
 
 *Active work, queued items, specs. The build plan for V2.*
 
+> **READ THIS FIRST.** The Phase 0–8 plan below is the **original design reference** — full data shapes and acceptance tests, still useful. But its checkboxes drifted badly (shipped features still showed `[ ]`). The **Reality Snapshot** immediately below supersedes those checkboxes as the current build status. When they disagree, the snapshot wins.
+
+---
+
+## Reality Snapshot — Session 39 · 2026-06-23
+
+Reconciled by reading every `src/` file (line count + content) and the test suite. Decision this session: **build forward from the committed state.** Not recovering the lost uncommitted onboarding.
+
+**Verification legend**
+- ✅ **tested** — substantial code + passing unit test (33 tests, `tests/foundations.test.js`)
+- 🟢 **real** — substantial code, in active dev, exercised in play; not unit-tested
+- 🟡 **partial** — renders/runs but thin or wiring unverified
+- ⛔ **stub** — 1-line placeholder (returns null / empty export)
+- ◻️ **absent** — feature has no real representation yet
+
+### Engine (`src/ai/`) — the strong core
+| File | L | Status | Note |
+|------|---|--------|------|
+| mechanics.js | 986 | ✅ | extract/validate/apply, 175 store-writes. Tested. |
+| store.js (state) | 137 | ✅ | ownership enforcement tested (ai/player/system cross-write throws) |
+| messages.js | 54 | ✅ | schema + old→new migration tested |
+| gates.js | 421 | 🟢 | Gates 4 & 5 tested; combat/other gates untested |
+| engine.js | 240 | 🟢 | sendMsg loop; stop-generation tested |
+| prompt.js | 252 | 🟢 | buildPrompt / genLedger |
+| providers.js | 248 | 🟢 | Gemini + OpenRouter, retry/fallback |
+| contracts.js | 103 | 🟢 | Narrative + Ask DM voices |
+| memory.js | 87 | 🟢 | summarize/prune |
+| drift.js | 75 | 🟢 | drift detector |
+| rules.js / setupPrompts.js | 95/80 | 🟢 | |
+
+### State / Data
+| File | L | Status | Note |
+|------|---|--------|------|
+| state/campaign.js, system.js | 113/31 | 🟢 | data shapes + resetCampaign |
+| data/firebase.js, sync.js | 132/89 | 🟢 | init/auth/sync, offline fallback |
+| data/local.js, seed.js | 135/51 | 🟢 | IndexedDB + first-launch seed |
+| data/quickBuild.js | 319 | 🟢 | quick-build char path (survived the loss) |
+| data/keys.js, demo.js | 113/175 | 🟢 | |
+| data/bundles.js, migrate.js | 1/1 | ⛔ | content packs + state migration unbuilt |
+
+### UI — more real than the prior audit claimed
+| File | L | Status | Note |
+|------|---|--------|------|
+| App.jsx | 78 | 🟢 | **working** 3-tab router (Cargo/Journal/Settings) + onboard fallback — NOT a mockup stub |
+| play/Chat.jsx | 311 | 🟢 | two-tab chat surface |
+| play/RollBar.jsx | 375 | 🟢 | initiative/roll handling (combat rebuild S37) |
+| play/QuickActions.jsx | 362 | 🟢 | |
+| play/Rewind, Combat, TurnPrompt | 207/127/74 | 🟢 | combat + turn system (S37) |
+| play/CharTiles, InputBar, SituationBar, ContextBanner, DiceRoller, TTS, PreviouslyOn | 32–99 | 🟢 | |
+| play/RollRequest.jsx | 1 | ⛔ | (RollBar superseded it) |
+| reference/CharSheet.jsx | 787 | 🟢 | 6-tab sheet incl. editable Bio (backstory recovery, S37) |
+| reference/Journal, Cargo, Compendium | 155/98/93 | 🟢/🟡 | wired to store; play-verify depth |
+| reference/Treasury.jsx, Glossary.jsx | 1/1 | ⛔ | unbuilt |
+| setup/CharCreate.jsx | 488 | 🟢 | 3 paths + editable backstory (REAL, active) |
+| setup/CampaignConfig.jsx | 371 | 🟢 | |
+| setup/PlayerOnboard, KeyGate | 71/54 | 🟢 | |
+| setup/ContentImport.jsx, SessionZero.jsx | 1/1 | ⛔ | unbuilt |
+| manage/DevTools.jsx | 358 | 🟢 | flags, inspector, gate log |
+| manage/Settings.jsx | 109 | 🟢 | |
+| manage/Contracts.jsx, SessionReview.jsx | 1/1 | ⛔ | unbuilt |
+| shared/* (MechPill, Modal, Nav, Toast, LevelUp) | 1 each | ⛔ | stubs — play UI uses inline elements instead |
+| AppSimple.jsx | 1 | ⛔ | child-friendly entry unbuilt |
+
+### Content pipeline (`src/content/`)
+| File | L | Status |
+|------|---|--------|
+| adventureParser, markdownAdventureParser, normalizer, chunkSplitter, fileParser | 59–177 | 🟢/🟡 |
+| jsonParser, mdParser, webParser | 1 each | ⛔ |
+
+### Audio
+browserTTS.js (58) 🟢 · elevenlabs.js (1) ⛔
+
+### ⚠️ Open conflict to resolve before investing in UI
+Session 37 log: combat/onboarding **"shipped, deployed live, playable."** Session 38 audit: UI **"mockup only, throwaway, rebuild for real."** Reading the code, **37 is closer to true** — the UI is functional, store-wired, and was play-tested; "throwaway" was an architectural *opinion*, not a statement of absence. **Decision needed:** build ON the current UI vs. rebuild it. Until decided, don't trash working screens.
+
+### Honest "what's left" (build-forward priorities)
+1. ⛔ True stubs worth filling: **Treasury**, **Glossary**, **SessionReview**, **Contracts** editor, **ContentImport**, **SessionZero**.
+2. 🟡 Verify-in-play: Journal / Cargo / Compendium depth; combat turn-order holding (S37 known issue — AI stop-on-PC is prompt-enforced, not code).
+3. ◻️ Absent: multiplayer identity, push notifications, child view (AppSimple), shared bundles, state migration.
+4. 🟢 Engine hardening: unit tests for the untested gates (combat, spell-validation, XP/income), providers, memory.
+
 ---
 
 ## Status Key

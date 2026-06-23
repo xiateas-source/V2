@@ -1,5 +1,29 @@
 # Session Log — Handoff Note
 
+## Session 39 · 2026-06-23 — Doc reconciliation (build-forward baseline)
+
+**Decision:** Restart from the committed state. NOT recovering the lost uncommitted onboarding — building forward from what's in git.
+
+**Verified baseline (clean ground to build on):**
+- `npm install` clean · **33/33 tests pass** · `npm run build` succeeds (~143kB gzip main chunk).
+
+**Shipped this session:**
+- Reconciled `workboard.md` — added a **Reality Snapshot** at the top that supersedes the drifted Phase-0–8 checkboxes. Every `src/` file classified by tier (✅ tested / 🟢 real / 🟡 partial / ⛔ stub / ◻️ absent) with line counts + verification basis. The old Phase plan is kept below as design reference, explicitly marked superseded.
+
+**Key correction (both prior sessions were off):**
+- S37 *over*-claimed ("deployed, playable"); S38 audit *over-corrected* ("UI mockup only, throwaway"). Reading the code, the UI is **more real than S38 said** — `App.jsx` is a working 3-tab router wired to the real store, and CharSheet (787L), CharCreate (488L), DevTools (358L), the combat stack, etc. are functional. The engine is the strongest layer (mechanics/store/messages unit-tested).
+- True ⛔ stubs (1-line, genuinely unbuilt): Treasury, Glossary, SessionReview, Contracts, ContentImport, SessionZero, AppSimple, shared/* (MechPill/Modal/Nav/Toast/LevelUp), RollRequest, jsonParser/mdParser/webParser, bundles, migrate, elevenlabs.
+
+**Staleness spot-check (CLAUDE.md step 6):** architecture.md nav (Cargo/Journal/Settings) matches `App.jsx`. ✅ No fix needed.
+
+**Open decision for next session:** build ON the existing UI vs. rebuild it (the S37/S38 "real vs throwaway" conflict — see workboard Reality Snapshot). Don't trash working screens until decided.
+
+**Next up:** Pick first build target — fill a true stub (Treasury/Glossary likely easiest wins) OR run the app live to decide UI build-vs-rebuild. Developer leans "see it, don't read about it."
+
+**Branch state:** `claude/new-session-mr3qge`. (was at 90d96a4 at session start)
+
+---
+
 ## Session 38 · 2026-06-23 — Reality reconciliation
 - Audit/cleanup session. First audit pass over-claimed ("deployed app, Phases 0–7 done") by reading file sizes as features — **corrected**. Verified reality lives in `.claude/audit-2026-06-23.md`.
 - **Verified tiering:** REAL = AI mechanics engine + backstory (active dev). LOST = fuller onboarding (manual stat-rolling, import mapping, guided wizard — uncommitted, buried by a deploy). MOCKUP = UI/container on pebble-v2. UNBUILT = everything else (`Treasury.jsx` is 1 line; most reference/manage screens are unwired shells).
