@@ -5,9 +5,16 @@ import { CHAR_BUILDER_SYSTEM } from '../../ai/setupPrompts.js';
 import { normalizeCharacter, validateCharacter } from '../../content/normalizer.js';
 import {
   STARTING_EQUIPMENT, getStartingGold, getDefaultEquipment, getSelectedEquipment,
-  AVAILABLE_CLASSES, AVAILABLE_RACES, BACKGROUNDS, ALIGNMENTS,
+  AVAILABLE_CLASSES, AVAILABLE_RACES, BACKGROUNDS, ALIGNMENTS, ALL_SKILLS,
   buildCharacter, composePersonality, rollTraits, randomFlavor
 } from '../../data/quickBuild.js';
+
+const skillName = (key) =>
+  ALL_SKILLS.find(s => s.toLowerCase().replace(/\s+/g, '') === key) || key;
+const profSkills = (char) => {
+  const sk = char?.skills || {};
+  return Object.keys(sk).filter(k => sk[k]).map(skillName).sort();
+};
 import { forgeCharacter, proficiencyBonus } from '../../data/forge.js';
 import CharWizard from './CharWizard.jsx';
 import CharSheet from '../reference/CharSheet.jsx';
@@ -326,6 +333,74 @@ export default function CharCreate(props) {
               <For each={Object.entries(draft().abilityScores)}>
                 {([k, v]) => <span class="preview-ability">{k.toUpperCase()} {v}</span>}
               </For>
+            </div>
+          </Show>
+
+          <div class="preview-identity">
+            <div class="preview-id-item">
+              <span class="preview-id-label">Background</span>
+              <span class="preview-id-value">{draft().background || '—'}</span>
+            </div>
+            <div class="preview-id-item">
+              <span class="preview-id-label">Alignment</span>
+              <span class="preview-id-value">{draft().alignment || '—'}</span>
+            </div>
+          </div>
+
+          <Show when={profSkills(draft()).length > 0}>
+            <div class="preview-detail">
+              <span class="preview-detail-label">Skills</span>
+              <div class="preview-chips">
+                <For each={profSkills(draft())}>{(s) => <span class="preview-chip">{s}</span>}</For>
+              </div>
+            </div>
+          </Show>
+
+          <Show when={draft().savingThrows?.length > 0}>
+            <div class="preview-detail">
+              <span class="preview-detail-label">Saving Throws</span>
+              <div class="preview-chips">
+                <For each={draft().savingThrows}>{(s) => <span class="preview-chip">{s.toUpperCase()}</span>}</For>
+              </div>
+            </div>
+          </Show>
+
+          <Show when={draft().cantrips?.length > 0 || draft().knownSpells?.length > 0}>
+            <div class="preview-detail">
+              <span class="preview-detail-label">Spells</span>
+              <div class="preview-chips">
+                <For each={draft().cantrips}>{(s) => <span class="preview-chip cantrip">{s}</span>}</For>
+                <For each={draft().knownSpells}>{(s) => <span class="preview-chip">{s}</span>}</For>
+              </div>
+            </div>
+          </Show>
+
+          <Show when={draft().features?.length > 0}>
+            <div class="preview-detail">
+              <span class="preview-detail-label">Features</span>
+              <div class="preview-chips">
+                <For each={draft().features}>{(f) => <span class="preview-chip">{typeof f === 'string' ? f : (f.name || f)}</span>}</For>
+              </div>
+            </div>
+          </Show>
+
+          <Show when={draft().attacks?.length > 0}>
+            <div class="preview-detail">
+              <span class="preview-detail-label">Attacks</span>
+              <div class="preview-chips">
+                <For each={draft().attacks}>
+                  {(a) => <span class="preview-chip mono">{a.name} {a.bonus >= 0 ? '+' : ''}{a.bonus} · {a.damage}</span>}
+                </For>
+              </div>
+            </div>
+          </Show>
+
+          <Show when={draft().languages?.length > 0}>
+            <div class="preview-detail">
+              <span class="preview-detail-label">Languages</span>
+              <div class="preview-chips">
+                <For each={draft().languages}>{(l) => <span class="preview-chip">{l}</span>}</For>
+              </div>
             </div>
           </Show>
 
