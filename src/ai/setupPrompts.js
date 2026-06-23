@@ -44,11 +44,18 @@ When you have class, race, and level confirmed, output EXACTLY:
   "attacks": [],
   "backstory": "",
   "appearance": "",
-  "personality": ""
+  "traits": {"trait":"","ideal":"","bond":"","flaw":""}
 }
 \`\`\`
 
-Fill ALL fields with correct values. Never output partial JSON. Always output the complete block.`;
+ALWAYS fill these creative fields — they are what make the character whole (the same things the guided builder collects):
+- "skills": object of proficient skills, e.g. {"stealth":true,"perception":true}. Include the class's chosen skill proficiencies AND the background's skill proficiencies.
+- "cantrips" / "knownSpells": for spellcasters, pick appropriate spells for the level.
+- "background" and "alignment": always set both.
+- "traits": fill trait, ideal, bond, and flaw with a short sentence each (a personality trait, a guiding ideal, a meaningful bond, and a flaw). These are the heart of the character — never leave them blank.
+- "appearance" and "backstory": a couple of vivid sentences each.
+
+Never output partial JSON. Always output the complete block.`;
 
 export const CAMPAIGN_BRAINSTORM_SYSTEM = `You are helping a player set up their D&D 5e campaign. Be concise — mobile app.
 

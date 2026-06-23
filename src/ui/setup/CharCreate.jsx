@@ -157,10 +157,16 @@ export default function CharCreate(props) {
     const normalized = normalizeCharacter(charObj);
     if (!normalized) return;
 
+    // Apply the chosen background's skill proficiencies too, the way Guided
+    // Build does — so AI/imported characters get the full criteria.
+    const bgMatch = BACKGROUNDS.find(b => b.name === normalized.background);
+    const extraSkills = bgMatch?.skillProfs || [];
+
     // Funnel through the Forge: keep the AI/import's creative choices (name,
-    // race, class, ability scores, background, spells, bio) but re-derive every
-    // mechanical field (HP, AC, attacks, resources, features, slots, prof). The
-    // AI cannot ship wrong math because the AI's math is never trusted.
+    // race, class, ability scores, background, spells, traits, bio) but
+    // re-derive every mechanical field (HP, AC, attacks, resources, features,
+    // slots, prof). The AI cannot ship wrong math because its math is never
+    // trusted — only its creative intent.
     const char = await forgeCharacter({
       name: normalized.name,
       race: normalized.race,
@@ -171,8 +177,10 @@ export default function CharCreate(props) {
       background: normalized.background,
       alignment: normalized.alignment,
       skills: normalized.skills,
+      extraSkills,
       cantrips: normalized.cantrips,
       knownSpells: normalized.knownSpells,
+      traits: normalized.traits,
       appearance: normalized.appearance,
       personality: normalized.personality,
       backstory: normalized.backstory,

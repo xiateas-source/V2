@@ -1,5 +1,13 @@
 import { createSignal, createMemo, For, Show, onMount, onCleanup } from 'solid-js';
 import { store, setStore, playerSet } from '../../state/index.js';
+import { composePersonality } from '../../data/quickBuild.js';
+
+const TIBF_FIELDS = [
+  { key: 'trait', label: 'Personality Trait', placeholder: 'A distinctive habit, quirk, or attitude…' },
+  { key: 'ideal', label: 'Ideal', placeholder: 'A principle they strive toward…' },
+  { key: 'bond', label: 'Bond', placeholder: 'A person, place, or cause they hold dear…' },
+  { key: 'flaw', label: 'Flaw', placeholder: 'A weakness, vice, or fear…' },
+];
 
 const XP_THRESHOLDS = [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000];
 
@@ -634,9 +642,70 @@ export default function CharSheet(props) {
         </div>
 
         <EditableBio label="Appearance" field="appearance" value={p.appearance} placeholder="No appearance set. Tap edit to describe how they look." />
-        <EditableBio label="Personality" field="personality" value={p.personality} placeholder="No personality set. Traits, ideals, bonds, flaws…" rows={4} />
+
+        <div class="cs-section-label">Personality <span class="cs-own-tag player">player</span></div>
+        <For each={TIBF_FIELDS}>
+          {(f) => <TraitField fieldKey={f.key} label={f.label} placeholder={f.placeholder} />}
+        </For>
+        <Show when={!hasTraits(p) && p.personality}>
+          <div class="cs-bio-section"><div class="cs-bio-text">{p.personality}</div></div>
+        </Show>
+
         <EditableBio label="Backstory" field="backstory" value={p.backstory} placeholder="No backstory yet. Origin, motivation, secrets…" rows={8} />
         <EditableBio label="Notes" field="notes" value={p.notes} placeholder="Player notes — anything you want to remember." rows={4} />
+      </div>
+    );
+  }
+
+  function hasTraits(p) {
+    const t = p.traits;
+    return !!(t && (t.trait || t.ideal || t.bond || t.flaw));
+  }
+
+  // Save one Trait/Ideal/Bond/Flaw field. Writes the whole traits object (avoids
+  // nested-path issues on legacy characters) and recomposes the personality
+  // string so the game engine still sees the roleplay text.
+  function saveTrait(key, value) {
+    const i = activePC();
+    const cur = store.campaign.characters[i]?.traits || { trait: '', ideal: '', bond: '', flaw: '' };
+    const updated = { ...cur, [key]: value };
+    playerSet(`characters.${i}.traits`, updated);
+    playerSet(`characters.${i}.personality`, composePersonality(updated));
+  }
+
+  // Inline editor for a single TIBF field.
+  function TraitField(props) {
+    const [editing, setEditing] = createSignal(false);
+    const [draft, setDraft] = createSignal('');
+    const value = () => pc()?.traits?.[props.fieldKey] || '';
+
+    function startEdit() { setDraft(value()); setEditing(true); }
+    function save() { saveTrait(props.fieldKey, draft()); setEditing(false); }
+
+    return (
+      <div class="cs-trait-field">
+        <div class="cs-trait-head">
+          <span class="cs-trait-label">{props.label}</span>
+          <Show when={!editing()}>
+            <button class="cs-bio-edit" onClick={startEdit}>{value() ? 'Edit' : '+ Add'}</button>
+          </Show>
+        </div>
+        <Show
+          when={editing()}
+          fallback={<div class={`cs-trait-text ${value() ? '' : 'empty'}`}>{value() || props.placeholder}</div>}
+        >
+          <textarea
+            class="cs-bio-input"
+            rows="2"
+            value={draft()}
+            placeholder={props.placeholder}
+            onInput={(e) => setDraft(e.target.value)}
+          />
+          <div class="cs-bio-actions">
+            <button class="cs-bio-cancel" onClick={() => setEditing(false)}>Cancel</button>
+            <button class="cs-bio-save" onClick={save}>Save</button>
+          </div>
+        </Show>
       </div>
     );
   }
