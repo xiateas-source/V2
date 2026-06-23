@@ -3792,21 +3792,41 @@ body {
 
 .roster-chip {
   display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-xs) var(--spacing-sm);
+  align-items: stretch;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-left: 3px solid var(--color-accent);
   border-radius: var(--radius-sm);
+  overflow: hidden;
 }
 
-.roster-chip-color {
-  width: 8px;
-  height: 8px;
+.roster-chip-open {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: none;
+  border: none;
+  color: var(--color-text);
+  text-align: left;
+  min-width: 0;
+  min-height: var(--touch-target);
+}
+
+.roster-chip-open:active { background: var(--color-surface-alt); }
+
+.roster-chip-avatar {
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   flex-shrink: 0;
-  display: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: var(--font-size-base);
+  color: #fff;
 }
 
 .roster-chip-info {
@@ -3828,16 +3848,25 @@ body {
 .roster-chip-meta {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.roster-chip-go {
+  font-size: 1.4rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  padding: 0 var(--spacing-xs);
 }
 
 .roster-chip-remove {
   background: none;
-  border: 1px solid var(--color-border);
+  border: none;
+  border-left: 1px solid var(--color-border);
   color: var(--color-text-muted);
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  font-size: 0.9rem;
+  width: 40px;
+  font-size: 1.1rem;
   line-height: 1;
   padding: 0;
   display: flex;
@@ -3849,7 +3878,6 @@ body {
 .roster-chip-remove:active {
   background: var(--color-danger);
   color: #fff;
-  border-color: var(--color-danger);
 }
 
 /* AI Builder */

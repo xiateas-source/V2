@@ -10,6 +10,7 @@ import {
 } from '../../data/quickBuild.js';
 import { forgeCharacter, proficiencyBonus } from '../../data/forge.js';
 import CharWizard from './CharWizard.jsx';
+import CharSheet from '../reference/CharSheet.jsx';
 
 const QUICK_PICK_NAMES = {
   Fighter: ['Kael', 'Brynn', 'Tormund', 'Seraphina', 'Draven', 'Isolde', 'Gareth', 'Nyx'],
@@ -31,6 +32,9 @@ export default function CharCreate(props) {
   // Quick Pick state
   const [quickChar, setQuickChar] = createSignal(null);
   const [quickLoading, setQuickLoading] = createSignal(false);
+
+  // Review/edit existing sheets
+  const [sheetPC, setSheetPC] = createSignal(null);
 
   function commitCharacter() {
     const char = draft();
@@ -196,20 +200,31 @@ export default function CharCreate(props) {
     <div class="charcreate">
       <Show when={store.campaign.characters.length > 0}>
         <div class="charcreate-roster">
-          <div class="roster-label">Party</div>
+          <div class="roster-label">Party — tap to review or edit</div>
           <div class="roster-chips">
             <For each={store.campaign.characters}>
               {(pc, i) => (
                 <div class="roster-chip" style={{ 'border-color': pc.color }}>
-                  <span class="roster-chip-color" style={{ background: pc.color }} />
-                  <div class="roster-chip-info">
-                    <span class="roster-chip-name">{pc.name}</span>
-                    <span class="roster-chip-meta">{pc.race} {pc.class} Lv{pc.level}</span>
-                  </div>
+                  <button class="roster-chip-open" onClick={() => setSheetPC(i())}>
+                    <div class="roster-chip-avatar" style={{ background: pc.color }}>{pc.name?.charAt(0) || '?'}</div>
+                    <div class="roster-chip-info">
+                      <span class="roster-chip-name">{pc.name}</span>
+                      <span class="roster-chip-meta">{pc.race} {pc.class} Lv{pc.level} · HP {pc.hpMax} · AC {pc.ac}</span>
+                    </div>
+                    <span class="roster-chip-go">›</span>
+                  </button>
                   <button class="roster-chip-remove" onClick={() => removeCharacter(i())}>×</button>
                 </div>
               )}
             </For>
+          </div>
+        </div>
+      </Show>
+
+      <Show when={sheetPC() !== null}>
+        <div class="sheet-overlay" onClick={() => setSheetPC(null)}>
+          <div class="sheet-panel" onClick={(e) => e.stopPropagation()}>
+            <CharSheet initialPC={sheetPC()} onClose={() => setSheetPC(null)} />
           </div>
         </div>
       </Show>
