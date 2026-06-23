@@ -150,6 +150,18 @@ function checkRejection(mech) {
       return `${name} already in combat`;
     }
   }
+  if (mech.key === 'roll_request') {
+    // Law 2: the DM rolls for NPCs/enemies itself. A roll_request must target a
+    // player character — anything else is rejected so it never reaches the roll
+    // bar. (Party-wide rolls and the player's own creatures are allowed.)
+    const parts = mech.value.split('|').map(s => s.trim());
+    const target = (parts[2] || '').replace(/\s*\(.*\)$/, '');
+    const lower = target.toLowerCase();
+    const isPartyWide = lower === 'party' || lower === 'all' || lower === '';
+    if (!isPartyWide && !findPC(target)) {
+      return `roll_request target "${target}" is not a player character — the DM rolls for NPCs/enemies`;
+    }
+  }
   if (['income', 'gp', 'sp', 'cp', 'ep', 'pp'].includes(mech.key) && /xp/i.test(mech.value)) {
     return 'XP is not currency';
   }
@@ -706,9 +718,8 @@ const DISPATCH = {
       actionsUsed: { action: false, bonus: false, reaction: false, movement: false },
       zones: { front: { label: 'Frontline' }, back: { label: 'Backline' }, left: { label: 'Left Flank' }, right: { label: 'Right Flank' }, air: { label: 'Air' }, rear: { label: 'Rear Guard' } },
     });
-    for (const pc of store.campaign.characters) {
-      DISPATCH.roll_request(`Initiative|0|${pc.name}`);
-    }
+    // PCs are flagged rollPending above; the roll bar derives the Initiative
+    // roll prompts directly from that state and writes the results back.
   },
 
   combat_end(value) {
@@ -731,6 +742,9 @@ const DISPATCH = {
   },
 
   zone_add_enemy(value) {
+    // Seed combat (PCs) FIRST so the enemy is appended to the existing roster
+    // instead of being wiped by combat_start rebuilding initiative from scratch.
+    if (!store.campaign.combatState.active) DISPATCH.combat_start('');
     const [name, hp, ac, zone, init] = value.split('|').map(s => s.trim());
     const initiative = [...store.campaign.combatState.initiative, {
       name, roll: parseInt(init, 10) || 0, type: 'npc',
@@ -739,7 +753,6 @@ const DISPATCH = {
     }];
     initiative.sort((a, b) => b.roll - a.roll);
     aiSet('combatState.initiative', initiative);
-    if (!store.campaign.combatState.active) DISPATCH.combat_start('');
   },
 
   zone_move(value) {

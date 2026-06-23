@@ -6,7 +6,7 @@ import { extractMechanics, validateMechanics, applyMechanics, buildMechReceipt, 
 import { ASK_DM_SYSTEM } from './contracts.js';
 import { pruneIfNeeded } from './memory.js';
 import { detectDrift } from './drift.js';
-import { runGate1, runGate2, runGate3, runGate4, runGate5, runGate6, runGate7, runGate8, runGate9, advanceTurn } from './gates.js';
+import { runGate1, runGate2, runGate3, runGate4, runGate5, runGate6, runGate7, runGate8, runGate9, advanceCombatToNextPC, isAwaitingInitiative } from './gates.js';
 import { createNarrativeMsg, createOOCMsg, msgToRole, isPlayMsg } from './messages.js';
 
 let activeController = null;
@@ -29,7 +29,7 @@ export async function sendMsg(text, options = {}) {
   setSending(true);
   wasAborted = false;
 
-  const { tab = 'narrative', contextInject = '', onChunk } = options;
+  const { tab = 'narrative', contextInject = '', onChunk, combatKickoff = false } = options;
 
   try {
     if (tab === 'ooc') {
@@ -102,13 +102,6 @@ export async function sendMsg(text, options = {}) {
         setStore('campaign', 'narrative', assistantIdx, 'gateFlags', allGateFlags);
       }
 
-      if (store.campaign.combatState.active && !gate2Flags.length) {
-        const hasRoundAdvance = applied.some(m => m.key === 'round_advance');
-        const currentActor = store.campaign.combatState.initiative[store.campaign.combatState.currentTurn];
-        if (currentActor?.type === 'pc' && !hasRoundAdvance) {
-          advanceTurn();
-        }
-      }
     } else {
       const driftOpts = { playerMessage: text, characters: store.campaign.characters };
       const driftWarnings = detectDrift(fullResponse, [], driftOpts);
@@ -123,6 +116,15 @@ export async function sendMsg(text, options = {}) {
       if (noMechGateFlags.length) {
         setStore('campaign', 'narrative', assistantIdx, 'gateFlags', noMechGateFlags);
       }
+    }
+
+    // Combat turn engine: code owns the turn pointer. Once initiative is rolled,
+    // land the pointer on the next player character. On the kickoff the current
+    // actor may itself be the PC who acts first (or an enemy ahead of them), so
+    // the search is inclusive; otherwise the active PC just acted, so advance
+    // past them. Enemies between PCs are resolved by the AI in its narration.
+    if (store.campaign.combatState.active && !isAwaitingInitiative()) {
+      advanceCombatToNextPC({ inclusive: combatKickoff });
     }
 
     return fullResponse;

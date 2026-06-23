@@ -1,5 +1,6 @@
 import { store, setStore } from '../state/index.js';
 import { createSignal } from 'solid-js';
+import { createNarrativeMsg } from './messages.js';
 
 const [pendingRolls, setPendingRolls] = createSignal([]);
 const [gateFlags, setGateFlags] = createSignal([]);
@@ -360,6 +361,54 @@ export function advanceTurn() {
   if (next === 0) {
     setStore('campaign', 'combatState', 'round', combat.round + 1);
   }
+}
+
+// True while combat is up but PCs still owe an initiative roll. During this
+// window the engine must NOT advance turns or prompt anyone to act.
+export function isAwaitingInitiative() {
+  const cs = store.campaign.combatState;
+  return cs.active && cs.initiative.some(c => c.rollPending);
+}
+
+// The combat turn engine. Code owns the turn pointer (Law 2): the AI narrates
+// the turn it is handed and resolves NPCs/enemies up to the next player
+// character; this function deterministically lands the pointer on that PC.
+// `inclusive` is used on the combat kickoff, where the current actor may itself
+// be the first PC (or an enemy ahead of the first PC) and hasn't acted yet.
+export function advanceCombatToNextPC({ inclusive = false } = {}) {
+  const cs = store.campaign.combatState;
+  if (!cs.active) return;
+  const init = cs.initiative;
+  const len = init.length;
+  if (!len) return;
+
+  const start = cs.currentTurn;
+  const startStep = inclusive ? 0 : 1;
+
+  for (let step = startStep; step <= len; step++) {
+    const idx = (start + step) % len;
+    const c = init[idx];
+    if (c && c.type === 'pc' && c.hp > 0) {
+      const wrapped = step > 0 && (start + step) >= len;
+      if (wrapped) {
+        const newRound = cs.round + 1;
+        setStore('campaign', 'combatState', 'round', newRound);
+        pushRoundMarker(newRound);
+      }
+      setStore('campaign', 'combatState', 'currentTurn', idx);
+      setStore('campaign', 'combatState', 'actionsUsed', {
+        action: false, bonus: false, reaction: false, movement: false,
+      });
+      return;
+    }
+  }
+  // No living PC remaining (TPK / all PCs down) — leave the pointer where it is.
+  // The AI should emit combat_end; the overlay handles the rest.
+}
+
+function pushRoundMarker(round) {
+  const msg = createNarrativeMsg('system', `⚔ Round ${round}`, { systemKind: 'combat_event' });
+  setStore('campaign', 'narrative', [...store.campaign.narrative, msg]);
 }
 
 export function markActionUsed(type) {

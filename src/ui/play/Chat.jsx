@@ -9,6 +9,7 @@ import ContextBanner from './ContextBanner.jsx';
 import PreviouslyOn from './PreviouslyOn.jsx';
 import SituationBar from './SituationBar.jsx';
 import Combat from './Combat.jsx';
+import TurnPrompt from './TurnPrompt.jsx';
 import Rewind from './Rewind.jsx';
 import TTS from './TTS.jsx';
 import { autoRead, speak } from '../../audio/browserTTS.js';
@@ -141,7 +142,7 @@ export default function Chat() {
       <div class="chat-messages" ref={messagesDiv} onClick={handleChatClick} onScroll={onScroll}>
         <For each={messages()}>
           {(msg) => (
-            <div class={`msg msg-${msg.type || msg.role}`}>
+            <div class={`msg msg-${msg.type || msg.role}${msg.systemKind === 'combat_event' ? ' msg-combat-event' : ''}`}>
               <Show when={msg.isSummary}>
                 <div class="msg-summary-badge">Prior context</div>
               </Show>
@@ -185,6 +186,7 @@ export default function Chat() {
       </Show>
 
       <Combat />
+      <TurnPrompt />
       <RollBar />
       <div class="input-area">
         <Rewind />
