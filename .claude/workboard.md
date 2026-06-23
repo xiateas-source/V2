@@ -10,10 +10,15 @@
 
 Reconciled by reading every `src/` file (line count + content) and the test suite. Decision this session: **build forward from the committed state.** Not recovering the lost uncommitted onboarding.
 
-**Verification legend**
+> **CORRECTION (developer review):** The player-facing app **is a face.** The screens render and the code wires `sendMsg → engine`, but it is **not a working play experience** — you cannot actually sit down and play it. Reading code presence + store-wiring as "functional" is the same mistake S37 made and I repeated. **Two separate axes from here on:**
+> - **Engine logic** — real, some of it unit-tested. This is the genuine asset.
+> - **Playable experience** — does **not** exist yet. The UI is a façade over the engine, not a functioning game. Verify this axis by *playing*, never by reading code.
+
+**Verification legend** (code axis)
 - ✅ **tested** — substantial code + passing unit test (33 tests, `tests/foundations.test.js`)
-- 🟢 **real** — substantial code, in active dev, exercised in play; not unit-tested
-- 🟡 **partial** — renders/runs but thin or wiring unverified
+- 🟢 **logic-real** — substantial non-UI code, in active dev, not unit-tested
+- 🟠 **face** — UI renders + has wired handlers, but NOT a functioning play experience (developer-confirmed)
+- 🟡 **partial** — thin / wiring unverified
 - ⛔ **stub** — 1-line placeholder (returns null / empty export)
 - ◻️ **absent** — feature has no real representation yet
 
@@ -42,25 +47,26 @@ Reconciled by reading every `src/` file (line count + content) and the test suit
 | data/keys.js, demo.js | 113/175 | 🟢 | |
 | data/bundles.js, migrate.js | 1/1 | ⛔ | content packs + state migration unbuilt |
 
-### UI — more real than the prior audit claimed
+### UI — a face, not a play experience
+All 🟠 = code exists and renders; **none of it is confirmed playable.** Line counts say "code was written," not "a player can use it." Treat every row as needing play-verification before it counts as real.
 | File | L | Status | Note |
 |------|---|--------|------|
-| App.jsx | 78 | 🟢 | **working** 3-tab router (Cargo/Journal/Settings) + onboard fallback — NOT a mockup stub |
-| play/Chat.jsx | 311 | 🟢 | two-tab chat surface |
-| play/RollBar.jsx | 375 | 🟢 | initiative/roll handling (combat rebuild S37) |
-| play/QuickActions.jsx | 362 | 🟢 | |
-| play/Rewind, Combat, TurnPrompt | 207/127/74 | 🟢 | combat + turn system (S37) |
-| play/CharTiles, InputBar, SituationBar, ContextBanner, DiceRoller, TTS, PreviouslyOn | 32–99 | 🟢 | |
+| App.jsx | 78 | 🟠 | 3-tab router (Cargo/Journal/Settings) + onboard fallback — renders, wired to store |
+| play/Chat.jsx | 311 | 🟠 | two-tab chat; `sendMsg` wired but loop not confirmed working for a player |
+| play/RollBar.jsx | 375 | 🟠 | initiative/roll UI (combat rebuild S37) |
+| play/QuickActions.jsx | 362 | 🟠 | |
+| play/Rewind, Combat, TurnPrompt | 207/127/74 | 🟠 | combat + turn system (S37) |
+| play/CharTiles, InputBar, SituationBar, ContextBanner, DiceRoller, TTS, PreviouslyOn | 32–99 | 🟠 | |
 | play/RollRequest.jsx | 1 | ⛔ | (RollBar superseded it) |
-| reference/CharSheet.jsx | 787 | 🟢 | 6-tab sheet incl. editable Bio (backstory recovery, S37) |
-| reference/Journal, Cargo, Compendium | 155/98/93 | 🟢/🟡 | wired to store; play-verify depth |
+| reference/CharSheet.jsx | 787 | 🟠 | 6-tab sheet incl. editable Bio (S37) |
+| reference/Journal, Cargo, Compendium | 155/98/93 | 🟠 | renders from store; depth unverified |
 | reference/Treasury.jsx, Glossary.jsx | 1/1 | ⛔ | unbuilt |
-| setup/CharCreate.jsx | 488 | 🟢 | 3 paths + editable backstory (REAL, active) |
-| setup/CampaignConfig.jsx | 371 | 🟢 | |
-| setup/PlayerOnboard, KeyGate | 71/54 | 🟢 | |
+| setup/CharCreate.jsx | 488 | 🟠 | 3 paths + editable backstory; backstory edit was the one S37-confirmed-real bit |
+| setup/CampaignConfig.jsx | 371 | 🟠 | |
+| setup/PlayerOnboard, KeyGate | 71/54 | 🟠 | |
 | setup/ContentImport.jsx, SessionZero.jsx | 1/1 | ⛔ | unbuilt |
-| manage/DevTools.jsx | 358 | 🟢 | flags, inspector, gate log |
-| manage/Settings.jsx | 109 | 🟢 | |
+| manage/DevTools.jsx | 358 | 🟠 | flags, inspector, gate log |
+| manage/Settings.jsx | 109 | 🟠 | |
 | manage/Contracts.jsx, SessionReview.jsx | 1/1 | ⛔ | unbuilt |
 | shared/* (MechPill, Modal, Nav, Toast, LevelUp) | 1 each | ⛔ | stubs — play UI uses inline elements instead |
 | AppSimple.jsx | 1 | ⛔ | child-friendly entry unbuilt |
@@ -74,14 +80,15 @@ Reconciled by reading every `src/` file (line count + content) and the test suit
 ### Audio
 browserTTS.js (58) 🟢 · elevenlabs.js (1) ⛔
 
-### ⚠️ Open conflict to resolve before investing in UI
-Session 37 log: combat/onboarding **"shipped, deployed live, playable."** Session 38 audit: UI **"mockup only, throwaway, rebuild for real."** Reading the code, **37 is closer to true** — the UI is functional, store-wired, and was play-tested; "throwaway" was an architectural *opinion*, not a statement of absence. **Decision needed:** build ON the current UI vs. rebuild it. Until decided, don't trash working screens.
+### S37 vs S38 conflict — resolved
+S37: **"shipped, deployed, playable."** S38: **"mockup only, throwaway."** Developer's call (S39): **S38 was right about playability** — it's a face. S37 mistook "deployed a build" for "the build is playable." The asset is the **engine**; the playable game does not exist yet.
 
 ### Honest "what's left" (build-forward priorities)
-1. ⛔ True stubs worth filling: **Treasury**, **Glossary**, **SessionReview**, **Contracts** editor, **ContentImport**, **SessionZero**.
-2. 🟡 Verify-in-play: Journal / Cargo / Compendium depth; combat turn-order holding (S37 known issue — AI stop-on-PC is prompt-enforced, not code).
+0. **THE gap: there is no working play loop a player can actually use.** Everything below is secondary until the app is playable end-to-end. Next session should start by pinning down *exactly what breaks the experience* (see open question in session-log) — by running/playing, not reading code.
+1. ⛔ True stubs (genuinely empty): **Treasury**, **Glossary**, **SessionReview**, **Contracts** editor, **ContentImport**, **SessionZero**.
+2. 🟠 Faces to make actually playable: the play loop (Chat→send→engine→state→render), char creation, combat.
 3. ◻️ Absent: multiplayer identity, push notifications, child view (AppSimple), shared bundles, state migration.
-4. 🟢 Engine hardening: unit tests for the untested gates (combat, spell-validation, XP/income), providers, memory.
+4. ✅/🟢 Engine hardening: unit tests for untested gates (combat, spell-validation, XP/income), providers, memory.
 
 ---
 

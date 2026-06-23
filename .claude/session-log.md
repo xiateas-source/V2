@@ -10,15 +10,17 @@
 **Shipped this session:**
 - Reconciled `workboard.md` — added a **Reality Snapshot** at the top that supersedes the drifted Phase-0–8 checkboxes. Every `src/` file classified by tier (✅ tested / 🟢 real / 🟡 partial / ⛔ stub / ◻️ absent) with line counts + verification basis. The old Phase plan is kept below as design reference, explicitly marked superseded.
 
-**Key correction (both prior sessions were off):**
-- S37 *over*-claimed ("deployed, playable"); S38 audit *over-corrected* ("UI mockup only, throwaway"). Reading the code, the UI is **more real than S38 said** — `App.jsx` is a working 3-tab router wired to the real store, and CharSheet (787L), CharCreate (488L), DevTools (358L), the combat stack, etc. are functional. The engine is the strongest layer (mechanics/store/messages unit-tested).
-- True ⛔ stubs (1-line, genuinely unbuilt): Treasury, Glossary, SessionReview, Contracts, ContentImport, SessionZero, AppSimple, shared/* (MechPill/Modal/Nav/Toast/LevelUp), RollRequest, jsonParser/mdParser/webParser, bundles, migrate, elevenlabs.
+**Key correction — THE app is a face (developer review, mid-session):**
+- My first reconciliation pass repeated S37's mistake: I read code presence + store-wiring (`InputBar.handleSend → engine.sendMsg`, Chat rendering pills/drift) as "functional UI." Developer corrected: **it is just a face — not functionally built for a player to interact with. You cannot actually sit down and play it.**
+- Resolved framing (now in workboard): two axes. **Engine = real logic, partly unit-tested (the asset).** **Playable experience = does not exist yet.** UI files reclassified 🟢→🟠 **face** (renders + wired, NOT playable). Verify playability by playing, never by reading code.
+- S37 vs S38 conflict resolved toward **S38**: it was a face all along; S37 confused "deployed a build" with "playable."
+- True ⛔ stubs (1-line, genuinely empty): Treasury, Glossary, SessionReview, Contracts, ContentImport, SessionZero, AppSimple, shared/* (MechPill/Modal/Nav/Toast/LevelUp), RollRequest, jsonParser/mdParser/webParser, bundles, migrate, elevenlabs.
 
 **Staleness spot-check (CLAUDE.md step 6):** architecture.md nav (Cargo/Journal/Settings) matches `App.jsx`. ✅ No fix needed.
 
-**Open decision for next session:** build ON the existing UI vs. rebuild it (the S37/S38 "real vs throwaway" conflict — see workboard Reality Snapshot). Don't trash working screens until decided.
+**OPEN QUESTION (blocks the build-forward plan):** *What specifically makes it a face?* — i.e. what breaks when you try to play? (loop never returns a response / needs API keys not set / char creation doesn't lead into play / state doesn't persist / it's visually there but inert, etc.) Pin this down before picking a build target. Best answered by running it.
 
-**Next up:** Pick first build target — fill a true stub (Treasury/Glossary likely easiest wins) OR run the app live to decide UI build-vs-rebuild. Developer leans "see it, don't read about it."
+**Next up:** Diagnose the play gap (run the app, find the first thing that breaks the experience), then build the first real working slice of the loop. Developer leans "see it, don't read about it."
 
 **Branch state:** `claude/new-session-mr3qge`. (was at 90d96a4 at session start)
 
