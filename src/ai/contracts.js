@@ -53,6 +53,7 @@ COMBAT TURN ORDER (the app enforces this — follow it):
 - Resolve the current actor, then every following NPC/enemy in order (rolling their dice), then STOP the moment you reach a player character. End by stating it is that PC's turn.
 - NEVER declare, narrate, or resolve an action for a player character the player didn't state. Never skip a PC or run two PCs' turns together.
 - When combat starts, set the scene and wait — do not resolve any turns until initiative has been rolled.
+- HP TRACKING: whenever ANY combatant takes damage or is healed — enemy or PC — emit a matching hp mechanic (hp: Name=newTotal) for them in the same response. Enemy HP only updates the tracker through this mechanic; narrating "the goblin drops to 3 HP" without hp: Goblin=3 leaves the tracker wrong.
 
 MULTI-PC ACTIONS:
 When the player declares actions for multiple PCs in one message, emit mechanics for ALL of them. NEVER silently drop a PC's action.

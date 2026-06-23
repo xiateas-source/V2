@@ -1850,6 +1850,29 @@ body {
   overflow-y: auto;
 }
 
+.combat-overlay.combat-min {
+  max-height: none;
+  overflow: visible;
+}
+
+.combat-overlay.combat-min .combat-header {
+  margin-bottom: 0;
+}
+
+.btn-min {
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  line-height: 1;
+  padding: 4px 10px;
+  min-height: 32px;
+  min-width: 32px;
+  cursor: pointer;
+}
+
 .combat-header {
   display: flex;
   align-items: center;
