@@ -21,9 +21,9 @@
 ### Tests / build
 - 33 foundations tests pass; build clean. 6 turn-engine paths verified via scratch test (not committed).
 
-### ⚠️ ACTION ITEMS FOR DEVELOPER (do these)
-1. **Rotate the Firebase service-account key** — it was shared via chat (exposed). Firebase Console → Project Settings → Service Accounts → delete key `26aa7b753c…` → generate new.
-2. **Add GitHub repo secret** `FIREBASE_SERVICE_ACCOUNT_PEBBLE_V2` = the new key JSON (Settings → Secrets and variables → Actions). Until then the deploy workflow shows red and auto-deploy won't fire.
+### ✅ DONE — Deploy pipeline self-serve (developer completed)
+1. **Firebase key rotated** — the chat-exposed key (`26aa7b753c…`) is revoked/dead. Do NOT attempt manual deploys with the old uploaded key; it no longer works.
+2. **GitHub secret `FIREBASE_SERVICE_ACCOUNT_PEBBLE_V2` added** — auto-deploy on push to main is now live. No more manual deploys needed; pushing to main deploys within ~2 min. Verify via Actions tab (green ✔ on "Deploy to Firebase Hosting").
 
 ### Known issues / watch in play-test
 - AI stopping at each PC is prompt-enforced (contract + combat block), not code. Gate 2 flags over-runs. If it runs ahead often → add a code gate that truncates past a PC.

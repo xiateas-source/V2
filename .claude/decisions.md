@@ -104,8 +104,8 @@
 
 | Decision | Rationale | Session |
 |----------|-----------|---------|
-| **Auto-deploy to Firebase Hosting on push to main** | `.github/workflows/deploy.yml` (FirebaseExtended/action-hosting-deploy). Requires repo secret `FIREBASE_SERVICE_ACCOUNT_PEBBLE_V2` (NOT YET SET — workflow red until added). Removes the manual deploy step; developer has no local deploy path. | 37 |
-| **Live site `pebble-v2.web.app` deploys from main `dist/`** | `firebase.json` site=pebble-v2, public=dist. Until the GH secret is set, deploys were run manually via `GOOGLE_APPLICATION_CREDENTIALS` + `firebase deploy`. Service-account key was shared via chat → MUST be rotated. | 37 |
+| **Auto-deploy to Firebase Hosting on push to main** | `.github/workflows/deploy.yml` (FirebaseExtended/action-hosting-deploy). Repo secret `FIREBASE_SERVICE_ACCOUNT_PEBBLE_V2` is SET (S37) — auto-deploy live, ~2 min after a push to main. Removes the manual deploy step. | 37 |
+| **Live site `pebble-v2.web.app` deploys from main `dist/`** | `firebase.json` site=pebble-v2, public=dist. Manual deploys are no longer needed (CI handles it). The chat-exposed service-account key was rotated/revoked (S37); the old uploaded key is dead — don't reuse it. | 37 |
 | **A deploy must check what's currently live first** | Deployed `main` over a more-complete (uncommitted) build, regressing the backstory editor. Lesson (CLAUDE.md): look at the target before overwriting. | 37 |
 
 ## Multi-Player
