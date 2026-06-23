@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerer's Chronograph — modern, atmospheric</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500;600&display=swap');
+  :root{
+    --bg:#14110c; --surface:#1e1a13; --surface-2:#272218; --raise:#2f2818;
+    --line:rgba(201,162,90,.16); --line-soft:rgba(255,255,255,.05);
+    --text:#ece6d6; --muted:#9a9180; --faint:#6f685a;
+    --gold:#c9a25a; --gold-dim:#8f7340; --ok:#86b24a; --warn:#e0a83e; --danger:#cf5b46;
+    --serif:'EB Garamond',Georgia,serif; --disp:'Cinzel',Georgia,serif; --ui:'Inter',system-ui,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{min-height:100vh;display:flex;flex-direction:column;align-items:center;
+    background:radial-gradient(130% 90% at 50% 0%,#2a2519 0%,#181410 55%,#0d0a07 100%);
+    font-family:var(--ui);padding:16px 12px 36px;color:var(--text);}
+  .title{font-family:var(--disp);font-size:17px;letter-spacing:.22em;color:var(--gold);
+    margin:6px 0 14px;text-transform:uppercase;opacity:.92;}
+
+  .phone{width:360px;max-width:96vw;height:782px;border-radius:34px;overflow:hidden;
+    border:3px solid #0b0a08;box-shadow:0 20px 50px rgba(0,0,0,.6),inset 0 0 0 2px #232017;
+    display:flex;flex-direction:column;position:relative;background:var(--bg);}
+  .screen{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;background:var(--bg);}
+  /* texture you feel, not see — faint paper grain only */
+  .grain{position:absolute;inset:0;pointer-events:none;opacity:.035;mix-blend-mode:screen;z-index:0;}
+  .stage{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;min-height:0;}
+
+  /* hairline section divider */
+  .hr{height:1px;background:var(--line-soft);}
+
+  /* ── header ── */
+  .head{padding:14px 18px 11px;display:flex;align-items:center;gap:10px;}
+  .head .loc{font-family:var(--disp);font-size:15px;letter-spacing:.08em;color:var(--text);text-transform:uppercase;}
+  .head .meta{margin-left:auto;font-size:11px;color:var(--faint);text-align:right;line-height:1.35;}
+  .head .meta b{color:var(--muted);font-weight:500;}
+
+  /* ── party ── */
+  .party{display:flex;gap:10px;padding:12px 18px 14px;}
+  .pc{flex:1;display:flex;gap:10px;align-items:center;}
+  .ava{width:42px;height:42px;border-radius:12px;flex-shrink:0;position:relative;
+    background:linear-gradient(150deg,#3a3020,#241d12);
+    display:flex;align-items:center;justify-content:center;font-size:20px;
+    box-shadow:0 0 0 1.5px var(--ring),0 2px 6px rgba(0,0,0,.4);}
+  .ava .cls{position:absolute;bottom:-5px;right:-5px;width:17px;height:17px;border-radius:6px;
+    background:var(--surface-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;
+    font-size:9px;color:var(--gold);}
+  .pi{flex:1;min-width:0;}
+  .pi .nm{font-family:var(--serif);font-size:15px;font-weight:500;color:var(--text);letter-spacing:.01em;}
+  .pi .sub{font-size:10px;color:var(--faint);margin-top:-1px;}
+  .hp{display:flex;align-items:center;gap:6px;margin-top:6px;}
+  .hp .bar{flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.07);overflow:hidden;}
+  .hp .fill{height:100%;border-radius:2px;}
+  .hp .n{font-size:10px;color:var(--muted);min-width:30px;text-align:right;font-variant-numeric:tabular-nums;}
+  .row{display:flex;gap:6px;margin-top:6px;align-items:center;}
+  .mini{font-size:9px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;}
+  .mini.warn{color:var(--warn);}
+  .ac{margin-left:auto;font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums;}
+
+  /* ── quests ── */
+  .quests{display:flex;gap:8px;padding:0 18px 14px;align-items:center;overflow:hidden;}
+  .qmain{display:flex;align-items:center;gap:7px;padding-left:9px;border-left:2px solid var(--gold);}
+  .qmain .t{font-family:var(--disp);font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--gold);}
+  .q{font-size:11px;color:var(--faint);white-space:nowrap;}
+  .qdot{color:var(--faint);opacity:.5;}
+
+  /* ── tabs ── */
+  .tabs{display:flex;gap:22px;padding:0 18px;border-bottom:1px solid var(--line-soft);}
+  .tab{font-size:12px;color:var(--faint);padding:11px 0;letter-spacing:.03em;position:relative;}
+  .tab.on{color:var(--text);}
+  .tab.on::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--gold);}
+  .tab .b{font-size:9px;background:var(--gold);color:#1a1407;border-radius:9px;padding:0 5px;margin-left:5px;font-weight:600;}
+
+  /* ── chat ── */
+  .feed{flex:1;min-height:0;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:18px;}
+  .who{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-dim);margin-bottom:7px;}
+  .dm{font-family:var(--serif);font-size:15.5px;line-height:1.68;color:#e4dccb;}
+  .dm em{font-style:italic;color:var(--gold);}
+  .tags{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap;}
+  .tag{font-size:10px;color:var(--muted);padding:3px 9px;border:1px solid var(--line);border-radius:13px;letter-spacing:.02em;}
+  .tag .i{color:var(--gold);margin-right:3px;}
+  .me{align-self:flex-end;max-width:80%;}
+  .me .b{font-family:var(--serif);font-size:14.5px;line-height:1.5;color:#e8e2d4;padding:9px 13px;border-radius:13px;
+    background:var(--surface-2);border-left:2px solid var(--ring,#c9a25a);}
+  .me .by{font-size:9px;color:var(--faint);text-align:right;margin-top:4px;letter-spacing:.03em;}
+
+  /* roll request — clean card */
+  .roll{align-self:stretch;display:flex;align-items:center;gap:13px;padding:12px 14px;border-radius:14px;
+    background:var(--surface);border:1px solid var(--line);}
+  .die{width:38px;height:38px;flex-shrink:0;border-radius:10px;border:1.5px solid var(--gold);
+    display:flex;align-items:center;justify-content:center;font-family:var(--disp);font-size:12px;color:var(--gold);}
+  .rt{flex:1;}
+  .rt .a{font-family:var(--serif);font-size:14px;color:var(--text);}
+  .rt .b{font-size:11px;color:var(--faint);margin-top:1px;}
+  .rgo{font-size:12px;font-weight:600;letter-spacing:.04em;padding:8px 16px;border-radius:10px;
+    background:var(--gold);color:#1a1407;}
+
+  /* ── input ── */
+  .input{padding:12px 16px 12px;display:flex;gap:11px;align-items:center;border-top:1px solid var(--line-soft);}
+  .field{flex:1;font-family:var(--serif);font-size:14px;color:var(--faint);padding:11px 16px;
+    background:var(--surface);border:1px solid var(--line-soft);border-radius:22px;font-style:italic;}
+  .send{width:44px;height:44px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    background:var(--gold);color:#1a1407;font-size:17px;box-shadow:0 3px 10px rgba(201,162,90,.25);}
+
+  /* ── nav ── */
+  .nav{display:flex;padding:8px 10px 14px;gap:4px;background:var(--bg);border-top:1px solid var(--line-soft);position:relative;z-index:1;}
+  .nav .it{flex:1;text-align:center;font-size:10px;color:var(--faint);padding:5px 0;letter-spacing:.04em;}
+  .nav .it .gi{display:block;font-size:17px;margin-bottom:3px;opacity:.6;}
+  .nav .it.on{color:var(--gold);}
+  .nav .it.on .gi{opacity:1;}
+
+  .cap{margin-top:14px;text-align:center;}
+  .cap .n{font-family:var(--disp);font-size:12px;letter-spacing:.12em;color:var(--gold);text-transform:uppercase;}
+  .cap .d{font-size:11px;color:#a98c5f;margin-top:4px;}
+  .note{max-width:368px;font-size:11px;color:#8f8573;line-height:1.55;margin-top:12px;text-align:center;}
+  .note b{color:var(--gold);}
+</style>
+</head>
+<body>
+  <div class="title">Tinkerer's Chronograph</div>
+
+  <div class="phone"><div class="screen">
+    <svg class="grain" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2"/></filter><rect width="100%" height="100%" filter="url(#n)"/></svg>
+
+    <div class="stage">
+      <div class="head">
+        <span class="loc">Hunting Lodge Ruins</span>
+        <span class="meta"><b>Day 26</b> · 1:15 AM<br>clear · no moon</span>
+      </div>
+      <div class="hr"></div>
+
+      <div class="party">
+        <div class="pc" style="--ring:#46a374">
+          <div class="ava">🗡️<span class="cls">⚔</span></div>
+          <div class="pi">
+            <div class="nm">Ivy</div><div class="sub">Rogue 4</div>
+            <div class="hp"><div class="bar"><div class="fill" style="width:100%;background:var(--ok);"></div></div><span class="n">31/31</span></div>
+            <div class="row"><span class="mini">Hidden</span><span class="ac">AC 15</span></div>
+          </div>
+        </div>
+        <div class="pc" style="--ring:#8b6fd0">
+          <div class="ava">🎻<span class="cls">♪</span></div>
+          <div class="pi">
+            <div class="nm">Thorn</div><div class="sub">Bard 4</div>
+            <div class="hp"><div class="bar"><div class="fill" style="width:66%;background:var(--warn);"></div></div><span class="n">18/27</span></div>
+            <div class="row"><span class="mini warn">Concentrating</span><span class="ac">AC 13</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="quests">
+        <span class="qmain"><span class="t">Stop the Cult</span></span>
+        <span class="q">find the egg</span><span class="qdot">·</span><span class="q">rescue Leosin</span>
+      </div>
+
+      <div class="tabs">
+        <span class="tab on">Narrative</span>
+        <span class="tab">Table-talk<span class="b">2</span></span>
+      </div>
+
+      <div class="feed">
+        <div>
+          <div class="who">Dungeon Master</div>
+          <div class="dm">The lodge's broken door hangs on one hinge. <em>Ivy</em>, your boots find old bloodstains beneath the ash — something moved through here recently, and not long ago. A low growl rolls out of the black doorway ahead, wet and deliberate.
+            <div class="tags"><span class="tag"><span class="i">⚔</span>Combat begins</span><span class="tag"><span class="i">+</span>Kobold</span><span class="tag"><span class="i">📍</span>Lodge interior</span></div>
+          </div>
+        </div>
+
+        <div class="me" style="--ring:#46a374">
+          <div class="b">I ready my crossbow and creep toward the growl, staying to the shadows.</div>
+          <div class="by">Ivy · 9:14 pm</div>
+        </div>
+
+        <div class="roll">
+          <div class="die">d20</div>
+          <div class="rt"><div class="a">Stealth check</div><div class="b">Ivy · DC 13 · close in unseen</div></div>
+          <div class="rgo">Roll</div>
+        </div>
+      </div>
+
+      <div class="input">
+        <div class="field">What do you do?</div>
+        <div class="send">➤</div>
+      </div>
+    </div>
+
+    <div class="nav">
+      <div class="it"><span class="gi">⚖</span>Cargo</div>
+      <div class="it on"><span class="gi">📖</span>Play</div>
+      <div class="it"><span class="gi">🗺</span>Journal</div>
+      <div class="it"><span class="gi">⚙</span>Settings</div>
+    </div>
+  </div></div>
+
+  <div class="cap">
+    <div class="n">Modern · Atmospheric</div>
+    <div class="d">restraint · type hierarchy · gold used sparingly</div>
+  </div>
+  <div class="note">
+    Same soul, modern register: real type (<b>Cinzel</b> display + <b>EB Garamond</b> prose + <b>Inter</b> UI), flat panels with hairline borders, one gold accent used sparingly, and texture you feel (faint grain) — <b>no</b> leather, stitching, bevels or wax. Portraits keep the per-PC color ring. A <b>Texturelabs</b> paper layer can still sit underneath, kept subtle.
+  </div>
+</body>
+</html>
