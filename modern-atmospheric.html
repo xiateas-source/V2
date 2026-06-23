@@ -33,11 +33,13 @@
   .hr{height:1px;background:var(--line-soft);}
 
   /* ── header ── */
-  .head{padding:11px 16px 9px;display:flex;align-items:center;gap:10px;}
-  .head .loc{font-family:var(--disp);font-size:15px;letter-spacing:.08em;color:var(--text);text-transform:uppercase;}
-  .head .meta{font-size:11px;color:var(--faint);text-align:right;line-height:1.35;}
+  .head{padding:7px 14px;display:flex;align-items:center;gap:10px;}
+  .head .loc{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    font-family:var(--disp);font-size:14px;letter-spacing:.07em;color:var(--text);text-transform:uppercase;}
+  .head .meta{font-size:11px;color:var(--faint);white-space:nowrap;}
+  .head .wx{font-size:15px;color:var(--muted);}
   /* tap-to-source links + listen controls + consequence chip (review 1–4) */
-  .head-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+  .head-right{margin-left:auto;flex-shrink:0;display:flex;align-items:center;gap:8px;}
   .tts{width:30px;height:30px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
     background:var(--surface);border:1px solid var(--line);color:var(--gold);font-size:15px;}
   .tts:not(.on){color:var(--faint);}
@@ -172,8 +174,9 @@
       <div class="head">
         <span class="loc">Hunting Lodge Ruins</span>
         <div class="head-right">
+          <span class="meta">Day 26 · 1:15 AM</span>
+          <i class="ph ph-moon-stars wx" title="Clear · no moon"></i>
           <button class="tts on" aria-label="Read aloud"><i class="ph ph-speaker-high"></i></button>
-          <span class="meta"><b>Day 26</b> · 1:15 AM<br>clear · no moon</span>
         </div>
       </div>
       <div class="hr"></div>
@@ -268,7 +271,7 @@
     <div class="d">restraint · type hierarchy · gold used sparingly</div>
   </div>
   <div class="note">
-    <b>Situation bar — stacking handled as decided (S30–31):</b> main quest pinned, then consequences/countdowns <b>sorted by urgency</b> — imminent ones read red (<span style="color:#cf5b46">Pursuers · tonight</span>), upcoming amber. When they pile up, the bar shows the most urgent and a <b>+N overflow</b> chip that taps through to the Journal's “Active Consequences (N)” list (the full stack's one home). Quests scroll after. <span style="opacity:.7">(The +N overflow is my realization of the documented “urgency-sorted, always-visible, tap-through” principle — flag if you'd rather pure horizontal scroll.)</span> Also still here: 16px input, tap-to-source pills/NPCs/terms, listen controls.
+    <b>Situation bar — stacking handled as decided (S30–31):</b> main quest pinned, then consequences/countdowns <b>sorted by urgency</b> — imminent ones read red (<span style="color:#cf5b46">Pursuers · tonight</span>), upcoming amber. When they pile up, the bar shows the most urgent and a <b>+N overflow</b> chip that taps through to the Journal's “Active Consequences (N)” list (the full stack's one home). Quests scroll after. <span style="opacity:.7">(+N overflow confirmed for now.)</span> <b>Top banner slimmed</b> to a single line — location · time · weather icon · listen — reclaiming vertical space for chat. Also here: 16px input, tap-to-source pills/NPCs/terms.
   </div>
 </body>
 </html>

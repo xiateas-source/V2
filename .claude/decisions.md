@@ -36,6 +36,8 @@
 | New color palette for v2 | Soft Autumn palette not carrying forward. New palette TBD — design session needed with UI visible. | 30 |
 | Tap-to-source — no dead text | Any displayed information is tappable and navigates to its source. Location banner → journal. Quest chip → quest detail. Mechanic pill → reference. | 30 |
 | Situation bar replaces quest bar | Main quest pinned left (DM's railroad). Active consequences/countdowns pinned after (visually distinct, sorted by urgency). Player quests scrollable after. | 30 |
+| Situation bar overflow = +N chip → Journal | When pending consequences/countdowns stack up, surface the most-urgent (urgency-sorted: imminent=danger, upcoming=warning) and collapse the rest into a `+N` overflow chip that taps through to the Journal's "Active Consequences (N)" list (the stack's one home). Chosen over pure horizontal scroll. "For now" per developer. | 39 |
+| Context banner is a single slim line | Location · time · weather (icon) · listen toggle, one row. Two-line time/weather wrapping wasted vertical space the chat needs. Still tap-to-source (location → Journal). | 39 |
 | Context banner is interactive | Location, weather, time — all tappable. Location taps through to journal locations section. | 30 |
 | Nav dot badges + in-chat alerts for notifications | Player needs to know when state changes elsewhere. Both patterns worked in v1. | 30 |
 | Mechanic pills kept | Tappable pills in AI responses — worked well in v1 for connecting features to play loop. Tap navigates to source (tap-to-source). | 30 |
