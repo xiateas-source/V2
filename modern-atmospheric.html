@@ -45,8 +45,14 @@
   .npc{color:var(--text);border-bottom:1px dashed var(--gold);cursor:pointer;}
   .term{border-bottom:1px dotted var(--muted);cursor:help;}
   .csq{display:flex;align-items:center;gap:4px;font-size:10px;padding:3px 8px;border-radius:5px;white-space:nowrap;
-    color:#e7c39a;background:rgba(224,168,62,.13);border:1px solid rgba(224,168,62,.34);}
+    color:#e7c39a;background:rgba(224,168,62,.13);border:1px solid rgba(224,168,62,.34);cursor:pointer;}
   .csq i{font-size:12px;color:var(--warn);}
+  /* imminent (urgency-sorted to the front) reads danger */
+  .csq.now{color:#efb3a4;background:rgba(207,91,70,.14);border-color:rgba(207,91,70,.4);}
+  .csq.now i{color:var(--danger);}
+  /* overflow → the rest of the stack lives in the Journal */
+  .csq.more{color:var(--warn);background:transparent;border:1px dashed rgba(224,168,62,.4);}
+  .csq.more .go2{font-size:10px;color:var(--faint);}
   .head .meta b{color:var(--muted);font-weight:500;}
 
   /* ── party: compact HUD frames ── */
@@ -193,7 +199,9 @@
 
       <div class="quests">
         <span class="qmain"><span class="t">Stop the Cult</span></span>
+        <span class="csq now"><i class="ph ph-warning"></i>Pursuers · tonight</span>
         <span class="csq"><i class="ph ph-hourglass-high"></i>Ritual · 2 days</span>
+        <span class="csq more">+2<i class="ph ph-caret-right go2"></i></span>
         <span class="q">find the egg</span><span class="qdot">·</span><span class="q">rescue Leosin</span>
       </div>
 
@@ -260,7 +268,7 @@
     <div class="d">restraint · type hierarchy · gold used sparingly</div>
   </div>
   <div class="note">
-    Player-experience pass (review 1–4): <b>① input is 16px</b> (no iOS zoom). <b>② tap-to-source</b> — mechanic pills now read as buttons (↗ = navigates to source), NPC names are linked (<span style="border-bottom:1px dashed #c9a25a">Leosin</span>), and D&D terms are glossary-linked (<span style="border-bottom:1px dotted #9a9180">Hidden</span>, for the kid player). <b>③ situation bar</b> now pins a distinct amber <b>consequence/countdown</b> (Ritual · 2 days) after the main quest. <b>④ listen</b> — global read-aloud toggle in the header + a per-message speaker (eyes-free, Law 3).
+    <b>Situation bar — stacking handled as decided (S30–31):</b> main quest pinned, then consequences/countdowns <b>sorted by urgency</b> — imminent ones read red (<span style="color:#cf5b46">Pursuers · tonight</span>), upcoming amber. When they pile up, the bar shows the most urgent and a <b>+N overflow</b> chip that taps through to the Journal's “Active Consequences (N)” list (the full stack's one home). Quests scroll after. <span style="opacity:.7">(The +N overflow is my realization of the documented “urgency-sorted, always-visible, tap-through” principle — flag if you'd rather pure horizontal scroll.)</span> Also still here: 16px input, tap-to-source pills/NPCs/terms, listen controls.
   </div>
 </body>
 </html>
