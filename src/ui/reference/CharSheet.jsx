@@ -1,5 +1,5 @@
 import { createSignal, createMemo, For, Show, onMount, onCleanup } from 'solid-js';
-import { store, setStore } from '../../state/index.js';
+import { store, setStore, playerSet } from '../../state/index.js';
 
 const XP_THRESHOLDS = [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000];
 
@@ -633,28 +633,56 @@ export default function CharSheet(props) {
           <div class="cs-bio-field"><span class="cs-bio-label">Alignment</span><span class="cs-bio-value">{p.alignment || '—'}</span></div>
         </div>
 
-        <div class="cs-section-label">Appearance <span class="cs-own-tag player">player</span></div>
-        <div class="cs-bio-section">
-          <div class="cs-bio-text">{p.appearance || 'No appearance set.'}</div>
-        </div>
-
-        <div class="cs-section-label">Personality <span class="cs-own-tag player">player</span></div>
-        <div class="cs-bio-section">
-          <div class="cs-bio-text">{p.personality || 'No personality set.'}</div>
-        </div>
-
-        <div class="cs-section-label">Backstory <span class="cs-own-tag player">player</span></div>
-        <div class="cs-bio-section">
-          <div class="cs-bio-text">{p.backstory || 'No backstory yet.'}</div>
-        </div>
-
-        <Show when={p.notes}>
-          <div class="cs-section-label">Notes <span class="cs-own-tag player">player</span></div>
-          <div class="cs-bio-section">
-            <div class="cs-bio-text">{p.notes}</div>
-          </div>
-        </Show>
+        <EditableBio label="Appearance" field="appearance" value={p.appearance} placeholder="No appearance set. Tap edit to describe how they look." />
+        <EditableBio label="Personality" field="personality" value={p.personality} placeholder="No personality set. Traits, ideals, bonds, flaws…" rows={4} />
+        <EditableBio label="Backstory" field="backstory" value={p.backstory} placeholder="No backstory yet. Origin, motivation, secrets…" rows={8} />
+        <EditableBio label="Notes" field="notes" value={p.notes} placeholder="Player notes — anything you want to remember." rows={4} />
       </div>
+    );
+  }
+
+  // Inline editor for player-owned Bio fields. Writes through playerSet so the
+  // ownership guard and Firebase sync both fire — this is what persists the text.
+  function EditableBio(props) {
+    const [editing, setEditing] = createSignal(false);
+    const [draft, setDraft] = createSignal('');
+
+    function startEdit() {
+      setDraft(props.value || '');
+      setEditing(true);
+    }
+    function save() {
+      playerSet(`characters.${activePC()}.${props.field}`, draft());
+      setEditing(false);
+    }
+
+    return (
+      <>
+        <div class="cs-section-label">
+          {props.label} <span class="cs-own-tag player">player</span>
+          <Show when={!editing()}>
+            <button class="cs-bio-edit" onClick={startEdit}>{props.value ? 'Edit' : '+ Add'}</button>
+          </Show>
+        </div>
+        <div class="cs-bio-section">
+          <Show
+            when={editing()}
+            fallback={<div class="cs-bio-text">{props.value || props.placeholder}</div>}
+          >
+            <textarea
+              class="cs-bio-input"
+              rows={props.rows || 3}
+              value={draft()}
+              placeholder={props.placeholder}
+              onInput={(e) => setDraft(e.target.value)}
+            />
+            <div class="cs-bio-actions">
+              <button class="cs-bio-cancel" onClick={() => setEditing(false)}>Cancel</button>
+              <button class="cs-bio-save" onClick={save}>Save</button>
+            </div>
+          </Show>
+        </div>
+      </>
     );
   }
 

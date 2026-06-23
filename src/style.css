@@ -660,6 +660,64 @@ body {
   flex-wrap: wrap;
 }
 
+/* Bio tab inline editing (player-owned: appearance, personality, backstory, notes) */
+.cs-bio-edit {
+  margin-left: auto;
+  padding: 2px var(--space-sm);
+  font-size: var(--font-size-sm);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-accent);
+}
+
+.cs-bio-edit:active {
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+
+.cs-bio-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-sm);
+  font-family: var(--font-body);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-input-bg);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  resize: vertical;
+}
+
+.cs-bio-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.cs-bio-cancel,
+.cs-bio-save {
+  min-height: var(--touch-target);
+  padding: 0 var(--space-lg);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+}
+
+.cs-bio-cancel {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.cs-bio-save {
+  border: none;
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-weight: 700;
+}
+
 /* Combat turn handoff — shows on every device, any player can act */
 .turn-prompt {
   padding: var(--space-sm) var(--space-md);
@@ -3935,6 +3993,39 @@ body {
   padding: 2px var(--spacing-xs);
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
+}
+
+.preview-bio {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-top: var(--space-md);
+}
+
+.preview-bio-label {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-text-muted);
+  margin-top: var(--space-sm);
+}
+
+.preview-bio-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-sm);
+  font-family: var(--font-body);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-input-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  resize: vertical;
+}
+
+.preview-bio-input:focus {
+  border-color: var(--color-accent);
+  outline: none;
 }
 
 .preview-errors {

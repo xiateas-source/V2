@@ -128,6 +128,34 @@ export default function CharCreate(props) {
               </For>
             </div>
           </Show>
+
+          <div class="preview-bio">
+            <label class="preview-bio-label">Appearance</label>
+            <textarea
+              class="preview-bio-input"
+              rows="2"
+              value={draft().appearance || ''}
+              placeholder="How do they look? Build, features, dress…"
+              onInput={(e) => setDraft({ ...draft(), appearance: e.target.value })}
+            />
+            <label class="preview-bio-label">Personality</label>
+            <textarea
+              class="preview-bio-input"
+              rows="3"
+              value={draft().personality || ''}
+              placeholder="Traits, ideals, bonds, flaws…"
+              onInput={(e) => setDraft({ ...draft(), personality: e.target.value })}
+            />
+            <label class="preview-bio-label">Backstory</label>
+            <textarea
+              class="preview-bio-input"
+              rows="6"
+              value={draft().backstory || ''}
+              placeholder="Origin, motivation, secrets — who were they before the adventure?"
+              onInput={(e) => setDraft({ ...draft(), backstory: e.target.value })}
+            />
+          </div>
+
           <Show when={STARTING_EQUIPMENT[draft()?.class]}>
             <EquipmentPicker
               className={draft().class}
