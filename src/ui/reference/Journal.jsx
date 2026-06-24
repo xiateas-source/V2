@@ -8,6 +8,87 @@ const Compendium = lazy(() => import('./Compendium.jsx'));
 const DISP_CLASS = { friendly: 'disp-friendly', neutral: 'disp-neutral', hostile: 'disp-hostile', unknown: 'disp-unknown' };
 function dispClass(d) { return DISP_CLASS[(d || 'unknown').toLowerCase()] || 'disp-unknown'; }
 
+function escapeRe(s) { return (s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+// Strip mechanics + Campaign State block + markdown so narrative reads cleanly.
+function stripProse(text) {
+  if (!text) return '';
+  return text
+    .replace(/---MECHANICS---[\s\S]*?---END---/g, '')
+    .replace(/MECHANICS BLOCK:[\s\S]*?---END---/g, '')
+    .replace(/\*\*\*[\s\S]*?(Campaign State[\s\S]*)$/i, '') // drop trailing state block
+    .replace(/\*\*\*/g, '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1')
+    .trim();
+}
+
+function matchesName(text, name) {
+  if (!text || !name) return false;
+  const full = new RegExp(`\\b${escapeRe(name)}\\b`, 'i');
+  if (full.test(text)) return true;
+  const first = name.split(/\s+/)[0];
+  if (first && first.length > 2 && first.toLowerCase() !== name.toLowerCase()) {
+    return new RegExp(`\\b${escapeRe(first)}\\b`, 'i').test(text);
+  }
+  return false;
+}
+
+function sentenceWith(text, name) {
+  const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean);
+  const hit = sentences.find(s => matchesName(s, name)) || sentences[0] || text;
+  return hit.length > 180 ? hit.slice(0, 177) + '…' : hit;
+}
+
+// Assemble everything we know about an NPC from the campaign — no player
+// tracking required. Answers: who, how/when met, what quests, who they're with,
+// what's happened.
+function buildDossier(npc) {
+  const all = store.campaign;
+  const name = npc.name;
+
+  // Interaction timeline — narrative beats that mention this NPC.
+  const timeline = [];
+  for (const m of all.narrative || []) {
+    const prose = stripProse(m.content);
+    if (!prose || !matchesName(prose, name)) continue;
+    const firstMeet = (m.mechanics?.applied || []).some(x => x.key === 'npc_add' && matchesName(x.value.split(',')[0] || '', name));
+    timeline.push({ ts: m.ts, gameTs: m.gameTs, who: m.type, snippet: sentenceWith(prose, name), firstMeet });
+  }
+
+  // Connections — other known NPCs who appear in the same beats.
+  const conn = new Set();
+  for (const m of all.narrative || []) {
+    const prose = stripProse(m.content);
+    if (!prose || !matchesName(prose, name)) continue;
+    for (const other of all.npcs) {
+      if (other.id === npc.id) continue;
+      if (matchesName(prose, other.name)) conn.add(other.name);
+    }
+  }
+  // Also anyone sharing their location.
+  for (const loc of all.locations || []) {
+    if ((loc.npcs || []).some(nm => matchesName(nm, name))) {
+      for (const nm of loc.npcs) { if (!matchesName(nm, name)) conn.add(nm); }
+    }
+  }
+
+  // Quests they're tied to (giver or named in the text/notes).
+  const quests = (all.quests || []).filter(q =>
+    matchesName(q.giverNpc || '', name) || matchesName(`${q.text} ${q.notes || ''}`, name)
+  );
+
+  const firstBeat = timeline.find(t => t.firstMeet) || timeline[0];
+  return {
+    timeline: timeline.reverse(), // newest first
+    connections: [...conn],
+    quests,
+    metWhere: npc.firstSeen || npc.lastSeen || '',
+    metWhen: npc.gameTs || (firstBeat?.gameTs) || '',
+    metHow: firstBeat?.snippet || '',
+  };
+}
+
 // Urgency ranking for pressures — anything with a deadline floats up.
 function urgencyRank(c) {
   if (!c.deadline) return 3;
@@ -256,18 +337,98 @@ function People() {
 function NPCCard(props) {
   const n = () => props.n;
   const [open, setOpen] = createSignal(false);
+  // "who they are" one-liner for the collapsed row — role, else first clause of details.
+  const who = () => n().role || (n().details || '').split(/[.,—]/)[0];
+  const dossier = createMemo(() => open() ? buildDossier(n()) : null);
+
   return (
-    <div class="npc-card" onClick={() => setOpen(!open())}>
+    <div class={`npc-card ${open() ? 'npc-open' : ''}`} onClick={() => setOpen(!open())}>
       <div class="npc-top">
         <span class="npc-name">{n().name}</span>
         <span class={`disp-badge ${dispClass(n().disposition)}`}>{n().disposition || 'Unknown'}</span>
       </div>
       <div class="npc-sub">
-        <Show when={n().role}><span class="npc-role">{n().role}</span></Show>
+        <Show when={who()}><span class="npc-who">{who()}</span></Show>
         <Show when={n().lastSeen}><span class="chip chip-loc"><i class="ph ph-map-pin" />{n().lastSeen}</span></Show>
       </div>
-      <Show when={open() && n().details}><div class="npc-details">{n().details}</div></Show>
-      <Show when={open() && n().hp !== null && n().hp !== undefined}><div class="npc-hp">HP {n().hp}</div></Show>
+
+      <Show when={open() && dossier()}>
+        {(() => {
+          const d = dossier();
+          return (
+            <div class="dossier" onClick={(e) => e.stopPropagation()}>
+              <Show when={n().details}>
+                <div class="dossier-sec">
+                  <div class="dossier-label">Who they are</div>
+                  <div class="dossier-text">{n().details}</div>
+                  <div class="dossier-meta">
+                    <Show when={n().race}><span>{n().race}</span></Show>
+                    <Show when={n().role}><span>{n().role}</span></Show>
+                    <Show when={n().hp !== null && n().hp !== undefined}><span>HP {n().hp}</span></Show>
+                  </div>
+                </div>
+              </Show>
+
+              <Show when={d.metWhere || d.metWhen || d.metHow}>
+                <div class="dossier-sec">
+                  <div class="dossier-label">How you met</div>
+                  <Show when={d.metWhere || d.metWhen}>
+                    <div class="dossier-when">
+                      <Show when={d.metWhere}><span class="chip chip-loc"><i class="ph ph-map-pin" />{d.metWhere}</span></Show>
+                      <Show when={d.metWhen}><span class="dossier-ts">{d.metWhen}</span></Show>
+                    </div>
+                  </Show>
+                  <Show when={d.metHow}><div class="dossier-text">{d.metHow}</div></Show>
+                </div>
+              </Show>
+
+              <Show when={d.quests.length > 0}>
+                <div class="dossier-sec">
+                  <div class="dossier-label">Why they matter</div>
+                  <For each={d.quests}>
+                    {(q) => (
+                      <div class="dossier-quest">
+                        <span class={`status-dot qstatus-${q.status}`} />
+                        <span class={q.status !== 'active' ? 'quest-struck' : ''}>{q.text}</span>
+                      </div>
+                    )}
+                  </For>
+                </div>
+              </Show>
+
+              <Show when={d.connections.length > 0}>
+                <div class="dossier-sec">
+                  <div class="dossier-label">Connected to</div>
+                  <div class="dossier-conns">
+                    <For each={d.connections}>{(c) => <span class="chip chip-npc"><i class="ph ph-user" />{c}</span>}</For>
+                  </div>
+                </div>
+              </Show>
+
+              <Show when={d.timeline.length > 0}>
+                <div class="dossier-sec">
+                  <div class="dossier-label">What's happened</div>
+                  <div class="npc-timeline">
+                    <For each={d.timeline.slice(0, 6)}>
+                      {(t) => (
+                        <div class={`tl-item ${t.firstMeet ? 'tl-first' : ''}`}>
+                          <span class="tl-dot" />
+                          <div class="tl-body">
+                            <Show when={t.gameTs || t.firstMeet}>
+                              <div class="tl-ts">{t.firstMeet ? 'First met' : ''}{t.firstMeet && t.gameTs ? ' · ' : ''}{t.gameTs || ''}</div>
+                            </Show>
+                            <div class="tl-text">{t.snippet}</div>
+                          </div>
+                        </div>
+                      )}
+                    </For>
+                  </div>
+                </div>
+              </Show>
+            </div>
+          );
+        })()}
+      </Show>
     </div>
   );
 }

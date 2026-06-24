@@ -6611,6 +6611,27 @@ body {
 .npc-role { font-size: 11px; color: var(--color-text-muted); }
 .npc-details { font-size: 12.5px; color: var(--color-text-muted); margin-top: 8px; line-height: 1.5; font-family: var(--serif); }
 .npc-hp { font-size: 11px; color: var(--color-danger); margin-top: 4px; }
+.npc-who { font-size: 11.5px; color: var(--color-text-muted); }
+.npc-card.npc-open { border-color: color-mix(in srgb, var(--color-accent) 28%, transparent); }
+
+/* NPC dossier — derived, not tracked */
+.dossier { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line-soft); display: flex; flex-direction: column; gap: 12px; }
+.dossier-sec { }
+.dossier-label { font-family: var(--disp); font-size: 8.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--color-accent-dim); margin-bottom: 5px; }
+.dossier-text { font-family: var(--serif); font-size: 13px; line-height: 1.55; color: color-mix(in srgb, var(--color-text) 85%, var(--color-bg)); }
+.dossier-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px; font-size: 10.5px; color: var(--faint); }
+.dossier-when { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.dossier-ts { font-size: 10.5px; color: var(--color-accent-dim); }
+.dossier-quest { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--color-text); padding: 2px 0; font-family: var(--serif); }
+.dossier-conns { display: flex; flex-wrap: wrap; gap: 6px; }
+.npc-timeline { display: flex; flex-direction: column; }
+.tl-item { display: flex; gap: 9px; padding: 5px 0; }
+.tl-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--line); margin-top: 5px; flex-shrink: 0; }
+.tl-item.tl-first .tl-dot { background: var(--color-accent); }
+.tl-body { flex: 1; min-width: 0; border-left: 1px solid var(--line-soft); padding-left: 9px; margin-left: -4px; }
+.tl-ts { font-size: 9.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--color-accent-dim); margin-bottom: 2px; }
+.tl-text { font-family: var(--serif); font-size: 12.5px; line-height: 1.5; color: var(--color-text-muted); }
+.tl-item.tl-first .tl-text { color: var(--color-text); }
 .disp-badge { font-size: 9.5px; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 10px; border: 1px solid transparent; }
 .disp-friendly { color: var(--color-success); border-color: color-mix(in srgb, var(--color-success) 35%, transparent); }
 .disp-friendly.disp-dot, .disp-dot.disp-friendly { background: var(--color-success); }

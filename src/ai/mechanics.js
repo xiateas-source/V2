@@ -461,7 +461,8 @@ const DISPATCH = {
       aiSet('npcs', [...store.campaign.npcs, {
         id: 'npc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
         name, disposition, details, status: 'active', hp: null,
-        lastSeen: store.campaign.location, race: '', role: '', gameTs: store.campaign.time,
+        lastSeen: store.campaign.location, firstSeen: store.campaign.location,
+        race: '', role: '', gameTs: store.campaign.time,
       }]);
     }
   },
