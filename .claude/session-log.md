@@ -1,6 +1,6 @@
 # Session Log — Handoff Note
 
-## Session 40 · 2026-06-23 — Character-creation overhaul (the Forge) + deploy
+## Session 40 · 2026-06-23/24 — Character-creation overhaul (the Forge) + deploy
 
 **Theme:** unify and complete character creation across all four paths, then
 make the sheet reflect it. All work shipped live to pebble-v2.web.app via the
@@ -34,6 +34,20 @@ push-to-main GitHub Action.
   AI prompt requires the full creative set; `onCharParsed` maps traits through
   and merges background skills. Roster characters tappable → full CharSheet
   overlay for review/edit.
+- **Spell bug fix** (`2e70025`) — `autoSelectSpells` in quickBuild.js only fell
+  back on thrown errors, not empty DB results. Quick Pick and AI Bards got zero
+  spells. Fixed at two levels: (1) `autoSelectSpells` checks `length === 0`
+  after the query and falls back to `SPELL_FALLBACK`, (2) the Forge guarantees
+  supported casters never end up empty by calling `autoSelectSpells()` when
+  spells are missing.
+- **Criteria parity fix** (`e25ff58`) — Quick Pick was missing appearance and
+  backstory (`randomFlavor()` call added). AI path was missing traits, bio,
+  background, and alignment when the model omitted them (`onCharParsed`
+  backfills with `rollTraits()`, `randomFlavor()`, random background/alignment).
+- **Preview enrichment** (`66a5ec0`) — AI/Import draft preview now shows the
+  full character: Background, Alignment, Skills, Saving Throws, Spells
+  (cantrips + known), Features, Attacks (bonus + damage), Languages. Before
+  this, only name/race/class, HP/AC/Speed, abilities, and bio boxes were shown.
 
 ### Decisions made
 - **New canonical module `forge.js`** — single character builder; doors gather
@@ -68,8 +82,24 @@ push-to-main GitHub Action.
 4. Content: more classes/subraces/subclasses → fills remaining PHB boxes.
 5. Spell DC/attack as stored fields if a model pass is warranted.
 
-**Branch state:** `claude/new-session-yp5z21` @ `80ea7db`; merged to **main**,
-deployed (run #16 green). main and feature branch even.
+### Key files touched this session
+- `src/data/forge.js` — NEW, canonical character builder (~230 lines)
+- `src/data/quickBuild.js` — `autoSelectSpells` fallback, personality tables,
+  `rollTraits()`, `randomFlavor()`, `composePersonality()`, `buildCharacter`
+  delegates to forge
+- `src/ui/setup/CharCreate.jsx` — Quick Pick, 2×2 grid, party roster, AI/Paste
+  backfill, full preview enrichment
+- `src/ui/setup/CharWizard.jsx` — TIBF fields, draft persistence, Recommended
+  button, delegates to forge
+- `src/ui/reference/CharSheet.jsx` — TIBF display/edit on Bio tab
+- `src/ai/setupPrompts.js` — AI prompt constrained + enriched
+- `src/state/campaign.js` — `traits` added to DEFAULT_CHARACTER
+- `src/state/store.js` — traits ownership registered
+- `src/style.css` — Quick Pick, roster, TIBF, preview enrichment styles
+
+**Branch state:** `claude/new-session-yp5z21` @ `66a5ec0`; merged to **main**,
+deployed (GitHub Actions green). main and feature branch even. Branch is safe to
+delete — all work is on main.
 
 ---
 
@@ -105,20 +135,4 @@ deployed (run #16 green). main and feature branch even.
 2. Resolve the nav discrepancy + review items 5–9.
 3. **Build the real interface in SolidJS** on the working engine — start with the **persistence spine** (the root cause of the face) so a session survives reload.
 
-### Shipped (all merged to main + deployed live to pebble-v2.web.app)
-- **Combat tracker + turn system rebuild**
-  - Engine owns the turn pointer (Law 2). `advanceCombatToNextPC()` in gates.js lands on the next living PC, skips downed, wraps the round. AI resolves NPCs/enemies up to the next PC and stops.
-  - PC initiative now records: RollBar derives Initiative prompts from `combatState` (PCs flagged `rollPending`), rolls d20+DEX, writes back, fires `combatKickoff`. (Was completely broken — combat hung on turn 1; side-effect roll_requests were heard by nobody.)
-  - `zone_add_enemy` seeds combat before appending (no more vanished first enemy). `initiative` stored pre-sorted; `currentTurn` indexed consistently.
-  - `TurnPrompt.jsx` — derived from synced state, shows on all devices, any player taps, quick-action buttons (attacks/spells) prefill input via `prefill-input` event.
-  - `⚔ Round N` markers in narrative on wrap.
-  - **Minimize toggle** on the overlay. **Live ally HP** (from char store) vs enemy HP (initiative entry).
-  - `roll_request` code-enforced PC-only (validation rejects enemy targets). Contract requires `hp` mechanic on any damage/heal so enemy HP tracks.
-- **Onboarding: backstory restored**
-  - Editable Appearance/Personality/Backstory in the character-creation preview (all 3 paths), saved on commit.
-  - Editable Bio tab on the character sheet (playerSet → synced) for editing/recovery after creation.
-- **Deploy pipeline**
-  - `.github/workflows/deploy.yml` — auto-deploy on push to main.
- 
-### Next Up
-3. Reconcile workboard.md with reality (big cleanup).
+**Branch state:** consolidated — this session merged to **main**; `claude/new-session-mr3qge`, `claude/transfer-v2-planning-docs-hlibvu` (orphan), and `gh-pages` (stale) pruned. **Work from `main` going forward.**
