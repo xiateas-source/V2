@@ -1148,14 +1148,63 @@ function computeResources(className, level, scores) {
     const chaMod = abilityMod(scores.cha || 10);
     resources.push({
       name: 'Bardic Inspiration', max: Math.max(1, chaMod), current: Math.max(1, chaMod),
-      die: level >= 10 ? 'd10' : level >= 5 ? 'd8' : 'd6',
+      die: level >= 15 ? 'd12' : level >= 10 ? 'd10' : level >= 5 ? 'd8' : 'd6',
       restoresOn: level >= 5 ? 'short rest' : 'long rest',
     });
+    if (level >= 2) {
+      resources.push({
+        name: 'Song of Rest',
+        die: level >= 17 ? 'd12' : level >= 13 ? 'd10' : level >= 9 ? 'd8' : 'd6',
+        restoresOn: 'short rest',
+      });
+    }
   } else if (className === 'Fighter') {
     resources.push({ name: 'Second Wind', max: 1, current: 1, restoresOn: 'short rest' });
-    if (level >= 2) resources.push({ name: 'Action Surge', max: 1, current: 1, restoresOn: 'short rest' });
+    if (level >= 2) {
+      const surgMax = level >= 17 ? 2 : 1;
+      resources.push({ name: 'Action Surge', max: surgMax, current: surgMax, restoresOn: 'short rest' });
+    }
+    if (level >= 9) {
+      const indMax = level >= 17 ? 3 : level >= 13 ? 2 : 1;
+      resources.push({ name: 'Indomitable', max: indMax, current: indMax, restoresOn: 'long rest' });
+    }
   } else if (className === 'Rogue') {
     resources.push({ name: 'Sneak Attack', max: 1, current: 1, die: `${Math.ceil(level / 2)}d6`, restoresOn: 'turn' });
+    if (level >= 20) {
+      resources.push({ name: 'Stroke of Luck', max: 1, current: 1, restoresOn: 'short rest' });
+    }
+  } else if (className === 'Barbarian') {
+    const rages = level >= 17 ? 6 : level >= 12 ? 5 : level >= 6 ? 4 : level >= 3 ? 3 : 2;
+    const rageDmg = level >= 16 ? 4 : level >= 9 ? 3 : 2;
+    resources.push({ name: 'Rage', max: rages, current: rages, restoresOn: 'long rest', note: `+${rageDmg} damage` });
+  } else if (className === 'Monk') {
+    if (level >= 2) {
+      resources.push({ name: 'Ki Points', max: level, current: level, restoresOn: 'short rest' });
+    }
+  } else if (className === 'Cleric') {
+    const cdUses = level >= 18 ? 4 : level >= 6 ? 3 : level >= 2 ? 2 : 0;
+    if (cdUses > 0) {
+      resources.push({ name: 'Channel Divinity', max: cdUses, current: cdUses, restoresOn: 'short rest' });
+    }
+  } else if (className === 'Druid') {
+    if (level >= 2) {
+      const wsUses = level >= 17 ? 4 : level >= 6 ? 3 : 2;
+      resources.push({ name: 'Wild Shape', max: wsUses, current: wsUses, restoresOn: 'short rest' });
+    }
+  } else if (className === 'Paladin') {
+    const lohPool = level * 5;
+    resources.push({ name: 'Lay on Hands', max: lohPool, current: lohPool, restoresOn: 'long rest' });
+    if (level >= 3) {
+      resources.push({ name: 'Channel Divinity', max: 2, current: 2, restoresOn: 'short rest' });
+    }
+  } else if (className === 'Sorcerer') {
+    if (level >= 2) {
+      resources.push({ name: 'Sorcery Points', max: level, current: level, restoresOn: 'long rest' });
+    }
+  } else if (className === 'Warlock') {
+    if (level >= 2) {
+      resources.push({ name: 'Magical Cunning', max: 1, current: 1, restoresOn: 'long rest' });
+    }
   }
   return resources;
 }

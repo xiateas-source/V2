@@ -7,5 +7,15 @@
   { "class": "Fighter", "level": 7, "hitDie": "d10", "features": [{ "name": "Subclass Feature", "desc": "Battle Master: 5 maneuvers, 5 superiority dice (d8). Champion: Remarkable Athlete." }], "choices": [] },
   { "class": "Fighter", "level": 8, "hitDie": "d10", "features": [], "choices": [{ "type": "asi" }] },
   { "class": "Fighter", "level": 9, "hitDie": "d10", "features": [{ "name": "Indomitable", "desc": "Reroll a failed saving throw. 1/Long Rest." }], "choices": [] },
-  { "class": "Fighter", "level": 10, "hitDie": "d10", "features": [{ "name": "Subclass Feature", "desc": "Battle Master: 7 maneuvers, +1 die. Champion: Additional Fighting Style." }], "choices": [] }
+  { "class": "Fighter", "level": 10, "hitDie": "d10", "features": [{ "name": "Subclass Feature", "desc": "Battle Master: 7 maneuvers, +1 die. Champion: Additional Fighting Style." }], "choices": [] },
+  { "class": "Fighter", "level": 11, "hitDie": "d10", "features": [{ "name": "Extra Attack (2)", "desc": "3 attacks per Attack action." }], "choices": [] },
+  { "class": "Fighter", "level": 12, "hitDie": "d10", "features": [], "choices": [{ "type": "asi" }] },
+  { "class": "Fighter", "level": 13, "hitDie": "d10", "features": [{ "name": "Indomitable (2)", "desc": "Reroll a failed saving throw. 2/Long Rest." }], "choices": [] },
+  { "class": "Fighter", "level": 14, "hitDie": "d10", "features": [], "choices": [{ "type": "asi" }] },
+  { "class": "Fighter", "level": 15, "hitDie": "d10", "features": [{ "name": "Subclass Feature", "desc": "Battle Master: 9 maneuvers, superiority dice d10. Champion: Superior Critical (18-20)." }], "choices": [] },
+  { "class": "Fighter", "level": 16, "hitDie": "d10", "features": [], "choices": [{ "type": "asi" }] },
+  { "class": "Fighter", "level": 17, "hitDie": "d10", "features": [{ "name": "Action Surge (2)", "desc": "Action Surge 2/Short Rest." }, { "name": "Indomitable (3)", "desc": "Reroll a failed saving throw. 3/Long Rest." }], "choices": [] },
+  { "class": "Fighter", "level": 18, "hitDie": "d10", "features": [{ "name": "Subclass Feature", "desc": "Battle Master: 10 maneuvers, superiority dice d12. Champion: Survivor." }], "choices": [] },
+  { "class": "Fighter", "level": 19, "hitDie": "d10", "features": [{ "name": "Epic Boon", "desc": "Gain an Epic Boon feat or another feat of your choice." }], "choices": [{ "type": "asi" }] },
+  { "class": "Fighter", "level": 20, "hitDie": "d10", "features": [{ "name": "Extra Attack (3)", "desc": "4 attacks per Attack action." }], "choices": [] }
 ]

@@ -1,0 +1,21 @@
+[
+  { "class": "Monk", "level": 2, "hitDie": "d8", "features": [{ "name": "Ki", "desc": "2 Ki points. Flurry of Blows (2 unarmed strikes as bonus action), Patient Defense (Dodge as bonus action), Step of the Wind (Disengage or Dash as bonus action + jump distance doubled)." }, { "name": "Unarmored Movement", "desc": "+10 ft speed while not wearing armor or shield." }, { "name": "Uncanny Metabolism", "desc": "When you roll Initiative, regain all Ki points and heal (Martial Arts die + Monk level) HP. 1/long rest." }], "choices": [] },
+  { "class": "Monk", "level": 3, "hitDie": "d8", "features": [{ "name": "Deflect Attacks", "desc": "Reduce damage from attacks by 1d10 + DEX mod + Monk level. If reduced to 0, can redirect." }], "choices": [{ "type": "subclass", "options": ["Open Hand", "Shadow", "Four Elements", "Kensei", "Mercy", "Astral Self"] }] },
+  { "class": "Monk", "level": 4, "hitDie": "d8", "features": [{ "name": "Slow Fall", "desc": "Reduce falling damage by 5 × Monk level." }], "choices": [{ "type": "asi" }] },
+  { "class": "Monk", "level": 5, "hitDie": "d8", "features": [{ "name": "Extra Attack", "desc": "2 attacks per Attack action." }, { "name": "Stunning Strike", "desc": "Spend 1 Ki: target must CON save or be stunned until your next turn start." }], "choices": [] },
+  { "class": "Monk", "level": 6, "hitDie": "d8", "features": [{ "name": "Empowered Strikes", "desc": "Unarmed strikes count as magical." }, { "name": "Subclass Feature", "desc": "Varies by tradition." }], "choices": [] },
+  { "class": "Monk", "level": 7, "hitDie": "d8", "features": [{ "name": "Evasion", "desc": "DEX save success: no damage. Failure: half damage." }], "choices": [] },
+  { "class": "Monk", "level": 8, "hitDie": "d8", "features": [], "choices": [{ "type": "asi" }] },
+  { "class": "Monk", "level": 9, "hitDie": "d8", "features": [{ "name": "Acrobatic Movement", "desc": "Move along vertical surfaces and across liquids without falling (during movement)." }], "choices": [] },
+  { "class": "Monk", "level": 10, "hitDie": "d8", "features": [{ "name": "Self-Restoration", "desc": "At end of each turn, end one: charmed, frightened, or poisoned condition on yourself." }], "choices": [] },
+  { "class": "Monk", "level": 11, "hitDie": "d8", "features": [{ "name": "Subclass Feature", "desc": "Varies by tradition." }], "choices": [] },
+  { "class": "Monk", "level": 12, "hitDie": "d8", "features": [], "choices": [{ "type": "asi" }] },
+  { "class": "Monk", "level": 13, "hitDie": "d8", "features": [{ "name": "Deflect Energy", "desc": "Deflect Attacks now works against ranged spell attacks." }], "choices": [] },
+  { "class": "Monk", "level": 14, "hitDie": "d8", "features": [{ "name": "Disciplined Survivor", "desc": "Proficiency in all saving throws. Spend 1 Ki to reroll a failed save." }], "choices": [] },
+  { "class": "Monk", "level": 15, "hitDie": "d8", "features": [{ "name": "Perfect Discipline", "desc": "When you roll Initiative and have no Ki points, regain 4 Ki points." }], "choices": [] },
+  { "class": "Monk", "level": 16, "hitDie": "d8", "features": [], "choices": [{ "type": "asi" }] },
+  { "class": "Monk", "level": 17, "hitDie": "d8", "features": [{ "name": "Subclass Feature", "desc": "Varies by tradition." }], "choices": [] },
+  { "class": "Monk", "level": 18, "hitDie": "d8", "features": [{ "name": "Superior Defense", "desc": "While you have Ki points remaining, you have resistance to all damage except Force." }], "choices": [] },
+  { "class": "Monk", "level": 19, "hitDie": "d8", "features": [{ "name": "Epic Boon", "desc": "Gain an Epic Boon feat or another feat of your choice." }], "choices": [{ "type": "asi" }] },
+  { "class": "Monk", "level": 20, "hitDie": "d8", "features": [{ "name": "Body and Mind", "desc": "DEX and WIS scores increase by 4. Maximum for those scores is now 25." }], "choices": [] }
+]

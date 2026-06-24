@@ -1,0 +1,21 @@
+[
+  { "class": "Ranger", "level": 2, "hitDie": "d10", "features": [{ "name": "Spellcasting", "desc": "Prepare Ranger spells. Slots: 2 1st-level." }, { "name": "Fighting Style", "desc": "Choose a Fighting Style: Archery, Defense, Dueling, or Two-Weapon Fighting." }, { "name": "Deft Explorer", "desc": "Choose one: Canny (expertise in one skill), Roving (+5 ft speed, climb/swim speed), or Tireless (temp HP on short rest)." }], "choices": [], "spellSlots": { "1": 2 } },
+  { "class": "Ranger", "level": 3, "hitDie": "d10", "features": [], "choices": [{ "type": "subclass", "options": ["Hunter", "Beast Master", "Gloom Stalker", "Horizon Walker", "Fey Wanderer", "Swarmkeeper"] }], "spellSlots": { "1": 3 } },
+  { "class": "Ranger", "level": 4, "hitDie": "d10", "features": [], "choices": [{ "type": "asi" }], "spellSlots": { "1": 3 } },
+  { "class": "Ranger", "level": 5, "hitDie": "d10", "features": [{ "name": "Extra Attack", "desc": "2 attacks per Attack action." }], "choices": [], "spellSlots": { "1": 4, "2": 2 } },
+  { "class": "Ranger", "level": 6, "hitDie": "d10", "features": [{ "name": "Roving", "desc": "+10 ft walking speed. Gain climbing and swimming speed equal to walking speed." }], "choices": [], "spellSlots": { "1": 4, "2": 2 } },
+  { "class": "Ranger", "level": 7, "hitDie": "d10", "features": [{ "name": "Subclass Feature", "desc": "Varies by conclave." }], "choices": [], "spellSlots": { "1": 4, "2": 3 } },
+  { "class": "Ranger", "level": 8, "hitDie": "d10", "features": [], "choices": [{ "type": "asi" }], "spellSlots": { "1": 4, "2": 3 } },
+  { "class": "Ranger", "level": 9, "hitDie": "d10", "features": [{ "name": "Expertise", "desc": "Choose 2 skills you're proficient in for double proficiency bonus." }], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 2 } },
+  { "class": "Ranger", "level": 10, "hitDie": "d10", "features": [{ "name": "Tireless", "desc": "Regain 1d8 + WIS mod temp HP on short rest. Reduce exhaustion by 1 on short rest." }], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 2 } },
+  { "class": "Ranger", "level": 11, "hitDie": "d10", "features": [{ "name": "Subclass Feature", "desc": "Varies by conclave." }], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 3 } },
+  { "class": "Ranger", "level": 12, "hitDie": "d10", "features": [], "choices": [{ "type": "asi" }], "spellSlots": { "1": 4, "2": 3, "3": 3 } },
+  { "class": "Ranger", "level": 13, "hitDie": "d10", "features": [], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 1 } },
+  { "class": "Ranger", "level": 14, "hitDie": "d10", "features": [{ "name": "Nature's Veil", "desc": "Bonus action: become invisible until start of next turn. Uses equal to proficiency bonus per long rest." }], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 1 } },
+  { "class": "Ranger", "level": 15, "hitDie": "d10", "features": [{ "name": "Subclass Feature", "desc": "Varies by conclave." }], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 2 } },
+  { "class": "Ranger", "level": 16, "hitDie": "d10", "features": [], "choices": [{ "type": "asi" }], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 2 } },
+  { "class": "Ranger", "level": 17, "hitDie": "d10", "features": [], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 3, "5": 1 } },
+  { "class": "Ranger", "level": 18, "hitDie": "d10", "features": [{ "name": "Feral Senses", "desc": "30 ft blindsight. Within that range, you can see invisible creatures." }], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 3, "5": 1 } },
+  { "class": "Ranger", "level": 19, "hitDie": "d10", "features": [{ "name": "Epic Boon", "desc": "Gain an Epic Boon feat or another feat of your choice." }], "choices": [{ "type": "asi" }], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 3, "5": 2 } },
+  { "class": "Ranger", "level": 20, "hitDie": "d10", "features": [{ "name": "Foe Slayer", "desc": "Once per turn, add WIS mod to attack or damage roll against a creature." }], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 3, "5": 2 } }
+]

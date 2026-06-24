@@ -1,0 +1,21 @@
+[
+  { "class": "Warlock", "level": 2, "hitDie": "d8", "features": [{ "name": "Eldritch Invocations", "desc": "Choose 3 invocations for ongoing magical abilities." }, { "name": "Magical Cunning", "desc": "When you have no Pact Magic slots, you can regain half your slots. 1/long rest." }], "choices": [], "spellSlots": { "1": 2 } },
+  { "class": "Warlock", "level": 3, "hitDie": "d8", "features": [{ "name": "Pact Boon", "desc": "Choose a Pact Boon: Blade, Chain, or Tome." }], "choices": [{ "type": "subclass", "options": ["Archfey", "Fiend", "Great Old One", "Celestial", "Hexblade", "Fathomless"] }], "spellSlots": { "2": 2 } },
+  { "class": "Warlock", "level": 4, "hitDie": "d8", "features": [], "choices": [{ "type": "asi" }], "spellSlots": { "2": 2 } },
+  { "class": "Warlock", "level": 5, "hitDie": "d8", "features": [{ "name": "Eldritch Invocations", "desc": "+2 invocations (5 total)." }], "choices": [], "spellSlots": { "3": 2 } },
+  { "class": "Warlock", "level": 6, "hitDie": "d8", "features": [{ "name": "Subclass Feature", "desc": "Varies by patron." }], "choices": [], "spellSlots": { "3": 2 } },
+  { "class": "Warlock", "level": 7, "hitDie": "d8", "features": [{ "name": "Eldritch Invocations", "desc": "+2 invocations (7 total)." }], "choices": [], "spellSlots": { "4": 2 } },
+  { "class": "Warlock", "level": 8, "hitDie": "d8", "features": [], "choices": [{ "type": "asi" }], "spellSlots": { "4": 2 } },
+  { "class": "Warlock", "level": 9, "hitDie": "d8", "features": [{ "name": "Contact Patron", "desc": "Cast Contact Other Plane to contact patron without expending a slot. 1/long rest." }, { "name": "Eldritch Invocations", "desc": "+2 invocations (9 total)." }], "choices": [], "spellSlots": { "5": 2 } },
+  { "class": "Warlock", "level": 10, "hitDie": "d8", "features": [{ "name": "Subclass Feature", "desc": "Varies by patron." }], "choices": [], "spellSlots": { "5": 2 } },
+  { "class": "Warlock", "level": 11, "hitDie": "d8", "features": [{ "name": "Mystic Arcanum (6th)", "desc": "Choose one 6th-level spell. Cast it once per long rest without a slot." }], "choices": [], "spellSlots": { "5": 3 } },
+  { "class": "Warlock", "level": 12, "hitDie": "d8", "features": [], "choices": [{ "type": "asi" }], "spellSlots": { "5": 3 } },
+  { "class": "Warlock", "level": 13, "hitDie": "d8", "features": [{ "name": "Mystic Arcanum (7th)", "desc": "Choose one 7th-level spell. Cast it once per long rest without a slot." }], "choices": [], "spellSlots": { "5": 3 } },
+  { "class": "Warlock", "level": 14, "hitDie": "d8", "features": [{ "name": "Subclass Feature", "desc": "Varies by patron." }], "choices": [], "spellSlots": { "5": 3 } },
+  { "class": "Warlock", "level": 15, "hitDie": "d8", "features": [{ "name": "Mystic Arcanum (8th)", "desc": "Choose one 8th-level spell. Cast it once per long rest without a slot." }], "choices": [], "spellSlots": { "5": 3 } },
+  { "class": "Warlock", "level": 16, "hitDie": "d8", "features": [], "choices": [{ "type": "asi" }], "spellSlots": { "5": 3 } },
+  { "class": "Warlock", "level": 17, "hitDie": "d8", "features": [{ "name": "Mystic Arcanum (9th)", "desc": "Choose one 9th-level spell. Cast it once per long rest without a slot." }], "choices": [], "spellSlots": { "5": 4 } },
+  { "class": "Warlock", "level": 18, "hitDie": "d8", "features": [], "choices": [], "spellSlots": { "5": 4 } },
+  { "class": "Warlock", "level": 19, "hitDie": "d8", "features": [{ "name": "Epic Boon", "desc": "Gain an Epic Boon feat or another feat of your choice." }], "choices": [{ "type": "asi" }], "spellSlots": { "5": 4 } },
+  { "class": "Warlock", "level": 20, "hitDie": "d8", "features": [{ "name": "Eldritch Master", "desc": "Spend 1 minute to regain all Pact Magic spell slots. 1/long rest." }], "choices": [], "spellSlots": { "5": 4 } }
+]

@@ -1,0 +1,21 @@
+[
+  { "class": "Paladin", "level": 2, "hitDie": "d10", "features": [{ "name": "Divine Smite", "desc": "When you hit with a melee weapon, expend a spell slot to deal extra 2d8 radiant (+1d8 per slot above 1st). +1d8 vs undead/fiends." }, { "name": "Spellcasting", "desc": "Prepare Paladin spells. Slots: 2 1st-level." }, { "name": "Fighting Style", "desc": "Choose a Fighting Style: Defense, Dueling, Great Weapon Fighting, or Protection." }], "choices": [], "spellSlots": { "1": 2 } },
+  { "class": "Paladin", "level": 3, "hitDie": "d10", "features": [{ "name": "Channel Divinity", "desc": "2 uses per rest. Options vary by oath." }], "choices": [{ "type": "subclass", "options": ["Devotion", "Ancients", "Vengeance", "Redemption", "Glory", "Crown"] }], "spellSlots": { "1": 3 } },
+  { "class": "Paladin", "level": 4, "hitDie": "d10", "features": [], "choices": [{ "type": "asi" }], "spellSlots": { "1": 3 } },
+  { "class": "Paladin", "level": 5, "hitDie": "d10", "features": [{ "name": "Extra Attack", "desc": "2 attacks per Attack action." }, { "name": "Faithful Steed", "desc": "Cast Find Steed without expending a spell slot. 1/long rest." }], "choices": [], "spellSlots": { "1": 4, "2": 2 } },
+  { "class": "Paladin", "level": 6, "hitDie": "d10", "features": [{ "name": "Aura of Protection", "desc": "You and allies within 10 ft add your CHA mod to saving throws." }], "choices": [], "spellSlots": { "1": 4, "2": 2 } },
+  { "class": "Paladin", "level": 7, "hitDie": "d10", "features": [{ "name": "Subclass Feature", "desc": "Varies by oath." }], "choices": [], "spellSlots": { "1": 4, "2": 3 } },
+  { "class": "Paladin", "level": 8, "hitDie": "d10", "features": [], "choices": [{ "type": "asi" }], "spellSlots": { "1": 4, "2": 3 } },
+  { "class": "Paladin", "level": 9, "hitDie": "d10", "features": [{ "name": "Abjure Foes", "desc": "As an action, frighten creatures within 60 ft. WIS save or frightened + speed 0." }], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 2 } },
+  { "class": "Paladin", "level": 10, "hitDie": "d10", "features": [{ "name": "Aura of Courage", "desc": "You and allies within 10 ft can't be frightened." }], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 2 } },
+  { "class": "Paladin", "level": 11, "hitDie": "d10", "features": [{ "name": "Radiant Strikes", "desc": "Your weapon attacks deal an extra 1d8 radiant damage." }], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 3 } },
+  { "class": "Paladin", "level": 12, "hitDie": "d10", "features": [], "choices": [{ "type": "asi" }], "spellSlots": { "1": 4, "2": 3, "3": 3 } },
+  { "class": "Paladin", "level": 13, "hitDie": "d10", "features": [], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 1 } },
+  { "class": "Paladin", "level": 14, "hitDie": "d10", "features": [{ "name": "Restoring Touch", "desc": "Use Lay on Hands to remove conditions: blinded, charmed, deafened, frightened, paralyzed, stunned." }], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 1 } },
+  { "class": "Paladin", "level": 15, "hitDie": "d10", "features": [{ "name": "Subclass Feature", "desc": "Varies by oath." }], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 2 } },
+  { "class": "Paladin", "level": 16, "hitDie": "d10", "features": [], "choices": [{ "type": "asi" }], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 2 } },
+  { "class": "Paladin", "level": 17, "hitDie": "d10", "features": [], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 3, "5": 1 } },
+  { "class": "Paladin", "level": 18, "hitDie": "d10", "features": [{ "name": "Aura Expansion", "desc": "Aura of Protection and Aura of Courage range increases to 30 ft." }], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 3, "5": 1 } },
+  { "class": "Paladin", "level": 19, "hitDie": "d10", "features": [{ "name": "Epic Boon", "desc": "Gain an Epic Boon feat or another feat of your choice." }], "choices": [{ "type": "asi" }], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 3, "5": 2 } },
+  { "class": "Paladin", "level": 20, "hitDie": "d10", "features": [{ "name": "Subclass Feature", "desc": "Varies by oath. Capstone feature." }], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 3, "5": 2 } }
+]

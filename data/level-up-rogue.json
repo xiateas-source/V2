@@ -7,5 +7,15 @@
   { "class": "Rogue", "level": 7, "hitDie": "d8", "features": [{ "name": "Evasion", "desc": "DEX save success: no damage. Failure: half damage." }, { "name": "Sneak Attack", "desc": "Sneak Attack increases to 4d6." }], "choices": [] },
   { "class": "Rogue", "level": 8, "hitDie": "d8", "features": [], "choices": [{ "type": "asi" }] },
   { "class": "Rogue", "level": 9, "hitDie": "d8", "features": [{ "name": "Sneak Attack", "desc": "Sneak Attack increases to 5d6." }], "choices": [{ "type": "spell", "desc": "Arcane Trickster: 1 spell up to 2nd level." }] },
-  { "class": "Rogue", "level": 10, "hitDie": "d8", "features": [], "choices": [{ "type": "asi" }] }
+  { "class": "Rogue", "level": 10, "hitDie": "d8", "features": [], "choices": [{ "type": "asi" }] },
+  { "class": "Rogue", "level": 11, "hitDie": "d8", "features": [{ "name": "Reliable Talent", "desc": "Any ability check using a skill you're proficient in treats a d20 roll of 9 or lower as a 10." }, { "name": "Sneak Attack", "desc": "Sneak Attack increases to 6d6." }], "choices": [] },
+  { "class": "Rogue", "level": 12, "hitDie": "d8", "features": [], "choices": [{ "type": "asi" }] },
+  { "class": "Rogue", "level": 13, "hitDie": "d8", "features": [{ "name": "Sneak Attack", "desc": "Sneak Attack increases to 7d6." }, { "name": "Subclass Feature", "desc": "Arcane Trickster: Versatile Trickster. Assassin: Impostor. Thief: Use Magic Device. Swashbuckler: Elegant Maneuver." }], "choices": [] },
+  { "class": "Rogue", "level": 14, "hitDie": "d8", "features": [{ "name": "Blindsense", "desc": "Within 10 ft, you know the location of any hidden or invisible creature." }], "choices": [] },
+  { "class": "Rogue", "level": 15, "hitDie": "d8", "features": [{ "name": "Slippery Mind", "desc": "Proficiency in Wisdom saving throws." }, { "name": "Sneak Attack", "desc": "Sneak Attack increases to 8d6." }], "choices": [] },
+  { "class": "Rogue", "level": 16, "hitDie": "d8", "features": [], "choices": [{ "type": "asi" }] },
+  { "class": "Rogue", "level": 17, "hitDie": "d8", "features": [{ "name": "Sneak Attack", "desc": "Sneak Attack increases to 9d6." }, { "name": "Subclass Feature", "desc": "Arcane Trickster: Spell Thief. Assassin: Death Strike. Thief: Thief's Reflexes. Swashbuckler: Master Duelist." }], "choices": [] },
+  { "class": "Rogue", "level": 18, "hitDie": "d8", "features": [{ "name": "Elusive", "desc": "No attack roll has advantage against you while you aren't incapacitated." }], "choices": [] },
+  { "class": "Rogue", "level": 19, "hitDie": "d8", "features": [{ "name": "Sneak Attack", "desc": "Sneak Attack increases to 10d6." }, { "name": "Epic Boon", "desc": "Gain an Epic Boon feat or another feat of your choice." }], "choices": [{ "type": "asi" }] },
+  { "class": "Rogue", "level": 20, "hitDie": "d8", "features": [{ "name": "Stroke of Luck", "desc": "If an attack misses, turn it into a hit. Or treat a failed ability check as a 20. 1/Short Rest." }], "choices": [] }
 ]

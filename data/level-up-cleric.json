@@ -1,0 +1,21 @@
+[
+  { "class": "Cleric", "level": 2, "hitDie": "d8", "features": [{ "name": "Channel Divinity", "desc": "2 uses per rest. Turn Undead: undead within 30 ft must WIS save or be turned." }], "choices": [], "spellSlots": { "1": 3 } },
+  { "class": "Cleric", "level": 3, "hitDie": "d8", "features": [], "choices": [{ "type": "subclass", "options": ["Life", "Light", "War", "Tempest", "Knowledge", "Trickery", "Nature", "Forge"] }], "spellSlots": { "1": 4, "2": 2 } },
+  { "class": "Cleric", "level": 4, "hitDie": "d8", "features": [], "choices": [{ "type": "asi" }], "spellSlots": { "1": 4, "2": 3 } },
+  { "class": "Cleric", "level": 5, "hitDie": "d8", "features": [{ "name": "Sear Undead", "desc": "When you use Turn Undead, each failed creature takes radiant damage equal to 2d8 + Cleric level." }], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 2 } },
+  { "class": "Cleric", "level": 6, "hitDie": "d8", "features": [{ "name": "Subclass Feature", "desc": "Varies by domain. Channel Divinity: 3 uses." }], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 3 } },
+  { "class": "Cleric", "level": 7, "hitDie": "d8", "features": [{ "name": "Blessed Strikes", "desc": "Choose: Divine Strike (extra weapon damage) or Potent Spellcasting (WIS mod to cantrip damage)." }], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 1 } },
+  { "class": "Cleric", "level": 8, "hitDie": "d8", "features": [], "choices": [{ "type": "asi" }], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 2 } },
+  { "class": "Cleric", "level": 9, "hitDie": "d8", "features": [], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 3, "5": 1 } },
+  { "class": "Cleric", "level": 10, "hitDie": "d8", "features": [{ "name": "Divine Intervention", "desc": "Call on your deity for aid. Roll d100; on equal or below Cleric level, deity intervenes." }], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 3, "5": 2 } },
+  { "class": "Cleric", "level": 11, "hitDie": "d8", "features": [], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 3, "5": 2, "6": 1 } },
+  { "class": "Cleric", "level": 12, "hitDie": "d8", "features": [], "choices": [{ "type": "asi" }], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 3, "5": 2, "6": 1 } },
+  { "class": "Cleric", "level": 13, "hitDie": "d8", "features": [], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 3, "5": 2, "6": 1, "7": 1 } },
+  { "class": "Cleric", "level": 14, "hitDie": "d8", "features": [{ "name": "Improved Blessed Strikes", "desc": "Your Blessed Strikes damage increases." }], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 3, "5": 2, "6": 1, "7": 1 } },
+  { "class": "Cleric", "level": 15, "hitDie": "d8", "features": [], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 3, "5": 2, "6": 1, "7": 1, "8": 1 } },
+  { "class": "Cleric", "level": 16, "hitDie": "d8", "features": [], "choices": [{ "type": "asi" }], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 3, "5": 2, "6": 1, "7": 1, "8": 1 } },
+  { "class": "Cleric", "level": 17, "hitDie": "d8", "features": [{ "name": "Subclass Feature", "desc": "Varies by domain." }], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 3, "5": 2, "6": 1, "7": 1, "8": 1, "9": 1 } },
+  { "class": "Cleric", "level": 18, "hitDie": "d8", "features": [{ "name": "Channel Divinity (4)", "desc": "Channel Divinity: 4 uses per rest." }], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 3, "5": 3, "6": 1, "7": 1, "8": 1, "9": 1 } },
+  { "class": "Cleric", "level": 19, "hitDie": "d8", "features": [{ "name": "Epic Boon", "desc": "Gain an Epic Boon feat or another feat of your choice." }], "choices": [{ "type": "asi" }], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 3, "5": 3, "6": 2, "7": 1, "8": 1, "9": 1 } },
+  { "class": "Cleric", "level": 20, "hitDie": "d8", "features": [{ "name": "Greater Divine Intervention", "desc": "Divine Intervention automatically succeeds. Can cast Wish once per 2d4 long rests." }], "choices": [], "spellSlots": { "1": 4, "2": 3, "3": 3, "4": 3, "5": 3, "6": 2, "7": 2, "8": 1, "9": 1 } }
+]

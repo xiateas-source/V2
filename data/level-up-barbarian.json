@@ -1,0 +1,21 @@
+[
+  { "class": "Barbarian", "level": 2, "hitDie": "d12", "features": [{ "name": "Danger Sense", "desc": "Advantage on DEX saves you can see. Not blinded, deafened, or incapacitated." }, { "name": "Reckless Attack", "desc": "Advantage on STR melee attacks this turn; attacks against you have advantage until next turn." }], "choices": [] },
+  { "class": "Barbarian", "level": 3, "hitDie": "d12", "features": [{ "name": "Primal Knowledge", "desc": "Gain proficiency in one skill from the Barbarian list." }], "choices": [{ "type": "subclass", "options": ["Berserker", "Totem Warrior", "Zealot", "Storm Herald", "Ancestral Guardian", "Wild Magic"] }] },
+  { "class": "Barbarian", "level": 4, "hitDie": "d12", "features": [], "choices": [{ "type": "asi" }] },
+  { "class": "Barbarian", "level": 5, "hitDie": "d12", "features": [{ "name": "Extra Attack", "desc": "2 attacks per Attack action." }, { "name": "Fast Movement", "desc": "+10 ft speed while not wearing heavy armor." }], "choices": [] },
+  { "class": "Barbarian", "level": 6, "hitDie": "d12", "features": [{ "name": "Subclass Feature", "desc": "Varies by subclass." }], "choices": [] },
+  { "class": "Barbarian", "level": 7, "hitDie": "d12", "features": [{ "name": "Feral Instinct", "desc": "Advantage on Initiative. If surprised, you can act normally if you enter Rage." }, { "name": "Instinctive Pounce", "desc": "Move up to half speed when entering Rage." }], "choices": [] },
+  { "class": "Barbarian", "level": 8, "hitDie": "d12", "features": [], "choices": [{ "type": "asi" }] },
+  { "class": "Barbarian", "level": 9, "hitDie": "d12", "features": [{ "name": "Brutal Strike", "desc": "Once per turn while raging, Reckless Attack deals extra 1d10 damage and can push or knock prone." }], "choices": [] },
+  { "class": "Barbarian", "level": 10, "hitDie": "d12", "features": [{ "name": "Subclass Feature", "desc": "Varies by subclass." }], "choices": [] },
+  { "class": "Barbarian", "level": 11, "hitDie": "d12", "features": [{ "name": "Relentless Rage", "desc": "If you drop to 0 HP while raging, CON save DC 10 to drop to 1 HP instead. DC increases by 5 each time." }], "choices": [] },
+  { "class": "Barbarian", "level": 12, "hitDie": "d12", "features": [], "choices": [{ "type": "asi" }] },
+  { "class": "Barbarian", "level": 13, "hitDie": "d12", "features": [{ "name": "Improved Brutal Strike", "desc": "Brutal Strike damage increases. New options: Staggering Blow or Sundering Blow." }], "choices": [] },
+  { "class": "Barbarian", "level": 14, "hitDie": "d12", "features": [{ "name": "Subclass Feature", "desc": "Varies by subclass." }], "choices": [] },
+  { "class": "Barbarian", "level": 15, "hitDie": "d12", "features": [{ "name": "Persistent Rage", "desc": "Rage no longer ends early unless you choose to end it or are incapacitated." }], "choices": [] },
+  { "class": "Barbarian", "level": 16, "hitDie": "d12", "features": [], "choices": [{ "type": "asi" }] },
+  { "class": "Barbarian", "level": 17, "hitDie": "d12", "features": [{ "name": "Improved Brutal Strike", "desc": "Brutal Strike extra damage increases to 2d10." }], "choices": [] },
+  { "class": "Barbarian", "level": 18, "hitDie": "d12", "features": [{ "name": "Indomitable Might", "desc": "If your STR check total is less than your STR score, use your STR score instead." }], "choices": [] },
+  { "class": "Barbarian", "level": 19, "hitDie": "d12", "features": [{ "name": "Epic Boon", "desc": "Gain an Epic Boon feat or another feat of your choice." }], "choices": [{ "type": "asi" }] },
+  { "class": "Barbarian", "level": 20, "hitDie": "d12", "features": [{ "name": "Primal Champion", "desc": "STR and CON scores increase by 4. Maximum for those scores is now 25." }], "choices": [] }
+]
