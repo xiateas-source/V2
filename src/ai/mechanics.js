@@ -115,8 +115,19 @@ export function validateMechanics(mechanics) {
   const valid = [];
   const rejected = [];
 
+  // Batch-level rule: if combat_start is in this batch, reject any hp changes
+  // for PCs. The AI must set the scene and wait — no resolving attacks before
+  // initiative is rolled.
+  const hasCombatStart = mechanics.some(m => m.key === 'combat_start');
+
   for (const mech of mechanics) {
-    const reason = checkRejection(mech);
+    let reason = checkRejection(mech);
+    if (!reason && hasCombatStart && mech.key === 'hp') {
+      const entries = mech.value.split(',').map(e => e.split('=')[0].trim());
+      if (entries.some(n => findPC(n))) {
+        reason = 'PC HP change rejected — combat just started, resolve attacks after initiative';
+      }
+    }
     if (reason) {
       rejected.push({ ...mech, reason });
     } else {

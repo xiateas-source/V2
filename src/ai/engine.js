@@ -29,6 +29,23 @@ function currentActorName() {
   return cs.initiative[cs.currentTurn]?.name || 'the active character';
 }
 
+// Kickoff violation: the AI should set the scene and resolve NPC turns before the
+// first PC, but NOT deal damage to PCs or resolve PC actions.
+function kickoffViolation(mechanics) {
+  const hpEntries = mechanics.filter(m => m.key === 'hp');
+  for (const m of hpEntries) {
+    const entries = m.value.split(',').map(e => e.split('=')[0].trim());
+    const lower = store.campaign.characters.map(c => c.name.toLowerCase());
+    if (entries.some(n => lower.includes(n.toLowerCase()))) {
+      return 'PC HP was changed during combat kickoff — no PC actions have been declared yet.';
+    }
+  }
+  if (mechanics.some(m => m.key === 'combat_end')) {
+    return 'Combat was ended during kickoff before any PC acted.';
+  }
+  return null;
+}
+
 // Detect the two combat-turn problems worth a re-prompt: resolving a roll in the
 // same beat it was requested (incl. ending combat on it), and running more than
 // the current actor's single turn.
@@ -90,11 +107,13 @@ export async function sendMsg(text, options = {}) {
     // Combat: keep the AI to one PC's turn and stop it resolving rolls / ending
     // combat before the dice are in. On a violation, discard and re-prompt once
     // (the player never sees the bad take).
-    if (store.campaign.combatState.active && !isAwaitingInitiative() && !combatKickoff) {
-      const reason = combatViolation(mechanics, fullResponse);
+    if (store.campaign.combatState.active && !isAwaitingInitiative()) {
+      const reason = combatKickoff ? kickoffViolation(mechanics) : combatViolation(mechanics, fullResponse);
       if (reason) {
         const actorName = currentActorName();
-        const correction = `CORRECTION — combat turn rules were broken: ${reason}\nRewrite your previous response. Resolve ONLY ${actorName}'s single declared action, plus any enemies that act before the next player character in initiative order, then STOP and state whose turn is next. Do NOT resolve the outcome of a roll you are requesting — emit the roll_request and wait. Do NOT emit combat_end unless an enemy is already at 0 HP. Do NOT emit round_advance (the app tracks rounds). Keep the same scene; just fix the turn scope.`;
+        const correction = combatKickoff
+          ? `CORRECTION — combat kickoff rules were broken: ${reason}\nRewrite your response. Set the scene, resolve any NPC/enemy turns that come BEFORE the first player character in initiative order, then STOP and state whose turn it is. Do NOT deal damage to PCs or resolve PC actions — the players haven't acted yet. Do NOT emit combat_end or round_advance.`
+          : `CORRECTION — combat turn rules were broken: ${reason}\nRewrite your previous response. Resolve ONLY ${actorName}'s single declared action, plus any enemies that act before the next player character in initiative order, then STOP and state whose turn is next. Do NOT resolve the outcome of a roll you are requesting — emit the roll_request and wait. Do NOT emit combat_end unless an enemy is already at 0 HP. Do NOT emit round_advance (the app tracks rounds). Keep the same scene; just fix the turn scope.`;
         try {
           fullResponse = '';
           setStore('campaign', 'narrative', assistantIdx, 'content', '');
