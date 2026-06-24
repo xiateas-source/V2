@@ -42,7 +42,7 @@ Reconciled by reading every `src/` file (line count + content) and the test suit
 |------|---|--------|------|
 | state/campaign.js, system.js | 113/31 | 🟢 | data shapes + resetCampaign |
 | data/firebase.js, sync.js | 132/89 | 🟢 | init/auth/sync, offline fallback |
-| data/local.js, seed.js | 135/51 | 🟢 | IndexedDB + first-launch seed |
+| data/local.js, seed.js | 151/73 | 🟢 | IndexedDB + seed v4 (339 spells, 12 classes). `getSpellsForClass()` + `clearStore()` added S45. |
 | data/quickBuild.js | 319 | 🟢 | quick-build char path (survived the loss) |
 | data/keys.js, demo.js | 113/175 | 🟢 | |
 | data/bundles.js, migrate.js | 1/1 | ⛔ | content packs + state migration unbuilt |
@@ -52,11 +52,11 @@ All 🟠 = code exists and renders; **none of it is confirmed playable.** Line c
 | File | L | Status | Note |
 |------|---|--------|------|
 | App.jsx | ~95 | 🟢 | **S43:** 4-item nav (Cargo / **Play** d20 / Journal / Settings) — Play restored per developer. Chronograph-skinned. |
-| play/Chat.jsx | 311 | 🟠 | two-tab chat; `sendMsg` wired but loop not confirmed working for a player |
+| play/Chat.jsx | 315 | 🟠 | two-tab chat; `sendMsg` wired. **S45:** auto-hides CharTiles/SituationBar during combat. |
 | play/RollBar.jsx | 375 | 🟠 | initiative/roll UI (combat rebuild S37) |
 | play/QuickActions.jsx | 362 | 🟠 | |
 | play/Rewind, Combat, TurnPrompt | 207/127/74 | 🟠 | combat + turn system (S37) |
-| play/CharTiles, InputBar, SituationBar, ContextBanner, DiceRoller, TTS, PreviouslyOn | 32–99 | 🟠 | **S43 restyled** to Chronograph (monogram party HUD, head, dice→QuickActions, combat drops from top). DiceRoller now unwired (rolls go via RollBar). |
+| play/CharTiles, InputBar, SituationBar, ContextBanner, DiceRoller, TTS, PreviouslyOn | 32–99 | 🟠 | **S43 restyled** to Chronograph. **S45:** CharTiles+SituationBar auto-hide during combat; ContextBanner compacts (hides meta+buttons, keeps location). DiceRoller unwired (rolls go via RollBar). |
 | manage/MechTest.jsx | ~150 | 🟢 | **S43 new** — mechanics test container: fire mechanics through extract→validate→apply, watch live HUD react, no provider. Opened from input bar; demo-load shortcut on onboarding. |
 | shared/icons.jsx | 13 | 🟢 | **S43 new** — shared d20 SVG mark. |
 | play/RollRequest.jsx | 1 | ⛔ | (RollBar superseded it) |

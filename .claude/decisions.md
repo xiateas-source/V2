@@ -98,6 +98,7 @@
 | **Round marker beat + turn-prompt quick actions** | When the pointer wraps, a centered `⚔ Round N` system message drops into the narrative (anchor for condition/consequence timing). The turn prompt surfaces the active PC's attacks/spells as one-tap buttons that prefill the input (eyes-free, one-handed, kid-friendly; Law 3 + tap-to-source). | 37 |
 | **roll_request is code-enforced PC-only** | DM-rolls-enemies was prompt-only; the AI could target an enemy with a roll_request and the roll bar handed it to the player (bare d20, no mod). Now validation rejects any roll_request whose target isn't a PC (party/all/familiars excepted later). Law 2. | 37 |
 | **Combat tracker: live ally HP, minimize toggle** | Allies (PCs) render HP live from the character store (snapshot in the initiative entry drifted on heal/override/level-up); enemies render from the initiative entry, updated by the `hp` mechanic. Overlay has a minimize button (collapses to round/turn bar). Contract now requires an `hp` mechanic whenever ANY combatant takes damage/heals so enemy HP actually tracks. | 37 |
+| **Auto-hide CharTiles + SituationBar during combat** | CharTiles is redundant with the initiative tracker (shows PC HP/AC/names). SituationBar (quests/consequences) is irrelevant mid-fight. Both auto-hide via `<Show when={!combatState.active}>`, reappear when combat ends. ContextBanner compacts (hides meta+buttons, keeps location). Combat overlay max-height reduced 40vh→28vh. Reclaims ~214px on small phones. | 45 |
 | **Initiative rolls sourced from combatState, not events** | `combat_start`'s side-effect roll_requests were heard by nobody (no listener; `applyMechanics` only returns top-level mechanics), so initiative never surfaced and combat hung on turn 1. RollBar now derives Initiative prompts from PCs flagged `rollPending`. | 37 |
 
 ## Onboarding & Character Creation
@@ -112,6 +113,7 @@
 | **Tap-to-source in the wizard (Law 4 + accessibility)** | Spell and skill chips carry an ⓘ that opens a bottom-sheet with the description (spells from the IndexedDB compendium; skills from a new `SKILL_DESC` map). Stops players — especially the child player — from picking blind. | 40 |
 | **Party role-coverage hint** | Quiet roster nudge (no healer / no frontline / no spellcaster) computed from the party. Standard party-builder affordance so a 2-person family doesn't field an unplayable party by accident. | 40 |
 | **Draft-safety gate (Resume / Start fresh)** | Entering Guided Build with an unfinished draft now shows an explicit Resume / Start-fresh choice instead of silently auto-resuming — so adding a 2nd PC doesn't inherit the 1st's abandoned draft. Editing never writes to the draft slot. | 40 |
+| **Premise is directly editable during onboarding** | FreshCampaign premise was read-only (only set via AI brainstorm). Changed to a textarea — players should be able to type what they want. Brainstorm button still works as a starting point they can edit. | 45 |
 
 ## Deployment
 
@@ -140,6 +142,9 @@
 |----------|-----------|---------|
 | Four input paths: files, web, homebrew, AI-generated JSON | PDF/epub/mobi, web reference import, in-app authoring, structured JSON from any LLM. | 30 |
 | All content normalized to common schema per type | Engine, level-up wizard, spell picker, module tracker all read from IndexedDB, not hardcoded constants. | 30 |
+| **Spell JSON uses `description`/`castingTime` (long names match UI)** | Original JSON had `desc`/`castTime` but CharSheet/Chat/Compendium read `description`/`castingTime`. Root bug: spells appeared with "No description recorded" even when populated. Renamed JSON fields to match UI expectations. CharWizard's 3 `s.desc` references updated. Safe — no other code reads `desc` on spell objects. | 45 |
+| **Array-based class lookup (`getSpellsForClass`) instead of IndexedDB index** | Spell records have `classes: ["wizard", "sorcerer"]` (array). IndexedDB's `class` index can't handle arrays without `multiEntry` + DB version bump. With 339 records, `getAll` + filter is instant and avoids the schema migration. All 3 callers (quickBuild, LevelUp, CharWizard) updated. | 45 |
+| **Build-time spell script, committed output** | `scripts/build-spells.js` parses SRD markdown into `data/spells.json`. Runs once during development (not at runtime). Output committed to repo for deterministic builds. SRD source committed to `scripts/srd/`. | 45 |
 | D&D 5e primary, not the only system | Architecture supports any game content. System-agnostic content pipeline. | 30 |
 | Episode/module tracking is a workboard item | How the AI tracks campaign progress, chapter triggers, discovery conditions — needs its own spec. Architecture acknowledges it exists. | 30 |
 
