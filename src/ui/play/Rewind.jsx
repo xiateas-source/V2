@@ -2,13 +2,17 @@ import { Show } from 'solid-js';
 import { store, setStore } from '../../state/index.js';
 import { isSending } from '../../ai/engine.js';
 
+// Messages carry `type` ('dm' | 'player' | 'system'), not `role`. The DM's
+// reply is type 'dm' (or 'dm_advisory'); a preceding player turn is type 'player'.
+const isDM = (m) => m && (m.type === 'dm' || m.type === 'dm_advisory' || m.role === 'assistant');
+const isPlayer = (m) => m && (m.type === 'player' || m.role === 'user');
+
 export default function Rewind() {
   const canRewind = () => {
     if (isSending()) return false;
     const msgs = store.campaign.narrative;
     if (msgs.length < 2) return false;
-    const last = msgs[msgs.length - 1];
-    return last.role === 'assistant';
+    return isDM(msgs[msgs.length - 1]);
   };
 
   function doRewind() {
@@ -22,7 +26,7 @@ export default function Rewind() {
 
     msgs.pop();
 
-    if (msgs.length > 0 && msgs[msgs.length - 1].role === 'user') {
+    if (msgs.length > 0 && isPlayer(msgs[msgs.length - 1])) {
       msgs.pop();
     }
 
