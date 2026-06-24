@@ -7,7 +7,7 @@
 import { createEffect, on } from 'solid-js';
 import { unwrap } from 'solid-js/store';
 import { store, setStore } from '../state/index.js';
-import { DEFAULT_CAMPAIGN } from '../state/campaign.js';
+import { DEFAULT_CAMPAIGN, DEFAULT_CONTRACTS } from '../state/campaign.js';
 import { putAll, getByKey } from './local.js';
 import { getUid, dbRead } from './firebase.js';
 
@@ -143,6 +143,18 @@ export async function restoreSession() {
 
   if (snap?.campaign?.id) {
     setStore('campaign', { ...structuredClone(DEFAULT_CAMPAIGN), ...snap.campaign });
+    // Heal older saves that predate default contracts (empty persona ⇒ no DM spine).
+    const con = store.campaign.contracts || {};
+    if (!con.persona) {
+      setStore('campaign', 'contracts', {
+        ...con,
+        persona: DEFAULT_CONTRACTS.persona,
+        never: DEFAULT_CONTRACTS.never,
+        actions: DEFAULT_CONTRACTS.actions,
+        continuity: DEFAULT_CONTRACTS.continuity,
+        multi: DEFAULT_CONTRACTS.multi,
+      });
+    }
     if (snap.playerIdentity) setStore('system', 'playerIdentity', snap.playerIdentity);
     if (snap.theme) {
       setStore('system', 'settings', 'theme', snap.theme);
