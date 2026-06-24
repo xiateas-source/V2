@@ -5455,3 +5455,147 @@ body {
   text-align: center;
   cursor: pointer;
 }
+
+/* ===================== Phase 4: Character Creation ===================== */
+
+/* Roster: edit button + role-coverage hint */
+.roster-chip-edit {
+  background: none;
+  border: none;
+  border-left: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  width: 40px;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.roster-chip-edit:active { background: var(--color-accent); color: #fff; }
+
+.roster-coverage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+}
+.roster-coverage-item {
+  font-size: var(--font-size-xs);
+  color: var(--color-warning);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-warning);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+/* Draft-safety gate */
+.wiz-draft-gate {
+  margin: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+.wiz-draft-title { font-weight: 700; color: var(--color-text); }
+.wiz-draft-sub {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin: var(--spacing-xs) 0 var(--spacing-md);
+}
+.wiz-draft-actions { display: flex; gap: var(--spacing-sm); }
+.wiz-draft-resume, .wiz-draft-fresh {
+  flex: 1;
+  min-height: var(--touch-target);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+.wiz-draft-resume { background: var(--color-accent); color: #fff; border: none; }
+.wiz-draft-fresh {
+  background: none;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+/* Tap-to-source chips: text + ⓘ affordance */
+.wiz-chip-text { min-width: 0; }
+.wiz-chip-info {
+  margin-left: 4px;
+  opacity: 0.55;
+  font-size: 0.9em;
+  flex-shrink: 0;
+}
+.wiz-chip-info:active { opacity: 1; color: var(--color-accent); }
+
+/* Tap-to-source info sheet */
+.wiz-info-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+}
+.wiz-info-sheet {
+  width: 100%;
+  background: var(--color-surface);
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.wiz-info-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+.wiz-info-title { font-weight: 700; color: var(--color-text); font-size: var(--font-size-lg); }
+.wiz-info-close {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 1.2rem;
+  padding: var(--spacing-xs);
+  cursor: pointer;
+}
+.wiz-info-sub {
+  font-size: var(--font-size-sm);
+  color: var(--color-accent);
+  margin-top: 2px;
+}
+.wiz-info-body {
+  margin-top: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+/* Avatar picker */
+.wiz-avatar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+.wiz-avatar-chip {
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  font-size: 1.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.wiz-avatar-chip.active {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-accent);
+}

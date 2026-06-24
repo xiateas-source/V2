@@ -207,6 +207,35 @@ export const SKILL_ABILITIES = {
   Stealth: 'dex', Survival: 'wis',
 };
 
+// One-line plain-language skill descriptions for tap-to-source in the wizard.
+// Keeps a new (or child) player from picking skills blind.
+export const SKILL_DESC = {
+  Acrobatics: 'Keep your balance, tumble, and stay on your feet in tricky spots.',
+  'Animal Handling': 'Calm, train, or read the intentions of animals and mounts.',
+  Arcana: 'Recall lore about spells, magic items, and the planes.',
+  Athletics: 'Climb, jump, swim, grapple, and shove with raw physical effort.',
+  Deception: 'Lie convincingly, bluff, or hide the truth with a straight face.',
+  History: 'Recall events, lost kingdoms, wars, and famous people.',
+  Insight: "Read body language to sense lies, moods, and what someone really wants.",
+  Intimidation: 'Influence through threats, hostile displays, or sheer presence.',
+  Investigation: 'Search for clues, deduce, and figure out how things work.',
+  Medicine: 'Stabilize the dying and diagnose illness or injury.',
+  Nature: 'Recall lore about terrain, plants, animals, and the weather.',
+  Perception: 'Spot, hear, or otherwise notice things around you.',
+  Performance: 'Delight an audience with music, dance, acting, or storytelling.',
+  Persuasion: 'Influence with tact, social grace, and good faith.',
+  Religion: 'Recall lore about deities, rites, holy symbols, and the divine.',
+  'Sleight of Hand': 'Pick pockets, plant objects, or perform tricks unseen.',
+  Stealth: 'Move silently and stay hidden from notice.',
+  Survival: 'Track, hunt, forage, navigate, and weather the wilds.',
+};
+
+// Emoji avatar choices. Empty string ('') = fall back to name monogram.
+export const AVATAR_EMOJI = [
+  '🗡️', '🏹', '🛡️', '🎻', '🪄', '🔮', '⚔️', '🪓', '🗝️', '🎭',
+  '🐺', '🦊', '🦅', '🐉', '👑', '💀', '🌿', '🔥', '❄️', '⭐',
+];
+
 export const ALIGNMENTS = [
   'Lawful Good', 'Neutral Good', 'Chaotic Good',
   'Lawful Neutral', 'True Neutral', 'Chaotic Neutral',
