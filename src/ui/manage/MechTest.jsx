@@ -117,6 +117,16 @@ export default function MechTest(props) {
         </div>
       </div>
 
+      {/* Export — first so it's always visible */}
+      <div class="mt-section">
+        <div class="mt-label">Export for review</div>
+        <div class="mechtest-actions">
+          <button class="mechtest-run" onClick={copyExport}><i class="ph ph-copy" /> Copy all data</button>
+          <button class="mechtest-reset" onClick={downloadExport}><i class="ph ph-download-simple" /> Download JSON</button>
+        </div>
+        <Show when={copied()}><div class="mt-copied">{copied()}</div></Show>
+      </div>
+
       {/* Fire mechanics */}
       <div class="mt-section">
         <div class="mt-label">Fire mechanic · target <b>{pc()}</b></div>
@@ -135,16 +145,6 @@ export default function MechTest(props) {
           <button class="mechtest-run" onClick={() => run(text(), 'Injected block')}>Inject</button>
           <button class="mechtest-reset" onClick={() => setText(SAMPLE)}>Reset text</button>
         </div>
-      </div>
-
-      {/* Export */}
-      <div class="mt-section">
-        <div class="mt-label">Export for review</div>
-        <div class="mechtest-actions">
-          <button class="mechtest-run" onClick={copyExport}><i class="ph ph-copy" /> Copy all data</button>
-          <button class="mechtest-reset" onClick={downloadExport}><i class="ph ph-download-simple" /> Download JSON</button>
-        </div>
-        <Show when={copied()}><div class="mt-copied">{copied()}</div></Show>
       </div>
 
       <Show when={last()}>

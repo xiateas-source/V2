@@ -6340,8 +6340,9 @@ body {
   border-top: 1px solid var(--line-soft);
   background: var(--color-surface);
   padding: 10px 12px 12px;
-  max-height: 56vh;
+  max-height: 70vh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   animation: drawerUp .22s ease;
 }
 .mechtest-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
