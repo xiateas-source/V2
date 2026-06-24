@@ -51,6 +51,9 @@ function scheduleSync() {
     if (!path) return;
     const payload = getSyncPayload();
     dbWrite(path, payload);
+    // Active-campaign pointer so a fresh device knows which campaign to restore.
+    const uid = getUid();
+    if (uid) dbWrite(`players/${uid}/active`, { id: store.campaign.id, ts: Date.now() });
   }, SYNC_DEBOUNCE);
 }
 

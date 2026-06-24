@@ -1,0 +1,155 @@
+// Local-first persistence spine (Law 1: play continues locally, reconciles on
+// reconnect). The campaign is snapshotted to IndexedDB on change and restored on
+// boot, so a reload no longer wipes the session back to onboarding. Firebase
+// (sync.js) remains the cross-device backup; here we read it only to reconcile a
+// newer cloud copy at boot.
+
+import { createEffect, on } from 'solid-js';
+import { unwrap } from 'solid-js/store';
+import { store, setStore } from '../state/index.js';
+import { DEFAULT_CAMPAIGN } from '../state/campaign.js';
+import { putAll, getByKey } from './local.js';
+import { getUid, dbRead } from './firebase.js';
+
+const ACTIVE_KEY = '_activeCampaignId';
+const SNAP_PREFIX = '_campaign:';
+const SAVE_DEBOUNCE = 800;
+
+let saveTimer = null;
+let hydrating = true;
+
+function plain(obj) {
+  return JSON.parse(JSON.stringify(unwrap(obj)));
+}
+
+function snapshot() {
+  return {
+    campaign: plain(store.campaign),
+    playerIdentity: plain(store.system.playerIdentity),
+    theme: store.system.settings.theme,
+    ts: Date.now(),
+  };
+}
+
+async function writeLocal() {
+  const id = store.campaign.id;
+  if (!id) return;
+  const snap = snapshot();
+  try {
+    await putAll('meta', [
+      { key: SNAP_PREFIX + id, value: snap, ts: snap.ts },
+      { key: ACTIVE_KEY, value: id, ts: snap.ts },
+    ]);
+  } catch (_) {}
+}
+
+function scheduleSave() {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { saveTimer = null; writeLocal(); }, SAVE_DEBOUNCE);
+}
+
+export async function saveLocalNow() {
+  if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+  await writeLocal();
+}
+
+// Start watching the campaign for changes → debounced local save. Called after
+// boot hydration so we never persist the empty default over a good save.
+export function initLocalPersistence() {
+  hydrating = false;
+  createEffect(on(
+    () => [
+      store.campaign.id,
+      store.campaign.narrative.length,
+      store.campaign.ooc.length,
+      store.campaign.characters.map(p => `${p.hp}/${p.hpMax}/${p.xp}`).join(','),
+      JSON.stringify(store.campaign.gold),
+      store.campaign.quests.length,
+      store.campaign.consequences.map(c => c.resolved).join(','),
+      store.campaign.npcs.length,
+      store.campaign.locations.length,
+      store.campaign.location,
+      store.campaign.time,
+      store.campaign.weather,
+      store.campaign.combatState.active,
+      store.campaign.combatState.currentTurn,
+      JSON.stringify(store.campaign.inventory),
+      store.campaign.chapters.length,
+    ],
+    () => { if (!hydrating && store.campaign.id) scheduleSave(); },
+    { defer: true }
+  ));
+
+  // Safety net: flush immediately when the tab is backgrounded or closed.
+  const flush = () => { if (store.campaign.id) writeLocal(); };
+  window.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
+  window.addEventListener('pagehide', flush);
+}
+
+async function loadLocalSnapshot() {
+  try {
+    const active = await getByKey('meta', ACTIVE_KEY);
+    if (!active?.value) return null;
+    const rec = await getByKey('meta', SNAP_PREFIX + active.value);
+    return rec?.value || null;
+  } catch (_) { return null; }
+}
+
+// Boot restore. Local first (fast, complete, offline-safe); if a newer cloud
+// copy exists, prefer its world state but union chat so a trimmed cloud snapshot
+// can't truncate local history. Returns true if a campaign was restored.
+export async function restoreSession() {
+  let snap = await loadLocalSnapshot();
+
+  try {
+    const uid = getUid();
+    if (uid && snap?.campaign?.id) {
+      const cloud = await loadCloud(snap.campaign.id);
+      if (cloud && (cloud.updatedAt || 0) > (snap.ts || 0)) {
+        snap = { ...snap, campaign: mergeCampaign(snap.campaign, cloud), ts: cloud.updatedAt };
+      }
+    } else if (uid && !snap) {
+      // Fresh device: discover the active campaign from the cloud pointer.
+      const ptr = await dbRead(`players/${uid}/active`);
+      if (ptr?.id) {
+        const cloud = await loadCloud(ptr.id);
+        if (cloud) snap = { campaign: { ...cloud, id: ptr.id }, ts: cloud.updatedAt || Date.now() };
+      }
+    }
+  } catch (_) {}
+
+  if (snap?.campaign?.id) {
+    setStore('campaign', { ...structuredClone(DEFAULT_CAMPAIGN), ...snap.campaign });
+    if (snap.playerIdentity) setStore('system', 'playerIdentity', snap.playerIdentity);
+    if (snap.theme) {
+      setStore('system', 'settings', 'theme', snap.theme);
+      document.documentElement.setAttribute('data-theme', snap.theme);
+    }
+    return true;
+  }
+  return false;
+}
+
+async function loadCloud(id) {
+  try {
+    const { loadCampaignFromCloud } = await import('./sync.js');
+    return await loadCampaignFromCloud(id);
+  } catch (_) { return null; }
+}
+
+function mergeCampaign(localC, cloudC) {
+  const merged = { ...localC, ...cloudC };
+  merged.narrative = unionById(localC.narrative, cloudC.narrative);
+  merged.ooc = unionById(localC.ooc, cloudC.ooc);
+  return merged;
+}
+
+function unionById(a = [], b = []) {
+  const seen = new Map();
+  for (const m of [...(a || []), ...(b || [])]) {
+    if (!m) continue;
+    const key = m.id || `${m.ts}:${(m.content || '').slice(0, 24)}`;
+    if (!seen.has(key)) seen.set(key, m);
+  }
+  return [...seen.values()].sort((x, y) => (x.ts || 0) - (y.ts || 0));
+}
