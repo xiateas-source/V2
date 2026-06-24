@@ -3,6 +3,7 @@ import { store, setStore } from '../../state/index.js';
 import KeyGate from './KeyGate.jsx';
 import CharCreate from './CharCreate.jsx';
 import CampaignConfig from './CampaignConfig.jsx';
+import { loadDemoCampaign } from '../../data/demo.js';
 
 export default function PlayerOnboard() {
   const [step, setStep] = createSignal(store.system.providers.geminiKey ? 1 : 0);
@@ -56,6 +57,11 @@ export default function PlayerOnboard() {
       </div>
 
       <div class="onboard-footer">
+        <Show when={step() === 0}>
+          <button class="onboard-demo-btn" onClick={loadDemoCampaign}>
+            Skip — load the demo party &amp; play
+          </button>
+        </Show>
         <Show when={step() === 1 && !hasChar()}>
           <span class="onboard-hint">Create at least one character to continue</span>
         </Show>

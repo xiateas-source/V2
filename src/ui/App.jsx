@@ -6,6 +6,7 @@ import Cargo from './reference/Cargo.jsx';
 import Journal from './reference/Journal.jsx';
 import Settings from './manage/Settings.jsx';
 import Toast from './shared/Toast.jsx';
+import { D20 } from './shared/icons.jsx';
 
 export default function App() {
   const [mode, setMode] = createSignal('play');
@@ -61,19 +62,28 @@ export default function App() {
           <Show when={mode() === 'manage'}><Settings /></Show>
         </Show>
       </main>
-      <nav class="bottom-nav">
-        <button class="nav-item" classList={{ active: mode() === 'cargo' }} onClick={() => switchMode('cargo')}>
-          Cargo
-          <Show when={mode() !== 'cargo' && cargoBadge()}><span class="nav-badge" /></Show>
-        </button>
-        <button class="nav-item" classList={{ active: mode() === 'journal' }} onClick={() => switchMode('journal')}>
-          Journal
-          <Show when={mode() !== 'journal' && journalBadge()}><span class="nav-badge" /></Show>
-        </button>
-        <button class="nav-item" classList={{ active: mode() === 'manage' }} onClick={() => switchMode('manage')}>
-          Settings
-        </button>
-      </nav>
+      <Show when={hasCampaign()}>
+        <nav class="bottom-nav">
+          <button class="nav-item" classList={{ active: mode() === 'cargo' }} onClick={() => switchMode('cargo')}>
+            <span class="nav-icon"><i class="ph ph-package" /></span>
+            <span class="nav-label">Cargo</span>
+            <Show when={mode() !== 'cargo' && cargoBadge()}><span class="nav-badge" /></Show>
+          </button>
+          <button class="nav-item" classList={{ active: mode() === 'play' }} onClick={() => setMode('play')}>
+            <span class="nav-icon"><D20 /></span>
+            <span class="nav-label">Play</span>
+          </button>
+          <button class="nav-item" classList={{ active: mode() === 'journal' }} onClick={() => switchMode('journal')}>
+            <span class="nav-icon"><i class="ph ph-book-open" /></span>
+            <span class="nav-label">Journal</span>
+            <Show when={mode() !== 'journal' && journalBadge()}><span class="nav-badge" /></Show>
+          </button>
+          <button class="nav-item" classList={{ active: mode() === 'manage' }} onClick={() => switchMode('manage')}>
+            <span class="nav-icon"><i class="ph ph-gear-six" /></span>
+            <span class="nav-label">Settings</span>
+          </button>
+        </nav>
+      </Show>
       <Toast />
     </div>
   );

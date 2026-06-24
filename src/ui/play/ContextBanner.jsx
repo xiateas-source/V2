@@ -1,6 +1,7 @@
 import { Show } from 'solid-js';
 import { store, setStore } from '../../state/index.js';
 import { confirmLocation, rejectLocation } from '../../ai/mechanics.js';
+import { autoRead, toggleAutoRead } from '../../audio/browserTTS.js';
 
 export default function ContextBanner() {
   const loc = () => store.campaign.location;
@@ -29,17 +30,33 @@ export default function ContextBanner() {
         </div>
       </Show>
       <Show when={loc() || time()}>
-        <div class="context-banner">
-          <Show when={loc()}><span class="ctx-location">{loc()}</span></Show>
-          <Show when={time()}><span class="ctx-time">{time()}</span></Show>
-          <Show when={weather()}><span class="ctx-weather">{weather()}</span></Show>
-          <button
-            class={`ctx-mode-toggle ${isMulti() ? 'multi' : 'solo'}`}
-            onClick={toggleMultiPlayer}
-            title={isMulti() ? 'Multi-player' : 'Solo'}
-          >
-            {isMulti() ? '\u{1F46B}' : '\u{1F9D1}'}
-          </button>
+        <div class="head">
+          <div class="head-left">
+            <Show when={loc()}><div class="loc">{loc()}</div></Show>
+            <Show when={time() || weather()}>
+              <div class="loc-meta">
+                <Show when={time()}><span>{time()}</span></Show>
+                <Show when={time() && weather()}><span class="sep">·</span></Show>
+                <Show when={weather()}><span>{weather()}</span></Show>
+              </div>
+            </Show>
+          </div>
+          <div class="head-right">
+            <button
+              class={`btn-icon ${isMulti() ? 'active' : ''}`}
+              onClick={toggleMultiPlayer}
+              title={isMulti() ? 'Multi-player' : 'Solo'}
+            >
+              <i class={isMulti() ? 'ph ph-users-three' : 'ph ph-user'} />
+            </button>
+            <button
+              class={`btn-icon ${autoRead() ? 'active' : ''}`}
+              onClick={toggleAutoRead}
+              title="Read aloud"
+            >
+              <i class="ph ph-speaker-high" />
+            </button>
+          </div>
         </div>
       </Show>
     </>

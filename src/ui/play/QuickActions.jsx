@@ -99,6 +99,10 @@ function getCharacterSuggestions() {
 
 export default function QuickActions(props) {
   const [open, setOpen] = createSignal(false);
+  // Controlled mode: parent (InputBar's dice button) drives open/close and the
+  // always-visible pill bar is hidden — the drawer is the whole component.
+  const isOpen = () => props.controlled ? props.open : open();
+  const close = () => { if (props.controlled) props.onClose?.(); else setOpen(false); };
   const [editing, setEditing] = createSignal(false);
   const [customLabel, setCustomLabel] = createSignal('');
   const [customText, setCustomText] = createSignal('');
@@ -159,7 +163,7 @@ export default function QuickActions(props) {
       }
     }
 
-    if (open()) setOpen(false);
+    close();
   }
 
   function addAction(id) {
@@ -212,33 +216,35 @@ export default function QuickActions(props) {
   });
 
   return (
-    <div class="qa-container">
-      <div
-        class="qa-pill-bar"
-        onTouchStart={onPillBarTouch}
-        onTouchEnd={onPillBarTouchEnd}
-      >
-        <For each={contextActions()}>
-          {(action) => (
-            <button
-              class={`qa-pill qa-ctx-${action.context}`}
-              onClick={() => fireAction(action)}
-              disabled={isSending()}
-            >
-              <span class="qa-pill-icon">{action.icon}</span>
-              <span class="qa-pill-label">{action.label}</span>
-            </button>
-          )}
-        </For>
-        <button
-          class={`qa-pill qa-pill-toggle ${open() ? 'qa-pill-active' : ''}`}
-          onClick={() => setOpen(!open())}
+    <div class={`qa-container ${props.controlled ? 'qa-controlled' : ''}`}>
+      <Show when={!props.controlled}>
+        <div
+          class="qa-pill-bar"
+          onTouchStart={onPillBarTouch}
+          onTouchEnd={onPillBarTouchEnd}
         >
-          {open() ? '▾' : '▴'}
-        </button>
-      </div>
+          <For each={contextActions()}>
+            {(action) => (
+              <button
+                class={`qa-pill qa-ctx-${action.context}`}
+                onClick={() => fireAction(action)}
+                disabled={isSending()}
+              >
+                <span class="qa-pill-icon">{action.icon}</span>
+                <span class="qa-pill-label">{action.label}</span>
+              </button>
+            )}
+          </For>
+          <button
+            class={`qa-pill qa-pill-toggle ${open() ? 'qa-pill-active' : ''}`}
+            onClick={() => setOpen(!open())}
+          >
+            {open() ? '▾' : '▴'}
+          </button>
+        </div>
+      </Show>
 
-      <Show when={open()}>
+      <Show when={isOpen()}>
         <div
           class="qa-drawer"
           onTouchStart={onDrawerTouch}
@@ -253,6 +259,9 @@ export default function QuickActions(props) {
               <button class={`qa-edit-btn ${editing() ? 'qa-edit-active' : ''}`} onClick={() => setEditing(!editing())}>
                 {editing() ? 'Done' : 'Edit'}
               </button>
+              <Show when={props.controlled}>
+                <button class="qa-close-btn" onClick={close} title="Close">&times;</button>
+              </Show>
             </div>
           </div>
 

@@ -111,8 +111,10 @@ export default function Chat() {
     <div class="chat-container">
       <PreviouslyOn />
       <ContextBanner />
+      <div class="hr" />
       <CharTiles />
       <SituationBar />
+      <Combat />
 
       <div class="chat-tabs">
         <button
@@ -125,7 +127,7 @@ export default function Chat() {
           class={tab() === 'ooc' ? 'tab active' : 'tab'}
           onClick={() => setTab('ooc')}
         >
-          OOC
+          Table-talk
         </button>
         <TTS text={lastAssistantMsg()} />
       </div>
@@ -185,7 +187,6 @@ export default function Chat() {
         </button>
       </Show>
 
-      <Combat />
       <TurnPrompt />
       <RollBar />
       <div class="input-area">
