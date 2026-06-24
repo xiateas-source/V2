@@ -266,13 +266,22 @@ export default function LevelUp(props) {
     return base;
   });
 
+  const spellStepIncludesCantrips = () => {
+    const step = currentStep();
+    return step?.type === 'spell' && step?.desc?.toLowerCase().includes('cantrip');
+  };
+
   const filteredSpells = createMemo(() => {
     const step = currentStep();
     const maxLvl = parseMaxSpellLevel(step?.desc);
     const known = knownSpellNames();
-    return spellPool().filter(s =>
+    const knownC = knownCantripNames();
+    const leveled = spellPool().filter(s =>
       s.level > 0 && s.level <= maxLvl && !known.has(s.name.toLowerCase())
     );
+    if (!spellStepIncludesCantrips()) return leveled;
+    const cantrips = cantripPool().filter(s => !knownC.has(s.name.toLowerCase()));
+    return [...cantrips, ...leveled];
   });
 
   const filteredCantrips = createMemo(() => {
@@ -334,12 +343,16 @@ export default function LevelUp(props) {
 
   function collectChoices() {
     const lvl = currentLevel();
+    // Separate cantrips from leveled spells if the spell step included cantrips
+    const cantripNames = new Set(cantripPool().map(s => s.name.toLowerCase()));
+    const spellStepCantrips = spellPicks().filter(n => cantripNames.has(n.toLowerCase()));
+    const spellStepLeveled = spellPicks().filter(n => !cantripNames.has(n.toLowerCase()));
     const choices = {
       level: lvl.level,
       hpGain: hpGain(),
       features: (lvl.features || []).map(f => typeof f === 'string' ? f : f.name),
-      newSpells: [...spellPicks()],
-      newCantrips: [...cantripPicks()],
+      newSpells: [...spellStepLeveled],
+      newCantrips: [...cantripPicks(), ...spellStepCantrips],
       spellSlots: lvl.spellSlots,
       asiScores: { ...asiScores() },
       feat: featPick(),
@@ -468,11 +481,11 @@ export default function LevelUp(props) {
     // Recompute attacks
     const attacks = computeAttacks(className(), finalLevel, newScores);
 
-    // AC (if DEX changed)
+    // AC (if DEX changed — applies DEX mod delta regardless of armor type)
     const newDexMod = abilityMod(newScores.dex);
     const oldDexMod = abilityMod(character.abilityScores?.dex || 10);
     const acDelta = newDexMod - oldDexMod;
-    const newAc = (className() !== 'Fighter') ? (character.ac + acDelta) : character.ac;
+    const newAc = character.ac + acDelta;
 
     // Subclass
     const subclass = choices.find(c => c.subclass)?.subclass || character.subclass;
@@ -502,6 +515,14 @@ export default function LevelUp(props) {
     setStore('campaign', 'characters', idx, 'hp', Math.min(character.hp + totalHpGain, newHpMax));
     // Update hitDice total
     setStore('campaign', 'characters', idx, 'hitDice', { ...character.hitDice, total: finalLevel });
+    // Initialize currentSlots for any NEW spell levels gained (AI-owned, same bypass)
+    if (Object.keys(finalSlots).length > 0) {
+      const currentSlots = { ...(character.currentSlots || {}) };
+      for (const [lvl, max] of Object.entries(finalSlots)) {
+        if (!(lvl in currentSlots)) currentSlots[lvl] = max;
+      }
+      setStore('campaign', 'characters', idx, 'currentSlots', currentSlots);
+    }
 
     window.dispatchEvent(new CustomEvent('toast', {
       detail: { text: `${character.name} is now level ${finalLevel}!` }
@@ -909,7 +930,7 @@ function StepSpell(props) {
               onClick={() => props.toggle(spell.name)}
             >
               <span class="lu-spell-name">{spell.name}</span>
-              <span class="lu-spell-lvl">Lv{spell.level}</span>
+              <span class="lu-spell-lvl">{spell.level === 0 ? 'Cantrip' : `Lv${spell.level}`}</span>
             </button>
           )}
         </For>
@@ -1013,6 +1034,15 @@ function StepExpertise(props) {
 function StepSummary(props) {
   const c = createMemo(() => props.choices());
 
+  const profBonusChange = createMemo(() => {
+    const prevLevel = props.currentLevel()?.level - 1;
+    const newLevel = props.currentLevel()?.level;
+    if (!prevLevel || !newLevel) return null;
+    const oldProf = proficiencyBonus(prevLevel);
+    const newProf = proficiencyBonus(newLevel);
+    return oldProf !== newProf ? { from: oldProf, to: newProf } : null;
+  });
+
   return (
     <div class="lu-step-content">
       <h3 class="lu-step-title">Level {props.currentLevel()?.level} Summary</h3>
@@ -1021,6 +1051,13 @@ function StepSummary(props) {
           <span class="lu-summary-label">HP</span>
           <span class="lu-summary-value">+{c().hpGain} ({props.pc()?.hpMax + c().hpGain} total)</span>
         </div>
+
+        <Show when={profBonusChange()}>
+          <div class="lu-summary-row lu-summary-highlight">
+            <span class="lu-summary-label">Proficiency</span>
+            <span class="lu-summary-value">+{profBonusChange().from} &rarr; +{profBonusChange().to}</span>
+          </div>
+        </Show>
 
         <Show when={c().subclass}>
           <div class="lu-summary-row">
