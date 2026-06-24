@@ -1,20 +1,23 @@
 import { Show, For, createMemo } from 'solid-js';
-import { store } from '../../state/index.js';
+import { store, setStore } from '../../state/index.js';
 import { isSending } from '../../ai/engine.js';
 
-// Combat turn handoff. Derived entirely from synced combatState, so it shows on
-// every connected device at once — any player can tap it (the app enforces turn
-// ORDER, not which person acts). Hidden while the AI is streaming and during the
-// initiative-roll phase (the RollBar owns that window).
+// Combat turn card. The engine owns the turn pointer; this just makes the
+// current PC's turn a clear, bounded choice: whose turn, what you can do, and a
+// light Action / Bonus / Move reminder (tapping an option marks its slot). The
+// engine resets the slots when the turn advances.
+const GENERIC = [
+  { label: 'Dash', econ: 'action', text: ' takes the Dash action (move up to double speed).' },
+  { label: 'Dodge', econ: 'action', text: ' takes the Dodge action (attacks against them have disadvantage).' },
+  { label: 'Disengage', econ: 'action', text: ' takes the Disengage action (no opportunity attacks).' },
+  { label: 'Hide', econ: 'action', text: ' tries to Hide.' },
+  { label: 'Help', econ: 'action', text: ' uses the Help action to aid ' },
+];
+
 export default function TurnPrompt() {
   const combat = () => store.campaign.combatState;
-
   const awaiting = () => combat().initiative.some(c => c.rollPending);
-
-  const actor = () => {
-    const cs = combat();
-    return cs.initiative[cs.currentTurn] || null;
-  };
+  const actor = () => combat().initiative[combat().currentTurn] || null;
 
   const show = () => {
     if (!combat().active || awaiting() || isSending()) return false;
@@ -28,23 +31,45 @@ export default function TurnPrompt() {
     return store.campaign.characters.find(c => c.name === a.name) || null;
   });
 
-  const quickActions = createMemo(() => {
+  const used = () => combat().actionsUsed || {};
+
+  const attacks = createMemo(() => {
     const p = pc();
     if (!p) return [];
-    const out = [];
-    for (const atk of (p.attacks || []).slice(0, 3)) {
+    return (p.attacks || []).slice(0, 3).map(atk => {
       const name = typeof atk === 'string' ? atk : atk.name;
-      if (name) out.push({ label: name, text: `${p.name} attacks with ${name} — targeting ` });
+      return { label: name, econ: 'action', text: `${p.name} attacks with ${name} — targeting ` };
+    }).filter(a => a.label);
+  });
+
+  const spells = createMemo(() => {
+    const p = pc();
+    if (!p) return [];
+    return [...(p.cantrips || []), ...(p.knownSpells || [])].slice(0, 4)
+      .map(s => ({ label: s, econ: 'action', text: `${p.name} casts ${s} — targeting ` }));
+  });
+
+  const bonus = createMemo(() => {
+    const p = pc();
+    if (!p) return [];
+    const feats = (p.features || []).map(f => (f.name || f).toLowerCase());
+    const out = [];
+    if (feats.some(f => /cunning action/.test(f))) {
+      out.push({ label: 'Cunning: Dash', econ: 'bonus', text: `${p.name} uses Cunning Action to Dash.` });
+      out.push({ label: 'Cunning: Hide', econ: 'bonus', text: `${p.name} uses Cunning Action to Hide.` });
     }
-    const spells = [...(p.cantrips || []), ...(p.knownSpells || [])].slice(0, 3);
-    for (const s of spells) {
-      out.push({ label: s, text: `${p.name} casts ${s} — targeting ` });
-    }
+    if (feats.some(f => /second wind/.test(f))) out.push({ label: 'Second Wind', econ: 'bonus', text: `${p.name} uses Second Wind to recover hit points.` });
+    if (feats.some(f => /bardic inspiration/.test(f))) out.push({ label: 'Inspire', econ: 'bonus', text: `${p.name} grants Bardic Inspiration to ` });
     return out;
   });
 
-  function prefill(text) {
-    window.dispatchEvent(new CustomEvent('prefill-input', { detail: { text } }));
+  function take(qa) {
+    // Light bookkeeping: mark the slot, then prefill the input so the player can
+    // finish the sentence (add a target) before sending.
+    const u = { ...(combat().actionsUsed || {}) };
+    u[qa.econ] = true;
+    setStore('campaign', 'combatState', 'actionsUsed', u);
+    window.dispatchEvent(new CustomEvent('prefill-input', { detail: { text: qa.text } }));
   }
 
   return (
@@ -57,17 +82,28 @@ export default function TurnPrompt() {
           </span>
           <span class="turn-prompt-round">Round {combat().round}</span>
         </div>
-        <Show when={quickActions().length > 0}>
-          <div class="turn-prompt-actions">
-            <For each={quickActions()}>
-              {(qa) => (
-                <button class="turn-action-btn" onClick={() => prefill(qa.text)}>
-                  {qa.label}
-                </button>
-              )}
-            </For>
-          </div>
-        </Show>
+
+        {/* action economy reminder */}
+        <div class="econ-slots">
+          <span class={`econ-slot ${used().action ? 'spent' : ''}`}>Action</span>
+          <span class={`econ-slot ${used().bonus ? 'spent' : ''}`}>Bonus</span>
+          <span class={`econ-slot ${used().movement ? 'spent' : ''}`}>Move</span>
+        </div>
+
+        <div class="turn-prompt-actions">
+          <For each={attacks()}>
+            {(qa) => <button class="turn-action-btn ta-atk" onClick={() => take(qa)}><i class="ph ph-sword" />{qa.label}</button>}
+          </For>
+          <For each={spells()}>
+            {(qa) => <button class="turn-action-btn ta-spell" onClick={() => take(qa)}><i class="ph ph-sparkle" />{qa.label}</button>}
+          </For>
+          <For each={bonus()}>
+            {(qa) => <button class="turn-action-btn ta-bonus" onClick={() => take(qa)}><i class="ph ph-lightning" />{qa.label}</button>}
+          </For>
+          <For each={GENERIC}>
+            {(g) => <button class="turn-action-btn ta-gen" onClick={() => take({ ...g, text: `${pc()?.name || ''}${g.text}` })}>{g.label}</button>}
+          </For>
+        </div>
       </div>
     </Show>
   );

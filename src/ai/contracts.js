@@ -39,7 +39,7 @@ death_save: Name|success/failure/nat20/nat1 | short_rest: Name (or "party") | lo
 hit_dice_use: Name=count | inspiration: Name+true | temp_hp: Name=amount
 spell_add: PC|Name|Level|CastTime|Range|Duration|Components|Desc
 familiar_hp: Name|HP | animal_hp: Name=HP
-round_advance: (increment combat round)
+round_advance: (DO NOT EMIT — the app tracks turns and rounds itself)
 
 ROLL PROCEDURE:
 - Emit roll_request when a PC attempts something with uncertain outcome and meaningful stakes.

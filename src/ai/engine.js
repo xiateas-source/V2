@@ -24,6 +24,26 @@ export function stopGeneration() {
   setSending(false);
 }
 
+function currentActorName() {
+  const cs = store.campaign.combatState;
+  return cs.initiative[cs.currentTurn]?.name || 'the active character';
+}
+
+// Detect the two combat-turn problems worth a re-prompt: resolving a roll in the
+// same beat it was requested (incl. ending combat on it), and running more than
+// the current actor's single turn.
+function combatViolation(mechanics, responseText) {
+  const keys = mechanics.map(m => m.key);
+  if (keys.includes('roll_request') && keys.includes('combat_end')) {
+    return 'A roll was requested and combat was ended in the same response.';
+  }
+  const g2 = runGate2(mechanics, responseText);
+  if (g2.some(f => f.type === 'multi_action' || f.type === 'wrong_turn')) {
+    return 'More than the current actor\'s single turn was resolved.';
+  }
+  return null;
+}
+
 export async function sendMsg(text, options = {}) {
   if (sending()) return;
   setSending(true);
@@ -65,7 +85,37 @@ export async function sendMsg(text, options = {}) {
     activeController = null;
     setStore('campaign', 'narrative', assistantIdx, 'partial', false);
 
-    const mechanics = extractMechanics(fullResponse);
+    let mechanics = extractMechanics(fullResponse);
+
+    // Combat: keep the AI to one PC's turn and stop it resolving rolls / ending
+    // combat before the dice are in. On a violation, discard and re-prompt once
+    // (the player never sees the bad take).
+    if (store.campaign.combatState.active && !isAwaitingInitiative() && !combatKickoff) {
+      const reason = combatViolation(mechanics, fullResponse);
+      if (reason) {
+        const actorName = currentActorName();
+        const correction = `CORRECTION — combat turn rules were broken: ${reason}\nRewrite your previous response. Resolve ONLY ${actorName}'s single declared action, plus any enemies that act before the next player character in initiative order, then STOP and state whose turn is next. Do NOT resolve the outcome of a roll you are requesting — emit the roll_request and wait. Do NOT emit combat_end unless an enemy is already at 0 HP. Do NOT emit round_advance (the app tracks rounds). Keep the same scene; just fix the turn scope.`;
+        try {
+          fullResponse = '';
+          setStore('campaign', 'narrative', assistantIdx, 'content', '');
+          setStore('campaign', 'narrative', assistantIdx, 'partial', true);
+          activeController = new AbortController();
+          const retryStream = callProvider([...messages, { role: 'user', content: correction }], systemPrompt, activeController.signal);
+          for await (const chunk of retryStream) {
+            fullResponse += chunk;
+            setStore('campaign', 'narrative', assistantIdx, 'content', fullResponse);
+            if (onChunk) onChunk(chunk, fullResponse);
+          }
+          activeController = null;
+          setStore('campaign', 'narrative', assistantIdx, 'partial', false);
+          mechanics = extractMechanics(fullResponse);
+        } catch (_) {
+          // If the retry fails, fall through with whatever we have.
+          setStore('campaign', 'narrative', assistantIdx, 'partial', false);
+        }
+      }
+    }
+
     if (mechanics.length > 0) {
       const { valid, rejected } = validateMechanics(mechanics);
       const applied = applyMechanics(valid);

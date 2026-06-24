@@ -870,8 +870,9 @@ const DISPATCH = {
   },
 
   round_advance() {
-    if (!store.campaign.combatState.active) return;
-    aiSet('combatState.round', store.campaign.combatState.round + 1);
+    // No-op: the engine owns the turn pointer and round counter
+    // (advanceCombatToNextPC bumps the round when the order wraps). Letting the
+    // AI also advance the round double-counts it, so we ignore AI round_advance.
   },
 
   hit_dice_use(value) {
