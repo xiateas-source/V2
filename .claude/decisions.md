@@ -25,7 +25,7 @@
 | Decision | Rationale | Session |
 |----------|-----------|---------|
 | Four modes: setup, play, reference, manage | Every feature belongs to exactly one mode. Setup is onramp (locked after launch). Play is the session. Reference is mid-session orientation. Manage is between sessions. | 30 |
-| Bottom nav: Cargo / Journal / Settings (3 items, no Play button) | Combat and level-up are event-driven overlays, not tabs. Dice roller is inline icon. Play is the default home screen, not a nav destination. S39 mockup explored a 4th "Play" item — rejected S40. | 30→40 |
+| ~~Bottom nav: Cargo / Journal / Settings (3 items, no Play button)~~ → **4-item with explicit Play (d20): Cargo / Play / Journal / Settings** | Combat and level-up are still event-driven overlays. S40 dropped the Play item (Play = default home); **S43 the developer reinstated it** ("the play button is fine") — the Chronograph mockup has it and it gives a clear way back to the session from a reference tab. Play nav uses the d20 mark. | 30→40→**43** |
 | Combat overlay, not combat tab | Appears when combat starts, disappears when it ends. Not a permanent nav destination. | 30 |
 | Level-up wizard is event-driven | Triggers on XP threshold, not from a button. Overlay that appears when conditions are met. | 30 |
 | Setup locks after campaign launch | One-way transition. Setup → Play. No going back without intentional manage mode access. | 30 |

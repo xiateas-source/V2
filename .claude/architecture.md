@@ -261,7 +261,7 @@ MANAGE → intentional transition, between sessions
 - Play → Manage: tap Settings in bottom nav. One step removed. Intentional.
 - Reference → Play: tap away, close overlay. Instant.
 
-**Bottom nav:** Cargo / Journal / Settings. Three items. Combat and level-up are event-driven overlays, not tabs. Dice roller is inline icon. Treasury accessed via links (charsheet Equipment footer, Cargo).
+**Bottom nav:** Cargo / **Play** / Journal / Settings. Four items (S43 — Play item reinstated, uses the d20 mark). Combat and level-up are event-driven overlays, not tabs. Quick Actions opens from the d20 dice button beside Send. Treasury accessed via links (charsheet Equipment footer, Cargo).
 
 **Tap-to-source principle:** Any displayed information is tappable and navigates to its source. No dead text. Location in the banner → journal locations. Quest chip → quest detail. Character tile → character sheet. Mechanic pill → relevant reference. The UI is a web of links, not isolated panels.
 

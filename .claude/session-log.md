@@ -1,5 +1,78 @@
 # Session Log — Handoff Note
 
+## Session 43 · 2026-06-24 — Chronograph restyle + mechanics test container (DEPLOYED)
+
+**Theme:** apply the locked modern-atmospheric visual style to the real app from the
+developer's mockup (`chronographcleanvtt.html`), wire the requested interactions, and
+give them a way to actually test the mechanics pipeline. Branch
+`claude/app-styling-tabs-c1khdr`. Build clean, 33/33 tests. **Merged to main + deployed
+green** (pebble-v2.web.app, deploy run on `2bf2c0f` = success).
+
+### Shipped
+- **Chronograph skin (real app, not a mockup).** Cinzel/EB Garamond/Inter type +
+  Phosphor icons + signature d20 SVG (`shared/icons.jsx`). `dark-0` (Obsidian) retuned
+  to the warm-gold register. **All 20 themes preserved** — added `--line`/`--line-soft`/
+  `--faint` as per-theme `color-mix` derivations in `:root`, plus `--serif`/`--disp`/`--ui`
+  font tokens. Big restyle block appended to `style.css` (wins by source order).
+- **Restyled play surface:** head (location + meta + listen via `toggleAutoRead`),
+  party HUD with **monogram avatars + per-PC color ring + class icon** (CharTiles rewritten),
+  situation bar, labelled **DM prose (no bubble)** vs right-aligned **player bubbles**
+  (had to neutralise the inherited `.msg-*` bubble rules), gold roll/send treatments.
+- **4-item bottom nav with explicit Play (d20)** — developer said "the play button is fine,"
+  so reverted the S40 3-item decision. Cargo / Play / Journal / Settings, Phosphor icons.
+- **Dice → Quick Actions.** The d20 button beside Send opens the QuickActions drawer.
+  QuickActions gained a **controlled mode** (`props.controlled/open/onClose`); its always-on
+  pill bar is hidden there. Added a close button to the drawer header.
+- **Combat drops from top.** Moved `<Combat/>` above the feed in Chat.jsx; `.combat-overlay`
+  gets a `combatDrop` slide-down animation.
+- **Mechanics test container (`manage/MechTest.jsx`).** Fire mechanics straight through
+  extract→validate→apply and watch the live HUD/situation/combat react — **no provider/API
+  needed.** Quick-fire chips (damage/heal/gold/xp/condition/quest/item/npc/consequence/
+  combat) + free-form mechanics-block injector + validated/applied/rejected readout +
+  "Seed scene". Opened from a discreet **Test** toggle in the input bar (replaced the old
+  Dice/Test toggle row).
+- **Onboarding demo shortcut.** "Skip — load the demo party & play" on step 0 of
+  PlayerOnboard → `loadDemoCampaign()` (was only reachable from DevTools). Lands directly
+  in the styled, populated Play screen (Ivy/Thorn, Trade Road) — the natural test container.
+
+### Decisions made
+- **Nav is 4-item with Play (d20)** — supersedes S40's "3-item, no Play." Developer's call.
+- **`dark-0` retuned to the mockup palette; 20-theme system kept** via `color-mix` derived
+  tokens. The Chronograph look IS the default theme, not a new one.
+- DM messages render as labelled prose (per-block "Dungeon Master" header), player messages
+  as serif bubbles. Tab label "OOC" → "Table-talk" to match the mockup.
+
+### Known issues / watch
+- **Not play-verified by a real session.** Styling + the test container are confirmed by
+  build/tests + a static preview only (no headless browser here, no API key exercised).
+  The persistence spine + live `sendMsg` loop are still the real gate (unchanged from S39).
+- **"Dungeon Master" label repeats** on consecutive DM messages — matches the mockup but
+  can look heavy; collapse to once-per-speaker-run if the family dislikes it.
+- **DiceRoller.jsx now unwired** (was only used by the old input bar). Rolls go via RollBar/
+  roll requests. Left in tree; could tuck into the QuickActions drawer if a manual roller is wanted.
+- Player-message **byline** ("Ivy · 9:14pm") from the mockup not added — minor.
+- Fonts/Phosphor load from CDN (google fonts + unpkg) per the mockup; offline/network-policy
+  environments fall back to system fonts.
+
+### Next up
+1. **Play-verify** with a real API key — does the loop actually run end to end now that
+   there's a body? Use the demo + Test container.
+2. Persistence spine (S39 root-cause: no local save, boot never reloads campaign).
+3. Optional polish: collapse repeated DM labels, player byline, manual roller in QuickActions.
+
+### Key files
+- NEW: `src/ui/manage/MechTest.jsx`, `src/ui/shared/icons.jsx`
+- `src/style.css` (token foundation + dark-0 retune + Chronograph restyle block)
+- `src/ui/App.jsx` (4-item nav), `src/ui/play/Chat.jsx` (combat to top, tab label)
+- `src/ui/play/ContextBanner.jsx` (head), `src/ui/play/CharTiles.jsx` (party HUD)
+- `src/ui/play/InputBar.jsx` (dice→actions, Test), `src/ui/play/QuickActions.jsx` (controlled)
+- `src/ui/setup/PlayerOnboard.jsx` (demo shortcut), `index.html` (font/icon links)
+
+**Branch state:** `claude/app-styling-tabs-c1khdr` @ `2bf2c0f`; **merged to main (ff), deployed.**
+main and feature branch even.
+
+---
+
 ## Session 42 · 2026-06-24 — Play/Reference Mode build-out + workboard trim
 
 **Theme:** knock real, reachable features off Phase 3 (Play Mode UI) and Phase 4

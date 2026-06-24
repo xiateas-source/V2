@@ -51,12 +51,14 @@ Reconciled by reading every `src/` file (line count + content) and the test suit
 All 🟠 = code exists and renders; **none of it is confirmed playable.** Line counts say "code was written," not "a player can use it." Treat every row as needing play-verification before it counts as real.
 | File | L | Status | Note |
 |------|---|--------|------|
-| App.jsx | 78 | 🟠 | 3-tab router (Cargo/Journal/Settings) + onboard fallback — renders, wired to store |
+| App.jsx | ~95 | 🟢 | **S43:** 4-item nav (Cargo / **Play** d20 / Journal / Settings) — Play restored per developer. Chronograph-skinned. |
 | play/Chat.jsx | 311 | 🟠 | two-tab chat; `sendMsg` wired but loop not confirmed working for a player |
 | play/RollBar.jsx | 375 | 🟠 | initiative/roll UI (combat rebuild S37) |
 | play/QuickActions.jsx | 362 | 🟠 | |
 | play/Rewind, Combat, TurnPrompt | 207/127/74 | 🟠 | combat + turn system (S37) |
-| play/CharTiles, InputBar, SituationBar, ContextBanner, DiceRoller, TTS, PreviouslyOn | 32–99 | 🟠 | |
+| play/CharTiles, InputBar, SituationBar, ContextBanner, DiceRoller, TTS, PreviouslyOn | 32–99 | 🟠 | **S43 restyled** to Chronograph (monogram party HUD, head, dice→QuickActions, combat drops from top). DiceRoller now unwired (rolls go via RollBar). |
+| manage/MechTest.jsx | ~150 | 🟢 | **S43 new** — mechanics test container: fire mechanics through extract→validate→apply, watch live HUD react, no provider. Opened from input bar; demo-load shortcut on onboarding. |
+| shared/icons.jsx | 13 | 🟢 | **S43 new** — shared d20 SVG mark. |
 | play/RollRequest.jsx | 1 | ⛔ | (RollBar superseded it) |
 | reference/CharSheet.jsx | 787 | 🟠 | 6-tab sheet incl. editable Bio (S37) |
 | reference/Journal, Cargo, Compendium | 155/98/93 | 🟠 | renders from store; depth unverified |
@@ -94,7 +96,8 @@ S37: **"shipped, deployed, playable."** S38: **"mockup only, throwaway."** Devel
 
 ### Honest "what's left" (build-forward priorities)
 0. **BUILD THE INTERFACE.** The connective play surface — the body the engine/combat/onboarding plug into. This is the gate everything else waits behind.
-   - **S39 progress:** play-screen **visual style** prototyped in `modern-atmospheric.html` (modern/atmospheric, Phosphor icons, serif+sans type, party HUD, situation bar w/ consequence overflow, dice d20, listen, tap-to-source). Strong working direction, **not yet formally locked**. **Nav resolved (S40): 3-item** (Cargo / Journal / Settings). Open: review items 5–9. Next: lock style → build in SolidJS starting with the persistence spine.
+   - **S39 progress:** play-screen **visual style** prototyped in `modern-atmospheric.html` (modern/atmospheric, Phosphor icons, serif+sans type, party HUD, situation bar w/ consequence overflow, dice d20, listen, tap-to-source). Strong working direction.
+   - **S43: style applied to the real app + deployed.** The Chronograph aesthetic (mockup `chronographcleanvtt.html`) now lives in the SolidJS app — Cinzel/EB Garamond/Inter + Phosphor + d20, warm-gold `dark-0` retune (all 20 themes preserved via per-theme `color-mix` `--line`/`--faint`), restyled head/party-HUD/situation/feed/input. **Nav reverted to 4-item with explicit Play (d20)** per developer ("the play button is fine") — supersedes the S40 3-item decision. Dice button → QuickActions drawer. Combat drops from top. New **mechanics test container** + onboarding demo-load shortcut. Merged to main, deployed green (pebble-v2.web.app). Still **not play-verified by an actual session** (no API key exercised) — the persistence spine + live loop remain the real gate.
 1. **Persistence spine (part of the interface):** `sync.js` writes campaign state to **Firebase only** — no local save, and boot never reloads a campaign (`loadCampaignFromCloud` exists but is never called). So every reload wipes `campaign.id` → back to step-0 onboarding, nothing endures. The architecture.md "offline→localStorage, reconcile on reconnect" (Law 1) is **NOT implemented.** Build local-first persistence + boot restore as part of the interface.
 2. ⛔ True stubs to fill *after* the interface holds: Treasury, Glossary, SessionReview, Contracts, ContentImport, SessionZero.
 3. ◻️ Absent: multiplayer identity, push notifications, child view (AppSimple), shared bundles, state migration.

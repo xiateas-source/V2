@@ -122,7 +122,7 @@ src/
 └── main.js
 ```
 
-**Bottom nav:** Cargo / Journal / Settings. Combat and level-up are event-driven overlays.
+**Bottom nav:** Cargo / Play / Journal / Settings (4 items; Play uses the d20 mark). Combat and level-up are event-driven overlays.
 
 **Data tiers:**
 - Firebase — game state that changes during play (HP, quests, inventory, chat, combat, contracts)
