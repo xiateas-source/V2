@@ -48,6 +48,7 @@ const OWNERSHIP = {
   'characters.$.appearance': 'player',
   'characters.$.personality': 'player',
   'characters.$.traits': 'player',
+  'characters.$.avatar': 'player',
   'characters.$.notes': 'player',
   'playerIdentity': 'player',
   'contracts': 'player',

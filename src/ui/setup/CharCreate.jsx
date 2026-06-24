@@ -42,6 +42,40 @@ export default function CharCreate(props) {
 
   // Review/edit existing sheets
   const [sheetPC, setSheetPC] = createSignal(null);
+  // Edit an existing party member's build in the wizard (null = creating new).
+  const [editIndex, setEditIndex] = createSignal(null);
+
+  function startEdit(i) {
+    setEditIndex(i);
+    setMode('wizard');
+  }
+
+  function handleSaveEdit(updatedChar) {
+    const i = editIndex();
+    if (i === null) return;
+    setStore('campaign', 'characters', i, updatedChar);
+    setMode(null);
+    setEditIndex(null);
+  }
+
+  // Party role-coverage hint — a quiet nudge so a small party isn't unplayable
+  // by accident. Standard party-builder affordance.
+  function coverageGaps() {
+    const chars = store.campaign.characters;
+    if (chars.length === 0) return [];
+    const has = (classes, pred) =>
+      chars.some(c => classes.includes(c.class) || (pred && pred(c)));
+    const gaps = [];
+    if (!has(['Cleric', 'Druid', 'Paladin', 'Bard'],
+        c => (c.knownSpells || []).some(s => /cure wounds|healing word|heal/i.test(s))))
+      gaps.push('No healer — a Bard or someone with Cure Wounds keeps everyone up.');
+    if (!has(['Fighter', 'Barbarian', 'Paladin', 'Monk'], c => (c.ac || 0) >= 16))
+      gaps.push('No frontline — heavy armor or high HP soaks the hits.');
+    if (!has(['Wizard', 'Sorcerer', 'Warlock', 'Bard', 'Cleric', 'Druid'],
+        c => (c.cantrips || []).length > 0 || (c.knownSpells || []).length > 0))
+      gaps.push("No spellcaster — magic solves what weapons can't.");
+    return gaps;
+  }
 
   function commitCharacter() {
     const char = draft();
@@ -230,26 +264,34 @@ export default function CharCreate(props) {
 
   return (
     <div class="charcreate">
-      <Show when={store.campaign.characters.length > 0}>
+      <Show when={store.campaign.characters.length > 0 && !mode()}>
         <div class="charcreate-roster">
-          <div class="roster-label">Party — tap to review or edit</div>
+          <div class="roster-label">Party — tap to view · ✏ to edit build</div>
           <div class="roster-chips">
             <For each={store.campaign.characters}>
               {(pc, i) => (
                 <div class="roster-chip" style={{ 'border-color': pc.color }}>
                   <button class="roster-chip-open" onClick={() => setSheetPC(i())}>
-                    <div class="roster-chip-avatar" style={{ background: pc.color }}>{pc.name?.charAt(0) || '?'}</div>
+                    <div class="roster-chip-avatar" style={{ background: pc.color }}>{pc.avatar || pc.name?.charAt(0) || '?'}</div>
                     <div class="roster-chip-info">
                       <span class="roster-chip-name">{pc.name}</span>
                       <span class="roster-chip-meta">{pc.race} {pc.class} Lv{pc.level} · HP {pc.hpMax} · AC {pc.ac}</span>
                     </div>
                     <span class="roster-chip-go">›</span>
                   </button>
+                  <button class="roster-chip-edit" onClick={() => startEdit(i())} title="Edit build">✏</button>
                   <button class="roster-chip-remove" onClick={() => removeCharacter(i())}>×</button>
                 </div>
               )}
             </For>
           </div>
+          <Show when={coverageGaps().length > 0}>
+            <div class="roster-coverage">
+              <For each={coverageGaps()}>
+                {(g) => <div class="roster-coverage-item">⚠ {g}</div>}
+              </For>
+            </div>
+          </Show>
         </div>
       </Show>
 
@@ -307,8 +349,10 @@ export default function CharCreate(props) {
       <Show when={mode() === 'wizard'}>
         <CharWizard
           existingCount={store.campaign.characters.length}
+          editChar={editIndex() !== null ? store.campaign.characters[editIndex()] : null}
           onComplete={handleWizardComplete}
-          onBack={() => setMode(null)}
+          onSaveEdit={handleSaveEdit}
+          onBack={() => { setMode(null); setEditIndex(null); }}
         />
       </Show>
 

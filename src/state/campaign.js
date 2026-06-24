@@ -98,6 +98,7 @@ export const DEFAULT_CHARACTER = {
   attacks: [],
   traits: { trait: '', ideal: '', bond: '', flaw: '' },
   color: '#4a9eff',
+  avatar: '',                 // emoji avatar; '' falls back to name monogram
 
   hp: 0,
   hpTemp: 0,

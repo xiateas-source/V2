@@ -1,9 +1,10 @@
-import { createSignal, createEffect, onMount, Show, For } from 'solid-js';
+import { createSignal, createEffect, onMount, batch, Show, For } from 'solid-js';
 import {
   AVAILABLE_CLASSES, AVAILABLE_RACES, CLASS_DATA, RACE_BONUSES, RACE_SPEED,
   BACKGROUNDS, CLASS_SKILL_CHOICES, ALL_SKILLS, ALIGNMENTS,
   STANDARD_ARRAY, STARTING_EQUIPMENT, getStartingGold, POINT_BUY_COSTS,
-  getDefaultEquipment, getSelectedEquipment, rollPersonality
+  getDefaultEquipment, getSelectedEquipment, rollPersonality,
+  SKILL_DESC, SKILL_ABILITIES, AVATAR_EMOJI
 } from '../../data/quickBuild.js';
 import { forgeCharacter } from '../../data/forge.js';
 
@@ -73,6 +74,9 @@ export default function CharWizard(props) {
   const [rollAssign, setRollAssign] = createSignal({});
   const [selectedRollIdx, setSelectedRollIdx] = createSignal(null);
   const [pbScores, setPbScores] = createSignal({ str: 8, dex: 8, con: 8, int: 8, wis: 8, cha: 8 });
+  // Manual entry (base, pre-racial). Primarily for edit re-entry round-tripping,
+  // but also a genuine direct-entry method (D&D Beyond parity).
+  const [manualScores, setManualScores] = createSignal({ str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 });
 
   // Step 4: Skills
   const [skillPicks, setSkillPicks] = createSignal([]);
@@ -95,8 +99,14 @@ export default function CharWizard(props) {
   const [pBond, setPBond] = createSignal('');
   const [pFlaw, setPFlaw] = createSignal('');
   const [backstory, setBackstory] = createSignal('');
+  const [avatar, setAvatar] = createSignal('');
   const [genField, setGenField] = createSignal('');
   const [building, setBuilding] = createSignal(false);
+
+  // Tap-to-source: { title, sub, body } for the info sheet, or null.
+  const [info, setInfo] = createSignal(null);
+
+  const editing = () => !!props.editChar;
 
   const tibfSig = {
     trait: [pTrait, setPTrait], ideal: [pIdeal, setPIdeal],
@@ -129,10 +139,10 @@ export default function CharWizard(props) {
       stepIdx: stepIdx(), cls: cls(), race: race(), level: level(),
       bg: bg(), align: align(), abilityMethod: abilityMethod(),
       stdAssign: stdAssign(), rolledScores: rolledScores(), rollAssign: rollAssign(),
-      pbScores: pbScores(), skillPicks: skillPicks(),
+      pbScores: pbScores(), manualScores: manualScores(), skillPicks: skillPicks(),
       pickedCantrips: pickedCantrips(), pickedSpells: pickedSpells(),
       equipMode: equipMode(), equipChoices: equipChoices(),
-      charName: charName(), appearance: appearance(),
+      charName: charName(), appearance: appearance(), avatar: avatar(),
       pTrait: pTrait(), pIdeal: pIdeal(), pBond: pBond(), pFlaw: pFlaw(),
       backstory: backstory(),
     };
@@ -146,11 +156,12 @@ export default function CharWizard(props) {
     setStdAssign(d.stdAssign || {}); setRolledScores(d.rolledScores || []);
     setRollAssign(d.rollAssign || {});
     setPbScores(d.pbScores || { str: 8, dex: 8, con: 8, int: 8, wis: 8, cha: 8 });
+    setManualScores(d.manualScores || { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 });
     setSkillPicks(d.skillPicks || []);
     setPickedCantrips(d.pickedCantrips || []); setPickedSpells(d.pickedSpells || []);
     setSpellsLoaded(false);
     setEquipMode(d.equipMode || 'default'); setEquipChoices(d.equipChoices || {});
-    setCharName(d.charName || ''); setAppearance(d.appearance || '');
+    setCharName(d.charName || ''); setAppearance(d.appearance || ''); setAvatar(d.avatar || '');
     setPTrait(d.pTrait || ''); setPIdeal(d.pIdeal || '');
     setPBond(d.pBond || ''); setPFlaw(d.pFlaw || '');
     setBackstory(d.backstory || '');
@@ -158,19 +169,72 @@ export default function CharWizard(props) {
   }
 
   const [resumed, setResumed] = createSignal(false);
+  // Unfinished draft awaiting a Resume / Start-fresh choice (null once resolved).
+  const [pendingDraft, setPendingDraft] = createSignal(null);
+
   onMount(() => {
+    if (editing()) { hydrateFromChar(props.editChar); return; }
     try {
       const raw = localStorage.getItem(DRAFT_KEY);
       if (raw) {
         const d = JSON.parse(raw);
-        if (d && (d.cls || d.race || d.charName)) { restore(d); setResumed(true); }
+        if (d && (d.cls || d.race || d.charName)) setPendingDraft(d);
       }
     } catch {}
   });
 
-  // Persist on any change.
+  function resumeDraft() {
+    const d = pendingDraft();
+    if (d) { restore(d); setResumed(true); }
+    setPendingDraft(null);
+  }
+  function freshStart() {
+    clearDraft();
+    setPendingDraft(null);
+  }
+
+  // Hydrate every signal from an existing committed character (edit re-entry).
+  // Abilities round-trip losslessly via the manual method (base = final − racial).
+  function hydrateFromChar(char) {
+    batch(() => {
+      setCls(char.class || ''); setRace(char.race || ''); setLevel(char.level || 1);
+      setBg(char.background || ''); setAlign(char.alignment || '');
+
+      const racial = RACE_BONUSES[char.race] || {};
+      const base = {};
+      for (const ab of ABILITY_NAMES) base[ab] = (char.abilityScores?.[ab] ?? 10) - (racial[ab] || 0);
+      setManualScores(base);
+      setAbilityMethod('manual');
+
+      const bgEntry = BACKGROUNDS.find(b => b.name === char.background);
+      const bgKeys = new Set((bgEntry?.skillProfs || []).map(s => s.toLowerCase().replace(/\s+/g, '')));
+      const picks = [];
+      for (const [key, on] of Object.entries(char.skills || {})) {
+        if (!on || bgKeys.has(key)) continue;
+        const display = ALL_SKILLS.find(s => s.toLowerCase().replace(/\s+/g, '') === key);
+        if (display) picks.push(display);
+      }
+      setSkillPicks(picks);
+
+      setPickedCantrips([...(char.cantrips || [])]);
+      setPickedSpells([...(char.knownSpells || [])]);
+      setSpellsLoaded(false);
+
+      setCharName(char.name || ''); setAppearance(char.appearance || ''); setAvatar(char.avatar || '');
+      const t = char.traits || {};
+      setPTrait(t.trait || ''); setPIdeal(t.ideal || '');
+      setPBond(t.bond || ''); setPFlaw(t.flaw || '');
+      setBackstory(char.backstory || '');
+      setStepIdx(0);
+    });
+  }
+
+  // Persist on any change. Never while editing an existing character (would
+  // clobber an in-progress new-character draft) or before a pending draft is
+  // resolved. snapshot() is read first so the effect still tracks every field.
   createEffect(() => {
     const data = snapshot();
+    if (editing() || pendingDraft()) return;
     try { localStorage.setItem(DRAFT_KEY, JSON.stringify(data)); } catch {}
   });
 
@@ -184,9 +248,10 @@ export default function CharWizard(props) {
     setBg(''); setAlign(''); setAbilityMethod('standard');
     setStdAssign({}); setRolledScores([]); setRollAssign({});
     setPbScores({ str: 8, dex: 8, con: 8, int: 8, wis: 8, cha: 8 });
+    setManualScores({ str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 });
     setSkillPicks([]); setPickedCantrips([]); setPickedSpells([]); setSpellsLoaded(false);
     setEquipMode('default'); setEquipChoices({});
-    setCharName(''); setAppearance(''); setBackstory('');
+    setCharName(''); setAppearance(''); setAvatar(''); setBackstory('');
     setPTrait(''); setPIdeal(''); setPBond(''); setPFlaw('');
     setResumed(false);
   }
@@ -194,7 +259,13 @@ export default function CharWizard(props) {
   // Derived
   const classData = () => CLASS_DATA[cls()] || null;
   const isCaster = () => !!(classData()?.cantrips);
-  const activeSteps = () => isCaster() ? STEP_IDS : STEP_IDS.filter(s => s !== 'spells');
+  const activeSteps = () => {
+    let steps = isCaster() ? STEP_IDS : STEP_IDS.filter(s => s !== 'spells');
+    // Editing an existing PC skips equipment — starting gear is already in the
+    // pack and is managed in Cargo, so we never re-issue it (no duplicates).
+    if (editing()) steps = steps.filter(s => s !== 'equipment');
+    return steps;
+  };
   const currentStep = () => activeSteps()[stepIdx()] || 'class';
   const totalSteps = () => activeSteps().length;
 
@@ -220,8 +291,15 @@ export default function CharWizard(props) {
       for (const [k, v] of Object.entries(a)) r[k] = v;
       return r;
     }
+    if (m === 'manual') return { ...manualScores() };
     return { ...pbScores() };
   };
+
+  function manualAdjust(ability, delta) {
+    const cur = manualScores()[ability];
+    const nv = Math.max(1, Math.min(30, cur + delta));
+    setManualScores({ ...manualScores(), [ability]: nv });
+  }
 
   const finalAbilities = () => {
     const base = baseAbilities();
@@ -382,14 +460,15 @@ export default function CharWizard(props) {
     const maxLv = Math.max(0, ...Object.keys(slots).map(Number));
     try {
       const all = await getByIndex('spells', 'class', cls());
-      const cantrips = all.filter(s => s.level === 0).map(s => s.name);
-      const leveled = all.filter(s => s.level > 0 && s.level <= maxLv).map(s => ({ name: s.name, level: s.level }));
+      const cantrips = all.filter(s => s.level === 0).map(s => ({ name: s.name, desc: s.desc || '' }));
+      const leveled = all.filter(s => s.level > 0 && s.level <= maxLv)
+        .map(s => ({ name: s.name, level: s.level, desc: s.desc || '' }));
       setSpellPool({
-        cantrips: cantrips.length > 0 ? cantrips : FALLBACK_CANTRIPS,
+        cantrips: cantrips.length > 0 ? cantrips : FALLBACK_CANTRIPS.map(n => ({ name: n, desc: '' })),
         leveled: leveled.length > 0 ? leveled : getFallbackLeveled(maxLv),
       });
     } catch {
-      setSpellPool({ cantrips: FALLBACK_CANTRIPS, leveled: getFallbackLeveled(maxLv) });
+      setSpellPool({ cantrips: FALLBACK_CANTRIPS.map(n => ({ name: n, desc: '' })), leveled: getFallbackLeveled(maxLv) });
     }
     setSpellsLoaded(true);
   }
@@ -397,9 +476,26 @@ export default function CharWizard(props) {
   function getFallbackLeveled(maxLv) {
     const result = [];
     for (let lv = 1; lv <= maxLv; lv++) {
-      for (const name of (FALLBACK_SPELLS[lv] || [])) result.push({ name, level: lv });
+      for (const name of (FALLBACK_SPELLS[lv] || [])) result.push({ name, level: lv, desc: '' });
     }
     return result;
+  }
+
+  // Tap-to-source helpers.
+  function showSpellInfo(s) {
+    setInfo({
+      title: s.name,
+      sub: s.level ? `Level ${s.level} spell` : 'Cantrip',
+      body: s.desc || 'No description available — this spell is a placeholder until the compendium is loaded.',
+    });
+  }
+  function showSkillInfo(skill) {
+    const ab = SKILL_ABILITIES[skill];
+    setInfo({
+      title: skill,
+      sub: ab ? `${ABILITY_FULL[ab]} (${ab.toUpperCase()})` : '',
+      body: SKILL_DESC[skill] || '',
+    });
   }
 
   function toggleCantrip(name) {
@@ -449,7 +545,7 @@ export default function CharWizard(props) {
       const m = abilityMethod();
       if (m === 'standard') return Object.keys(stdAssign()).length === 6;
       if (m === 'roll') return rolledScores().length === 6 && Object.keys(rollAssign()).length === 6;
-      return true;
+      return true; // point buy + manual always have a full set of scores
     }
     if (s === 'skills') {
       const c = CLASS_SKILL_CHOICES[cls()];
@@ -487,8 +583,37 @@ export default function CharWizard(props) {
         cantrips: isCaster() ? pickedCantrips() : [],
         knownSpells: isCaster() ? pickedSpells() : [],
         appearance: appearance(), traits: traitsObj(), backstory: backstory(),
+        avatar: avatar(),
+        id: props.editChar?.id,
+        color: props.editChar?.color,
         existingCount: props.existingCount || 0,
       });
+
+      // Edit re-entry: update in place, preserving play-state the Forge resets
+      // (current HP/conditions/XP/slots/familiar). Equipment is untouched.
+      if (editing()) {
+        const prev = props.editChar;
+        const currentSlots = {};
+        for (const [lv, max] of Object.entries(character.spellSlots || {})) {
+          const prevCur = prev.currentSlots?.[lv];
+          currentSlots[lv] = prevCur === undefined ? max : Math.min(prevCur, max);
+        }
+        props.onSaveEdit({
+          ...character,
+          hp: Math.min(prev.hp ?? character.hpMax, character.hpMax),
+          hpTemp: prev.hpTemp || 0,
+          xp: prev.xp || character.xp,
+          conditions: prev.conditions || [],
+          concentration: prev.concentration ?? null,
+          exhaustion: prev.exhaustion || 0,
+          inspiration: prev.inspiration || false,
+          deathSaves: prev.deathSaves || character.deathSaves,
+          familiar: prev.familiar ?? null,
+          notes: prev.notes || character.notes,
+          currentSlots,
+        });
+        return;
+      }
 
       const eqMode = equipMode();
       const eqData = STARTING_EQUIPMENT[cls()];
@@ -520,13 +645,34 @@ export default function CharWizard(props) {
             )}
           </For>
         </div>
-        <span class="wiz-step-label">{STEP_LABELS[currentStep()]}</span>
-        <button class="wiz-startover" onClick={startOver}>Start over</button>
+        <span class="wiz-step-label">{editing() ? 'Editing' : STEP_LABELS[currentStep()]}</span>
+        <Show when={editing()} fallback={<button class="wiz-startover" onClick={startOver}>Start over</button>}>
+          <button class="wiz-startover" onClick={props.onBack}>Cancel</button>
+        </Show>
       </div>
-      <Show when={resumed()}>
+      <Show when={resumed() && !editing()}>
         <div class="wiz-resumed">↩ Resumed your in-progress character</div>
       </Show>
+      <Show when={editing()}>
+        <div class="wiz-resumed">✏ Editing {charName() || 'this character'} — changes save in place, gear &amp; HP kept</div>
+      </Show>
 
+      {/* Draft safety: resume the unfinished build or start fresh */}
+      <Show when={pendingDraft()}>
+        <div class="wiz-draft-gate">
+          <div class="wiz-draft-title">Unfinished character found</div>
+          <div class="wiz-draft-sub">
+            {[pendingDraft()?.race, pendingDraft()?.cls].filter(Boolean).join(' ') || 'A draft'}
+            {pendingDraft()?.charName ? ` — ${pendingDraft().charName}` : ''}
+          </div>
+          <div class="wiz-draft-actions">
+            <button class="wiz-draft-resume" onClick={resumeDraft}>Resume</button>
+            <button class="wiz-draft-fresh" onClick={freshStart}>Start fresh</button>
+          </div>
+        </div>
+      </Show>
+
+      <Show when={!pendingDraft()}>
       {/* Live stat preview */}
       <Show when={cls() && race()}>
         <div class="wiz-stats">
@@ -623,6 +769,8 @@ export default function CharWizard(props) {
                 onClick={() => setAbilityMethod('roll')}>Roll 4d6</button>
               <button class={`wiz-method ${abilityMethod() === 'pointbuy' ? 'active' : ''}`}
                 onClick={() => setAbilityMethod('pointbuy')}>Point Buy</button>
+              <button class={`wiz-method ${abilityMethod() === 'manual' ? 'active' : ''}`}
+                onClick={() => setAbilityMethod('manual')}>Manual</button>
             </div>
           </div>
 
@@ -738,6 +886,36 @@ export default function CharWizard(props) {
             </div>
           </Show>
 
+          {/* Manual entry (direct base scores; used for edit round-trip) */}
+          <Show when={abilityMethod() === 'manual'}>
+            <div class="wiz-section">
+              <label class="wiz-label">Set each score directly (base, before racial bonus)</label>
+              <div class="wiz-pb-grid">
+                <For each={ABILITY_NAMES}>
+                  {(ab) => {
+                    const score = () => manualScores()[ab];
+                    const bonus = () => (RACE_BONUSES[race()] || {})[ab] || 0;
+                    const total = () => score() + bonus();
+                    return (
+                      <div class="wiz-pb-row">
+                        <span class="wiz-pb-label">{ab.toUpperCase()}</span>
+                        <button class="wiz-pb-btn" onClick={() => manualAdjust(ab, -1)}
+                          disabled={score() <= 1}>-</button>
+                        <span class="wiz-pb-score">{score()}</span>
+                        <button class="wiz-pb-btn" onClick={() => manualAdjust(ab, 1)}
+                          disabled={score() >= 30}>+</button>
+                        <Show when={bonus()}>
+                          <span class="wiz-ab-bonus">+{bonus()}</span>
+                        </Show>
+                        <span class="wiz-pb-total">{total()} ({fmtMod(mod(total()))})</span>
+                      </div>
+                    );
+                  }}
+                </For>
+              </div>
+            </div>
+          </Show>
+
           {/* Race bonuses summary */}
           <Show when={race()}>
             <div class="wiz-race-bonus-note">
@@ -753,7 +931,12 @@ export default function CharWizard(props) {
               <label class="wiz-label">Background Skills (locked)</label>
               <div class="wiz-skill-chips">
                 <For each={bgSkills()}>
-                  {(s) => <span class="wiz-skill-chip locked">{s}</span>}
+                  {(s) => (
+                    <span class="wiz-skill-chip locked">
+                      <span class="wiz-chip-text">{s}</span>
+                      <span class="wiz-chip-info" onClick={() => showSkillInfo(s)}>ⓘ</span>
+                    </span>
+                  )}
                 </For>
               </div>
             </Show>
@@ -766,7 +949,8 @@ export default function CharWizard(props) {
                 {(s) => (
                   <button class={`wiz-skill-chip ${skillPicks().includes(s) ? 'active' : ''}`}
                     onClick={() => toggleSkill(s)}>
-                    {s}
+                    <span class="wiz-chip-text">{s}</span>
+                    <span class="wiz-chip-info" onClick={(e) => { e.stopPropagation(); showSkillInfo(s); }}>ⓘ</span>
                   </button>
                 )}
               </For>
@@ -783,9 +967,10 @@ export default function CharWizard(props) {
             <div class="wiz-spell-chips">
               <For each={spellPool().cantrips}>
                 {(s) => (
-                  <button class={`wiz-spell-chip ${pickedCantrips().includes(s) ? 'active' : ''}`}
-                    onClick={() => toggleCantrip(s)}>
-                    {s}
+                  <button class={`wiz-spell-chip ${pickedCantrips().includes(s.name) ? 'active' : ''}`}
+                    onClick={() => toggleCantrip(s.name)}>
+                    <span class="wiz-chip-text">{s.name}</span>
+                    <span class="wiz-chip-info" onClick={(e) => { e.stopPropagation(); showSpellInfo(s); }}>ⓘ</span>
                   </button>
                 )}
               </For>
@@ -800,8 +985,9 @@ export default function CharWizard(props) {
                 {(s) => (
                   <button class={`wiz-spell-chip ${pickedSpells().includes(s.name) ? 'active' : ''}`}
                     onClick={() => toggleSpell(s.name)}>
-                    <span>{s.name}</span>
+                    <span class="wiz-chip-text">{s.name}</span>
                     <span class="wiz-spell-lv">Lv{s.level}</span>
+                    <span class="wiz-chip-info" onClick={(e) => { e.stopPropagation(); showSpellInfo(s); }}>ⓘ</span>
                   </button>
                 )}
               </For>
@@ -891,6 +1077,22 @@ export default function CharWizard(props) {
           </div>
 
           <div class="wiz-section">
+            <label class="wiz-label">Avatar</label>
+            <div class="wiz-avatar-row">
+              <button class={`wiz-avatar-chip ${avatar() === '' ? 'active' : ''}`}
+                onClick={() => setAvatar('')} title="Use name initial">
+                {charName().trim().charAt(0).toUpperCase() || 'A'}
+              </button>
+              <For each={AVATAR_EMOJI}>
+                {(e) => (
+                  <button class={`wiz-avatar-chip ${avatar() === e ? 'active' : ''}`}
+                    onClick={() => setAvatar(e)}>{e}</button>
+                )}
+              </For>
+            </div>
+          </div>
+
+          <div class="wiz-section">
             <div class="wiz-bio-header">
               <label class="wiz-label">Appearance</label>
               <button class="wiz-gen-btn" onClick={() => generateBioField('appearance')}
@@ -977,12 +1179,27 @@ export default function CharWizard(props) {
         <Show when={stepIdx() < totalSteps() - 1} fallback={
           <button class="wiz-commit-btn" onClick={buildAndCommit}
             disabled={!canAdvance() || building()}>
-            {building() ? 'Building...' : 'Use This Character'}
+            {building() ? 'Saving...' : editing() ? 'Save Changes' : 'Use This Character'}
           </button>
         }>
           <button class="wiz-next-btn" onClick={next} disabled={!canAdvance()}>Next</button>
         </Show>
       </div>
+      </Show>
+
+      {/* Tap-to-source info sheet */}
+      <Show when={info()}>
+        <div class="wiz-info-backdrop" onClick={() => setInfo(null)}>
+          <div class="wiz-info-sheet" onClick={(e) => e.stopPropagation()}>
+            <div class="wiz-info-head">
+              <span class="wiz-info-title">{info().title}</span>
+              <button class="wiz-info-close" onClick={() => setInfo(null)}>✕</button>
+            </div>
+            <Show when={info().sub}><div class="wiz-info-sub">{info().sub}</div></Show>
+            <div class="wiz-info-body">{info().body}</div>
+          </div>
+        </div>
+      </Show>
     </div>
   );
 }

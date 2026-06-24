@@ -214,6 +214,7 @@ export async function forgeCharacter(intent) {
     attacks,
     traits,
     color: intent.color || CHAR_COLORS[(intent.existingCount || 0) % CHAR_COLORS.length],
+    avatar: intent.avatar || '',
     backstory: intent.backstory || '',
     appearance: intent.appearance || '',
     personality,

@@ -1,5 +1,71 @@
 # Session Log — Handoff Note
 
+## Session 41 · 2026-06-24 — Character creation Phase 4 (editable re-entry + VTT niceties)
+
+**Theme:** make character creation fully re-editable and bring it up to popular-VTT
+standards. Built on branch `claude/character-creation-phase-4-r94wpq` (NOT yet merged
+to main — awaiting developer review).
+
+### Shipped (build + 33/33 tests green; not yet deployed)
+- **Lossless wizard re-entry (the core ask).** Roster ✏ reopens the guided wizard
+  pre-filled from a committed PC; "Save Changes" updates **in place** (same `id`,
+  so inventory/combat refs stay linked). Play-state the Forge would reset is
+  preserved: current HP (clamped to new max), conditions, XP, slots (clamped),
+  familiar, notes. Equipment step is **skipped in edit mode** (gear already in the
+  pack → managed in Cargo, never re-issued). Closes the gap where class / abilities
+  / skills / spells / background were locked after commit.
+- **"Manual" ability method** — 4th option (Standard / Roll / Point Buy / Manual).
+  Direct base-score steppers (1–30, no budget). Enables the lossless edit round-trip
+  (base = stored final − racial) and is genuine D&D-Beyond-parity entry.
+- **Tap-to-source in the wizard** — ⓘ on every spell + skill chip opens a bottom
+  sheet with the description (spells from IndexedDB compendium incl. `desc`; skills
+  from new `SKILL_DESC` map in quickBuild.js). Accessibility win for the child player.
+- **Avatar picker** — new player-owned `avatar` emoji field (DEFAULT_CHARACTER +
+  ownership + Forge). Set in the Bio step (emoji grid + name-monogram fallback),
+  shown on the roster chip.
+- **Party role-coverage hint** — roster nudge (no healer / no frontline / no
+  spellcaster) computed from the party.
+- **Draft-safety gate** — Guided Build with an unfinished draft now shows an explicit
+  Resume / Start-fresh choice instead of silently auto-resuming. Editing never
+  touches the draft slot. Roster is hidden while any builder mode is active (removes
+  a mid-edit footgun where another ✏ wouldn't re-hydrate).
+
+### Decisions made (see decisions.md, all Session 40→41 rows)
+- `avatar` is a player-owned data-model field (approved as part of Phase 4 scope).
+- Edit updates in place by `id`; equipment is Cargo's job, not re-issued on edit.
+- Manual ability entry added as a real 4th method.
+
+### Known issues / watch
+- **Not merged to main / not deployed** — work is on the feature branch only.
+- CharSheet header still shows the name monogram, not the new `avatar` emoji
+  (roster + wizard cover it; CharSheet display is a small follow-up).
+- Edit mode preserves equipment as-is; changing class in edit does NOT swap starting
+  gear (intentional — gear is managed in Cargo). Flag if the family expects it to.
+- Spell `desc` only available for compendium-seeded spells; fallback spell lists show
+  a "placeholder" note in the info sheet.
+
+### Key files touched
+- `src/ui/setup/CharWizard.jsx` — edit re-entry/hydrate, Manual method, tap-to-source
+  info sheet, avatar picker, draft-safety gate, Save-Changes commit branch
+- `src/ui/setup/CharCreate.jsx` — edit wiring (editIndex/startEdit/handleSaveEdit),
+  roster ✏ + emoji avatar, role-coverage hint, roster hidden during builder modes
+- `src/data/forge.js` — `avatar` in output
+- `src/data/quickBuild.js` — `SKILL_DESC`, `AVATAR_EMOJI`
+- `src/state/campaign.js` — `avatar` on DEFAULT_CHARACTER
+- `src/state/store.js` — `avatar` registered player-owned
+- `src/style.css` — Phase 4 block (gate, info sheet, avatar, coverage, edit btn, chip ⓘ)
+
+### Next up
+1. Developer review → merge to main (auto-deploys).
+2. Optional: show `avatar` on CharSheet header too.
+3. Remaining Phase 4 candidates from S40: AI co-pilot per wizard step; more
+   classes/subraces/subclasses; stored spell DC/attack.
+
+**Branch state:** `claude/character-creation-phase-4-r94wpq` (commit pending this
+handoff). Built clean (~161kB gzip main), 33/33 tests pass.
+
+---
+
 ## Session 40 · 2026-06-23/24 — Character-creation overhaul (the Forge) + deploy
 
 **Theme:** unify and complete character creation across all four paths, then
