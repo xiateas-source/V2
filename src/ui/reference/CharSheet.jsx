@@ -1,6 +1,8 @@
 import { createSignal, createMemo, For, Show, onMount, onCleanup } from 'solid-js';
 import { store, setStore, playerSet } from '../../state/index.js';
 import { composePersonality } from '../../data/quickBuild.js';
+import { getByIndex } from '../../data/local.js';
+import { validateMechanics, applyMechanics } from '../../ai/mechanics.js';
 
 const TIBF_FIELDS = [
   { key: 'trait', label: 'Personality Trait', placeholder: 'A distinctive habit, quirk, or attitude…' },
@@ -158,10 +160,26 @@ export default function CharSheet(props) {
     if (!isNaN(delta)) adjustHP(delta);
   }
 
+  const [spellCache, setSpellCache] = createSignal({});
+  async function fetchSpell(name) {
+    if (spellCache()[name] !== undefined) return;
+    let data = null;
+    try { const rows = await getByIndex('spells', 'name', name); data = rows?.[0] || null; } catch (_) {}
+    setSpellCache({ ...spellCache(), [name]: data });
+  }
+
   function toggleSpell(name) {
     const s = new Set(expandedSpells());
-    if (s.has(name)) s.delete(name); else s.add(name);
+    if (s.has(name)) s.delete(name); else { s.add(name); fetchSpell(name); }
     setExpandedSpells(s);
+  }
+
+  // Cast a leveled spell — spends a slot via the mechanics pipeline (slot_use).
+  function castSpell(level) {
+    const p = pc();
+    if (!p) return;
+    const { valid } = validateMechanics([{ key: 'slot_use', value: `${p.name}=${level}`, target: '', applied: false }]);
+    applyMechanics(valid);
   }
 
   const formatMod = (v) => v >= 0 ? `+${v}` : `${v}`;
@@ -457,6 +475,39 @@ export default function CharSheet(props) {
     if (!p) return null;
     const castingAbility = getCastingAbility(p);
 
+    // Inline spell detail (fetched from the compendium) + cast-at-level chips.
+    function SpellDetail(dp) {
+      const sp = () => spellCache()[dp.name];
+      const lvl = () => sp()?.level || (dp.cantrip ? 0 : 1);
+      const castable = () => slotEntries().filter(s => Number(s.lvl) >= lvl() && s.current > 0);
+      return (
+        <div class="cs-spell-detail" onClick={(e) => e.stopPropagation()}>
+          <Show when={sp() === undefined}><div class="cs-spell-meta">Loading…</div></Show>
+          <Show when={sp() === null}><div class="cs-spell-meta cs-muted">No reference entry — narrative-only spell.</div></Show>
+          <Show when={sp()}>
+            <div class="cs-spell-meta">{[sp().level ? `Level ${sp().level}` : 'Cantrip', sp().school].filter(Boolean).join(' · ')}</div>
+            <Show when={sp().castingTime || sp().range || sp().duration || sp().components}>
+              <div class="cs-spell-stats">
+                <Show when={sp().castingTime}><span><i class="ph ph-clock" />{sp().castingTime}</span></Show>
+                <Show when={sp().range}><span><i class="ph ph-target" />{sp().range}</span></Show>
+                <Show when={sp().duration}><span><i class="ph ph-hourglass" />{sp().duration}</span></Show>
+                <Show when={sp().components}><span>{sp().components}</span></Show>
+              </div>
+            </Show>
+            <div class="cs-spell-desc">{sp().description || sp().content || 'No description recorded.'}</div>
+          </Show>
+          <Show when={!dp.cantrip && castable().length > 0}>
+            <div class="cs-spell-cast">
+              <span class="cs-cast-label">Cast at</span>
+              <For each={castable()}>
+                {(s) => <button class="cs-cast-chip" onClick={() => castSpell(s.lvl)}>{ordinal(s.lvl)}</button>}
+              </For>
+            </div>
+          </Show>
+        </div>
+      );
+    }
+
     return (
       <div class="cs-tab-body">
         <div class="cs-section-label">Spellcasting</div>
@@ -512,7 +563,9 @@ export default function CharSheet(props) {
                   <div class="cs-spell-badge cantrip">C</div>
                   <span class="cs-spell-name">{spell}</span>
                   <span class="cs-spell-tag cantrip">Cantrip</span>
+                  <i class={`ph ph-caret-${expandedSpells().has(spell) ? 'down' : 'right'} cs-spell-caret`} />
                 </div>
+                <Show when={expandedSpells().has(spell)}>{SpellDetail({ name: spell, cantrip: true })}</Show>
               </div>
             )}
           </For>
@@ -526,7 +579,9 @@ export default function CharSheet(props) {
                 <div class="cs-spell-header">
                   <div class="cs-spell-badge">S</div>
                   <span class="cs-spell-name">{spell}</span>
+                  <i class={`ph ph-caret-${expandedSpells().has(spell) ? 'down' : 'right'} cs-spell-caret`} />
                 </div>
+                <Show when={expandedSpells().has(spell)}>{SpellDetail({ name: spell })}</Show>
               </div>
             )}
           </For>

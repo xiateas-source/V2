@@ -13,8 +13,11 @@ import TurnPrompt from './TurnPrompt.jsx';
 import Rewind from './Rewind.jsx';
 import TTS from './TTS.jsx';
 import { autoRead, speak } from '../../audio/browserTTS.js';
+import MechPill from '../shared/MechPill.jsx';
+import { navigateTo } from '../shared/sourceBus.js';
 
 const [glossaryTerms, setGlossaryTerms] = createSignal([]);
+const [spellList, setSpellList] = createSignal([]);
 const [tooltip, setTooltip] = createSignal(null);
 
 export default function Chat() {
@@ -29,6 +32,10 @@ export default function Chat() {
     try {
       const terms = await getAll('glossary');
       setGlossaryTerms(terms);
+    } catch (_) {}
+    try {
+      const spells = await getAll('spells');
+      setSpellList(spells || []);
     } catch (_) {}
   });
 
@@ -55,11 +62,19 @@ export default function Chat() {
     if (target.classList.contains('npc-link')) {
       const name = target.dataset.npc;
       const npc = store.campaign.npcs.find(n => n.name === name);
-      if (npc) setTooltip({ title: npc.name, body: `${npc.disposition}${npc.details ? ' — ' + npc.details : ''}${npc.lastSeen ? '\nLast seen: ' + npc.lastSeen : ''}` });
+      if (npc) setTooltip({ title: npc.name, body: `${npc.disposition}${npc.details ? ' — ' + npc.details : ''}${npc.lastSeen ? '\nLast seen: ' + npc.lastSeen : ''}`, action: { label: 'View in Journal', mode: 'journal' } });
     } else if (target.classList.contains('term-link')) {
       const term = target.dataset.term;
       const entry = glossaryTerms().find(g => g.term.toLowerCase() === term.toLowerCase());
       if (entry) setTooltip({ title: entry.term, body: entry.definition });
+    } else if (target.classList.contains('spell-link')) {
+      const name = target.dataset.spell;
+      const sp = spellList().find(s => (s.name || '').toLowerCase() === name.toLowerCase());
+      if (sp) {
+        const meta = [sp.level ? `Level ${sp.level}` : 'Cantrip', sp.school].filter(Boolean).join(' · ');
+        const stats = [sp.castingTime && `Cast ${sp.castingTime}`, sp.range && `Range ${sp.range}`, sp.duration && `Duration ${sp.duration}`].filter(Boolean).join(' · ');
+        setTooltip({ title: sp.name, body: `${meta}\n${stats}\n\n${sp.description || sp.content || ''}`.trim(), action: { label: 'Open Compendium', mode: 'journal' } });
+      }
     }
   }
 
@@ -137,6 +152,11 @@ export default function Chat() {
           <div class="tooltip-popup" onClick={(e) => e.stopPropagation()}>
             <div class="tooltip-title">{tooltip().title}</div>
             <div class="tooltip-body">{tooltip().body}</div>
+            <Show when={tooltip().action}>
+              <button class="tooltip-action" onClick={() => { navigateTo(tooltip().action.mode); setTooltip(null); }}>
+                {tooltip().action.label} <i class="ph ph-arrow-up-right" />
+              </button>
+            </Show>
           </div>
         </div>
       </Show>
@@ -204,10 +224,10 @@ function MechPills(props) {
     for (const m of applied) {
       if (!m.applied) continue;
       const label = formatPill(m.key, m.value);
-      if (label) items.push({ label, type: 'applied' });
+      if (label) items.push({ label, type: 'applied', mkey: m.key, value: m.value });
     }
     for (const m of rejected) {
-      items.push({ label: `${m.key}: ${m.reason}`, type: 'rejected' });
+      items.push({ label: `${m.key}: ${m.reason}`, type: 'rejected', mkey: m.key, value: m.value });
     }
     return items;
   };
@@ -216,7 +236,7 @@ function MechPills(props) {
     <Show when={pills().length > 0}>
       <div class="mech-pills">
         <For each={pills()}>
-          {(p) => <span class={`mech-pill pill-${p.type}`}>{p.label}</span>}
+          {(p) => <MechPill mkey={p.mkey} value={p.value} label={p.label} type={p.type} />}
         </For>
       </div>
     </Show>
@@ -291,6 +311,25 @@ function formatMsg(text, npcNames = []) {
       `<span class="npc-link" data-npc="${name}">$1</span>`);
   }
 
+  // Spell citations — link known spell names to their compendium entry.
+  const spells = spellList();
+  if (spells.length > 0) {
+    const spellPattern = spells
+      .map(s => s.name)
+      .filter(n => n && n.length > 3)
+      .sort((a, b) => b.length - a.length) // longest first, avoid partial overlaps
+      .map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .join('|');
+    if (spellPattern) {
+      html = html.replace(new RegExp(`\\b(${spellPattern})\\b`, 'g'), (match, _g, offset, full) => {
+        // Skip if we're inside an existing tag/attribute.
+        const before = full.slice(0, offset);
+        if ((before.match(/</g) || []).length > (before.match(/>/g) || []).length) return match;
+        return `<span class="spell-link" data-spell="${match}">${match}</span>`;
+      });
+    }
+  }
+
   const terms = glossaryTerms();
   if (terms.length > 0) {
     const termPattern = terms
@@ -298,8 +337,10 @@ function formatMsg(text, npcNames = []) {
       .map(t => t.term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
       .join('|');
     if (termPattern) {
-      html = html.replace(new RegExp(`\\b(${termPattern})\\b`, 'gi'), (match) => {
-        if (match.startsWith('<') || match.includes('data-')) return match;
+      html = html.replace(new RegExp(`\\b(${termPattern})\\b`, 'gi'), (match, _g, offset, full) => {
+        const before = full.slice(0, offset);
+        if ((before.match(/</g) || []).length > (before.match(/>/g) || []).length) return match;
+        if (before.includes('data-spell="') && !before.includes('</span>', before.lastIndexOf('data-spell="'))) return match;
         return `<span class="term-link" data-term="${match}">${match}</span>`;
       });
     }

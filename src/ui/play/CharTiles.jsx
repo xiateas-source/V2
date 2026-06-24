@@ -1,4 +1,4 @@
-import { createSignal, For, Show } from 'solid-js';
+import { createSignal, For, Show, onMount, onCleanup } from 'solid-js';
 import { store } from '../../state/index.js';
 import CharSheet from '../reference/CharSheet.jsx';
 
@@ -29,6 +29,20 @@ export default function CharTiles() {
     setSheetPC(idx);
     setSheetOpen(true);
   }
+
+  // Tap-to-source: a mechanic pill / link can request a specific PC's sheet.
+  function onOpenSheet(e) {
+    const who = (e.detail?.pcName || '').toLowerCase().trim();
+    if (!who) { openSheet(0); return; }
+    const idx = chars().findIndex(p =>
+      p.name.toLowerCase() === who ||
+      p.name.toLowerCase().startsWith(who) ||
+      who.startsWith(p.name.toLowerCase().split(' ')[0])
+    );
+    openSheet(idx >= 0 ? idx : 0);
+  }
+  onMount(() => window.addEventListener('tp-charsheet', onOpenSheet));
+  onCleanup(() => window.removeEventListener('tp-charsheet', onOpenSheet));
 
   return (
     <>

@@ -53,6 +53,29 @@ export async function saveLocalNow() {
   await writeLocal();
 }
 
+// Clear the active-campaign pointer locally (and best-effort in the cloud) so a
+// reload/boot starts fresh at onboarding instead of restoring the old game.
+export async function clearActiveCampaign() {
+  if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+  try { await putAll('meta', [{ key: ACTIVE_KEY, value: '', ts: Date.now() }]); } catch (_) {}
+  try {
+    const uid = getUid();
+    if (uid) {
+      const { dbWrite } = await import('./firebase.js');
+      dbWrite(`players/${uid}/active`, { id: '', ts: Date.now() });
+    }
+  } catch (_) {}
+}
+
+// Full campaign + system snapshot for export/review.
+export function exportSnapshot() {
+  return {
+    exportedAt: new Date().toISOString(),
+    campaign: plain(store.campaign),
+    system: { ...plain(store.system), providers: { ...plain(store.system.providers), geminiKey: '«redacted»', openrouterKey: '«redacted»' } },
+  };
+}
+
 // Start watching the campaign for changes → debounced local save. Called after
 // boot hydration so we never persist the empty default over a good save.
 export function initLocalPersistence() {

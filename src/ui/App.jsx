@@ -1,4 +1,4 @@
-import { createSignal, createMemo, Show } from 'solid-js';
+import { createSignal, createMemo, Show, onMount, onCleanup } from 'solid-js';
 import { store } from '../state/index.js';
 import PlayerOnboard from './setup/PlayerOnboard.jsx';
 import Chat from './play/Chat.jsx';
@@ -16,6 +16,15 @@ export default function App() {
   });
 
   const hasCampaign = () => store.campaign.id !== '';
+
+  // Tap-to-source: pills/links elsewhere can request a mode switch.
+  function onNavigate(e) {
+    const m = e.detail?.mode;
+    if (m === 'charsheet') { setMode('play'); return; } // sheet opens over Play
+    if (['cargo', 'journal', 'manage', 'play'].includes(m)) setMode(m);
+  }
+  onMount(() => window.addEventListener('tp-navigate', onNavigate));
+  onCleanup(() => window.removeEventListener('tp-navigate', onNavigate));
 
   const cargoBadge = createMemo(() => {
     const seen = lastSeen().cargo;

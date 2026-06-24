@@ -1,6 +1,7 @@
-import { createSignal } from 'solid-js';
-import { store, setStore } from '../../state/index.js';
+import { createSignal, Show } from 'solid-js';
+import { store, setStore, resetCampaign } from '../../state/index.js';
 import { saveKeys as persistKeys, saveProviderSettings } from '../../data/keys.js';
+import { clearActiveCampaign } from '../../data/persist.js';
 
 const GEMINI_MODELS = [
   { id: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash (free, newest)' },
@@ -26,6 +27,12 @@ export default function Settings() {
     saveProviderSettings(model());
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  }
+
+  async function newCampaign() {
+    if (store.campaign.id && !confirm('Start a new campaign? This clears the current game on this device.')) return;
+    await clearActiveCampaign();
+    resetCampaign();
   }
 
   function cycleTheme() {
@@ -86,6 +93,17 @@ export default function Settings() {
         <button class="btn-save" onClick={saveKeys}>
           {saved() ? 'Saved' : 'Save'}
         </button>
+      </section>
+
+      <section class="settings-section">
+        <h3 class="settings-label">Campaign</h3>
+        <Show when={store.campaign.id}>
+          <div class="settings-campaign-name">{store.campaign.name || 'Untitled campaign'}</div>
+        </Show>
+        <button class="btn-new-campaign" onClick={newCampaign}>
+          {store.campaign.id ? 'New Campaign (save & start fresh)' : 'Start a Campaign'}
+        </button>
+        <p class="settings-hint">Your game saves automatically and survives reloads. Starting a new campaign clears the current one on this device.</p>
       </section>
 
       <section class="settings-section">
