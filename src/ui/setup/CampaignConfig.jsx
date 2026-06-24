@@ -157,9 +157,13 @@ function FreshCampaign(props) {
 
       <div class="config-section">
         <label class="config-label">Premise</label>
-        <Show when={premise()}>
-          <div class="config-premise">{premise()}</div>
-        </Show>
+        <textarea
+          class="config-premise-input"
+          placeholder="What's the setup? Where does the story begin? (or tap brainstorm below)"
+          rows={4}
+          value={premise()}
+          onInput={(e) => { setPremise(e.target.value); commit(); }}
+        />
         <button class="config-brainstorm-btn" onClick={brainstorm} disabled={brainstorming()}>
           {brainstorming() ? 'Thinking...' : premise() ? 'Regenerate' : 'Help me brainstorm'}
         </button>

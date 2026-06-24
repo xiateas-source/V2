@@ -5372,6 +5372,23 @@ body {
   line-height: 1.4;
   font-style: italic;
 }
+.config-premise-input {
+  width: 100%;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm);
+  font-family: var(--body);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  line-height: 1.5;
+  resize: vertical;
+  min-height: 80px;
+}
+.config-premise-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
 
 .config-brainstorm-btn {
   background: var(--color-surface);
