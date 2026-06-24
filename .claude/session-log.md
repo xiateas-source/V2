@@ -1,5 +1,73 @@
 # Session Log — Handoff Note
 
+## Session 44 · 2026-06-24 — Combat enforcement hardening + test-drawer fixes (DEPLOYED)
+
+**Theme:** continuation of S43's Chronograph build-out. Debugged real exported play
+sessions (Vex/Vesper Dark & Gritty, Kael/Melody) and fixed the combat bugs they exposed.
+Branch `claude/app-styling-tabs-c1khdr`. Build clean. **All commits merged to main + deployed**
+(pebble-v2.web.app).
+
+### Shipped
+- **Combat tracker disappearing — root cause found & fixed.** The "End" button in
+  `Combat.jsx` had NO confirmation and processed `combat_end` directly (bypassing the
+  narrative), so one accidental tap on mobile silently killed the fight with zero trace
+  in message history — exactly the reported bug. Now: **double-tap to end** (first tap →
+  "Tap again" + pulse-warn animation, 3s timeout), and manual end **records a system
+  message** in the narrative for traceability.
+- **Combat.jsx `advanceTurn` unified.** The "Next" button had its own disconnected manual
+  advance that didn't reset action economy. Now delegates to the engine's `advanceTurn`
+  (gates.js).
+- **Rewind combat_start guard.** Reverting a message with `combat_start` once combat has
+  progressed (round > 1 or currentTurn > 0) would nuke the whole fight. Now it only reverts
+  if no turns have happened.
+- **resetCampaign() was broken** — signature took `setStore` but Settings/MechTest called it
+  with no args (TypeError on "New campaign"). Fixed: callers now pass `setStore`.
+- **No PC damage before initiative / during kickoff (Law 2).** The exported session showed
+  the AI resolving enemy attacks (`hp: Vex=6`) in the SAME response as `combat_start` (before
+  initiative), then again during kickoff (`hp: Vex=2`, before any PC acted) — Vex lost 8 HP
+  without the player doing anything. Two new code enforcements:
+  - `validateMechanics`: **rejects PC hp changes in any batch containing `combat_start`**
+  - `kickoffViolation` (engine.js): **block-and-re-prompt** if the AI deals PC damage or
+    ends combat during the post-initiative kickoff. Removed the `!combatKickoff` exemption so
+    kickoff responses are now checked too.
+- **Test drawer export visibility.** "Copy all data" / "Download JSON" were below the fold
+  (drawer capped 56vh, export was the last section). **Moved Export to the top** of the test
+  drawer + raised max-height to 70vh + added `-webkit-overflow-scrolling: touch`.
+
+### Decisions made
+- Manual combat-end requires confirmation and leaves a narrative trace — accidental taps were
+  silently destroying combat state (Law 1: the loop is sacred; don't let UI nuke it quietly).
+- PC HP is code-protected during the entire pre-action combat window (combat_start batch +
+  kickoff). The AI *can't* pre-damage PCs, not just shouldn't (Law 2).
+
+### Known issues / watch
+- **Deep Seed** built S43, still no real-session feedback on whether it backfills correctly.
+- **Business Profile** iceboxed per developer.
+- The kickoff re-prompt fires a second AI call on violation — adds latency to combat start
+  but only when the model misbehaves. Watch if it loops on stubborn models.
+- Still not exhaustively play-verified; fixes are reasoned from exported JSON + build, not a
+  live multi-turn combat run with an API key.
+
+### Next up
+1. Play-verify a full combat encounter end-to-end (initiative → several turns → end) with a
+   real key — confirm the enforcement doesn't over-trigger.
+2. Deep Seed real-session check.
+3. Remaining Phase 3 gaps: Previously On (memory.js), Ask DM interception, push.
+
+### Key files
+- `src/ui/play/Combat.jsx` — double-tap end + narrative trace, advanceTurn → engine
+- `src/ui/play/Rewind.jsx` — combat_start revert guard
+- `src/ai/mechanics.js` — validateMechanics batch rule (reject PC hp w/ combat_start)
+- `src/ai/engine.js` — kickoffViolation + removed kickoff exemption
+- `src/state/campaign.js` — resetCampaign signature; `Settings.jsx`/`MechTest.jsx` callers
+- `src/ui/manage/MechTest.jsx` — Export moved to top
+- `src/style.css` — pulse-warn animation, .mechtest max-height 70vh
+
+**Branch state:** `claude/app-styling-tabs-c1khdr` @ `5374b2e`; **merged to main (ff), deployed.**
+main and feature branch even.
+
+---
+
 ## Session 43 · 2026-06-24 — Chronograph restyle + mechanics test container (DEPLOYED)
 
 **Theme:** apply the locked modern-atmospheric visual style to the real app from the
