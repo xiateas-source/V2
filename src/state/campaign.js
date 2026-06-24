@@ -122,6 +122,6 @@ export const DEFAULT_CHARACTER = {
   familiar: null,
 };
 
-export function resetCampaign(setStore) {
-  setStore('campaign', structuredClone(DEFAULT_CAMPAIGN));
+export function resetCampaign(setStoreFn) {
+  setStoreFn('campaign', structuredClone(DEFAULT_CAMPAIGN));
 }

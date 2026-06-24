@@ -32,7 +32,7 @@ export default function Settings() {
   async function newCampaign() {
     if (store.campaign.id && !confirm('Start a new campaign? This clears the current game on this device.')) return;
     await clearActiveCampaign();
-    resetCampaign();
+    resetCampaign(setStore);
   }
 
   function cycleTheme() {

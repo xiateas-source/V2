@@ -176,6 +176,11 @@ function revert(m) {
       break;
     }
     case 'combat_start': {
+      // Only safe to revert if no turns have actually happened. Once combat
+      // has progressed (round > 1 or turn > 0) reverting would nuke the
+      // entire fight, which is never what the player wants from a single Undo.
+      const cs = store.campaign.combatState;
+      if (cs.active && (cs.round > 1 || cs.currentTurn > 0)) break;
       setStore('campaign', 'combatState', {
         active: false, round: 0, initiative: [], currentTurn: 0,
         actionsUsed: { action: false, bonus: false, reaction: false, movement: false },

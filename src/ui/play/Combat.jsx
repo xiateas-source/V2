@@ -1,6 +1,8 @@
 import { For, Show, createMemo, createSignal } from 'solid-js';
 import { store, setStore } from '../../state/index.js';
 import { validateMechanics, applyMechanics } from '../../ai/mechanics.js';
+import { createNarrativeMsg } from '../../ai/messages.js';
+import { advanceTurn as engineAdvanceTurn } from '../../ai/gates.js';
 
 export default function Combat() {
   const combat = () => store.campaign.combatState;
@@ -35,19 +37,23 @@ export default function Combat() {
   const currentName = () => order()[combat().currentTurn]?.name || '';
 
   function advanceTurn() {
-    const init = order();
-    if (!init.length) return;
-    const next = (combat().currentTurn + 1) % init.length;
-    setStore('campaign', 'combatState', 'currentTurn', next);
-    if (next === 0) {
-      setStore('campaign', 'combatState', 'round', combat().round + 1);
-    }
+    engineAdvanceTurn();
   }
 
+  const [confirmEnd, setConfirmEnd] = createSignal(false);
+
   function endCombat() {
+    if (!confirmEnd()) {
+      setConfirmEnd(true);
+      setTimeout(() => setConfirmEnd(false), 3000);
+      return;
+    }
+    setConfirmEnd(false);
     const mechanics = [{ key: 'combat_end', value: 'Manual end', target: '', applied: false }];
     const { valid } = validateMechanics(mechanics);
     applyMechanics(valid);
+    const msg = createNarrativeMsg('system', 'Combat ended manually.', { systemKind: 'combat_event' });
+    setStore('campaign', 'narrative', [...store.campaign.narrative, msg]);
   }
 
   return (
@@ -61,7 +67,9 @@ export default function Combat() {
           </button>
           <Show when={!minimized()}>
             <button class="btn-advance" onClick={advanceTurn}>Next</button>
-            <button class="btn-end-combat" onClick={endCombat}>End</button>
+            <button class={`btn-end-combat ${confirmEnd() ? 'confirm' : ''}`} onClick={endCombat}>
+              {confirmEnd() ? 'Tap again' : 'End'}
+            </button>
           </Show>
         </div>
 

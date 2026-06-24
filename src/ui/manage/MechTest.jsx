@@ -1,5 +1,5 @@
 import { createSignal, For, Show } from 'solid-js';
-import { store, aiSet, resetCampaign } from '../../state/index.js';
+import { store, setStore, aiSet, resetCampaign } from '../../state/index.js';
 import { extractMechanics, validateMechanics, applyMechanics } from '../../ai/mechanics.js';
 import { createNarrativeMsg } from '../../ai/messages.js';
 import { loadDemoCampaign, loadFullDemo } from '../../data/demo.js';
@@ -62,7 +62,7 @@ export default function MechTest(props) {
   async function newCampaign() {
     if (!confirm('Start a new campaign? This clears the current game on this device.')) return;
     await clearActiveCampaign();
-    resetCampaign();
+    resetCampaign(setStore);
     props.onClose?.();
   }
 

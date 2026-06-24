@@ -1931,6 +1931,8 @@ body {
 }
 
 .btn-end-combat:active { background: #e74c3c; color: white; }
+.btn-end-combat.confirm { background: #e74c3c; color: white; animation: pulse-warn 0.6s ease infinite; }
+@keyframes pulse-warn { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
 
 .combat-initiative {
   display: flex;
