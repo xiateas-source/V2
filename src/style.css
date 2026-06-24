@@ -6676,6 +6676,21 @@ body {
 .chapter-ts { font-size: 10px; color: var(--color-accent-dim); margin-top: 2px; }
 .chapter-content { font-size: 13px; color: var(--color-text-muted); margin-top: 6px; line-height: 1.55; font-family: var(--serif); }
 
+/* Journey timeline */
+.journey { display: flex; flex-direction: column; }
+.jrny-item { display: flex; gap: 9px; padding: 6px 0; }
+.jrny-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-text-muted); margin-top: 5px; flex-shrink: 0; }
+.jrny-travel .jrny-dot { background: var(--color-accent); }
+.jrny-chapter .jrny-dot { background: var(--color-accent); width: 9px; height: 9px; }
+.jrny-done .jrny-dot { background: var(--color-success); }
+.jrny-failed .jrny-dot { background: var(--color-danger); }
+.jrny-body { flex: 1; min-width: 0; border-left: 1px solid var(--line-soft); padding-left: 10px; margin-left: -4px; padding-bottom: 4px; }
+.jrny-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.jrny-label { font-size: 13px; color: var(--color-text); }
+.jrny-chapter .jrny-label { font-family: var(--disp); font-size: 12px; letter-spacing: .04em; }
+.jrny-ts { font-size: 10px; color: var(--color-accent-dim); font-variant-numeric: tabular-nums; }
+.jrny-text { font-family: var(--serif); font-size: 12.5px; color: var(--color-text-muted); line-height: 1.5; margin-top: 3px; }
+
 /* journal footer */
 .journal-footer { padding: 12px 16px 18px; border-top: 1px solid var(--line-soft); }
 .journal-foot-btn {

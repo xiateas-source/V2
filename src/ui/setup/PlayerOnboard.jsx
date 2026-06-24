@@ -23,7 +23,9 @@ export default function PlayerOnboard() {
     const name = store.campaign.name || `${store.campaign.characters[0]?.name || 'New'}'s Adventure`;
     if (!store.campaign.name) setStore('campaign', 'name', name);
     if (!store.campaign.id) {
-      setStore('campaign', 'id', `camp_${Date.now()}`);
+      const cid = `camp_${Date.now()}`;
+      setStore('campaign', 'id', cid);
+      setStore('system', 'activeCampaignId', cid);
     }
     for (let i = 0; i < store.campaign.characters.length; i++) {
       const pc = store.campaign.characters[i];

@@ -82,6 +82,7 @@ export function buildContracts() {
   const sections = [];
 
   if (c.persona) sections.push(c.persona);
+  if (campaign.setting) sections.push(`SETTING: This campaign is set in a "${campaign.setting}" world. Let that genre and tone steer your locations, NPCs, threats, and the texture of every scene — a Fairy Tale plays nothing like Urban Intrigue.`);
   if (campaign.premise) sections.push(`LOCKED PREMISE (facts you cannot contradict):\n${campaign.premise}`);
   if (c.never) sections.push(`PROHIBITIONS:\n${c.never}\n\nINVENTORY INTEGRITY: Never narrate items being found, given, purchased, or used without emitting the corresponding item_add or item_remove mechanic.`);
   if (c.actions) sections.push(`PACING & ACTIONS:\n${c.actions}`);

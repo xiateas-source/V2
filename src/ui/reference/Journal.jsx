@@ -6,7 +6,18 @@ const Compendium = lazy(() => import('./Compendium.jsx'));
 
 // Disposition colour map (Chronograph palette tokens).
 const DISP_CLASS = { friendly: 'disp-friendly', neutral: 'disp-neutral', hostile: 'disp-hostile', unknown: 'disp-unknown' };
-function dispClass(d) { return DISP_CLASS[(d || 'unknown').toLowerCase()] || 'disp-unknown'; }
+// Normalise the AI's free-form dispositions ("distressed", "business-like", …)
+// into the four buckets used for colour + filtering. The raw word still shows
+// on the badge — this only drives styling/grouping.
+function normDisp(d) {
+  const s = (d || '').toLowerCase();
+  if (!s) return 'unknown';
+  if (/friend|ally|allied|helpful|warm|kind|loyal|grateful|welcom|trust(?!.*no)/.test(s)) return 'friendly';
+  if (/hostile|enem|aggress|angry|threat|menac|cruel|murder|antagon|furious|vengef/.test(s)) return 'hostile';
+  if (/unknown|myster|unclear|unseen/.test(s)) return 'unknown';
+  return 'neutral'; // business-like, distressed, wary, cautious, etc. all read neutral
+}
+function dispClass(d) { return DISP_CLASS[normDisp(d)]; }
 
 function escapeRe(s) { return (s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
@@ -37,7 +48,7 @@ function matchesName(text, name) {
 function sentenceWith(text, name) {
   const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean);
   const hit = sentences.find(s => matchesName(s, name)) || sentences[0] || text;
-  return hit.length > 180 ? hit.slice(0, 177) + '…' : hit;
+  return hit.length > 130 ? hit.slice(0, 127) + '…' : hit;
 }
 
 // Assemble everything we know about an NPC from the campaign — no player
@@ -89,6 +100,25 @@ function buildDossier(npc) {
   };
 }
 
+function parseDay(ts) {
+  const m = /day\s+(\d+)/i.exec(ts || '');
+  return m ? parseInt(m[1], 10) : null;
+}
+
+// Journey = the campaign's timeline, derived from beats that already happened:
+// chapters, places reached, travel, and resolved quests/pressures. No tracking.
+function buildJourney() {
+  const c = store.campaign;
+  const ev = [];
+  for (const ch of c.chapters || []) ev.push({ gameTs: ch.gameTs, day: parseDay(ch.gameTs), label: ch.title, text: ch.content, kind: 'chapter' });
+  for (const l of c.locations || []) if (l.firstVisited) ev.push({ gameTs: l.firstVisited, day: parseDay(l.firstVisited), label: `Reached ${l.name}`, kind: 'travel' });
+  for (const t of c.travelLog || []) ev.push({ gameTs: t.gameTs, day: parseDay(t.gameTs), label: `${t.from || '?'} → ${t.to || '?'}`, text: t.note, kind: 'travel' });
+  for (const q of c.quests || []) if (q.status !== 'active') ev.push({ gameTs: q.gameTs, day: parseDay(q.gameTs), label: `${q.status === 'done' ? 'Completed' : 'Failed'}: ${q.text}`, kind: q.status === 'done' ? 'done' : 'failed' });
+  for (const cq of c.consequences || []) if (cq.resolved) ev.push({ gameTs: cq.resolvedTs || cq.gameTs, day: parseDay(cq.resolvedTs || cq.gameTs), label: `Resolved: ${cq.text}`, kind: 'done' });
+  // Chronological — the path so far. Unknown-day events sink to the end stably.
+  return ev.map((e, i) => ({ ...e, _i: i })).sort((a, b) => (a.day ?? 1e9) - (b.day ?? 1e9) || a._i - b._i);
+}
+
 // Urgency ranking for pressures — anything with a deadline floats up.
 function urgencyRank(c) {
   if (!c.deadline) return 3;
@@ -109,7 +139,7 @@ export default function Journal() {
     places: store.campaign.locations.length,
     rep: store.campaign.townReputation.length,
     secrets: (store.campaign.secrets || []).filter(s => s.playerKnown).length,
-    chapters: store.campaign.chapters.length,
+    journey: buildJourney().length,
   }));
 
   const urgent = createMemo(() => {
@@ -139,11 +169,11 @@ export default function Journal() {
           <Show when={c().secrets > 0}>
             <Section icon="ph-eye" label="Lore &amp; Leads" count={c().secrets}><Lore /></Section>
           </Show>
-          <Show when={c().chapters > 0}>
-            <Section icon="ph-book-bookmark" label="Chronicle" count={c().chapters}><Chronicle /></Section>
+          <Show when={c().journey > 0}>
+            <Section icon="ph-path" label="Journey" count={c().journey}><Journey /></Section>
           </Show>
 
-          <Show when={c().objectives + c().objectivesDone + c().pressures + c().people + c().places + c().secrets + c().chapters === 0}>
+          <Show when={c().objectives + c().objectivesDone + c().pressures + c().people + c().places + c().secrets + c().journey === 0}>
             <p class="empty-state journal-empty">Your journal fills as you play — objectives, people you meet, places you find, and what hangs over you all land here.</p>
           </Show>
         </div>
@@ -307,7 +337,7 @@ function People() {
     const f = filter();
     const term = q().trim().toLowerCase();
     let list = npcs();
-    if (f !== 'all') list = list.filter(n => (n.disposition || 'unknown').toLowerCase() === f);
+    if (f !== 'all') list = list.filter(n => normDisp(n.disposition) === f);
     if (term) list = list.filter(n => (n.name + ' ' + (n.role || '') + ' ' + (n.lastSeen || '')).toLowerCase().includes(term));
     return list;
   });
@@ -409,7 +439,7 @@ function NPCCard(props) {
                 <div class="dossier-sec">
                   <div class="dossier-label">What's happened</div>
                   <div class="npc-timeline">
-                    <For each={d.timeline.slice(0, 6)}>
+                    <For each={d.timeline.slice(0, 4)}>
                       {(t) => (
                         <div class={`tl-item ${t.firstMeet ? 'tl-first' : ''}`}>
                           <span class="tl-dot" />
@@ -524,16 +554,21 @@ function Lore() {
   );
 }
 
-function Chronicle() {
-  const chapters = () => store.campaign.chapters;
+function Journey() {
+  const events = createMemo(() => buildJourney());
   return (
-    <div class="chron-list">
-      <For each={[...chapters()].reverse()}>
-        {(ch) => (
-          <div class="chapter-card">
-            <div class="chapter-title">{ch.title}</div>
-            <Show when={ch.gameTs}><div class="chapter-ts">{ch.gameTs}</div></Show>
-            <Show when={ch.content}><div class="chapter-content">{ch.content}</div></Show>
+    <div class="journey">
+      <For each={events()}>
+        {(e) => (
+          <div class={`jrny-item jrny-${e.kind}`}>
+            <span class="jrny-dot" />
+            <div class="jrny-body">
+              <div class="jrny-head">
+                <span class="jrny-label">{e.label}</span>
+                <Show when={e.gameTs}><span class="jrny-ts">{e.gameTs}</span></Show>
+              </div>
+              <Show when={e.text}><div class="jrny-text">{e.text}</div></Show>
+            </div>
           </div>
         )}
       </For>

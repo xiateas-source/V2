@@ -1,5 +1,8 @@
 const GOLD_PATTERNS = /(\d+)\s*(gold|gp|silver|sp|copper|cp|platinum|pp)/i;
-const ITEM_GIVE_PATTERNS = /\b(finds?|receives?|picks?\s*up|grabs?|takes?|loots?|hands?\s*(you|them|her|him)|gives?)\b.*?\b[A-Z][a-z]+/;
+// Only fire on a concrete transfer: a give/receive verb immediately followed by
+// an article or quantity (then a noun). This avoids tripping on common words
+// like "take kindly", "find her", "gives chase" that aren't item exchanges.
+const ITEM_GIVE_PATTERNS = /\b((hands?|gives?|tosses?|offers?|passes?)\s+(you|them|her|him|the party)\s+(a|an|the|some|\d+|two|three|four|five)\b|you\s+(find|receive|obtain|acquire|grab|loot|pick\s*up|are\s+given|are\s+handed)\s+(a|an|the|some|\d+|two|three|four|five)\b|(picks?\s+up|loots?|pockets?)\s+(a|an|the|some|\d+)\b)/i;
 const NPC_INTRO_PATTERNS = /\b(introduces?\s+(herself|himself|themselves)|"[^"]*,?\s*I'?m\s+[A-Z]|meet\s+[A-Z])/;
 const HP_NARRATION = /\b(takes?\s+\d+\s+(points?\s+of\s+)?damage|loses?\s+\d+\s+h(it\s*)?p(oints?)?|heals?\s+\d+)/i;
 const ROLL_IN_PROSE = /\b(rolls?\s+(a\s+)?\d+|rolled\s+(a\s+)?\d+|rolls?\s+a\s+natural|nat(ural)?\s+(20|1)|the\s+d(ice|20)\s+(shows?|lands?|comes?\s+up))/i;
