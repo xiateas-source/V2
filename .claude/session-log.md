@@ -1,5 +1,64 @@
 # Session Log — Handoff Note
 
+## Session 42 · 2026-06-24 — Play/Reference Mode build-out + workboard trim
+
+**Theme:** knock real, reachable features off Phase 3 (Play Mode UI) and Phase 4
+(Reference Mode), then compress the bloated workboard. Branch
+`claude/character-creation-phase-4-r94wpq` (continued). Build clean, 33/33 tests.
+
+### Shipped (genuinely wired, not faces)
+- **Toast host** (`shared/Toast.jsx`) — fixes a real bug: `toast` CustomEvents
+  were dispatched by `engine.js` (stop-generation) and `CharSheet.jsx` (manual
+  override) but **nothing listened**, so feedback was silently dropped. Now a
+  global host mounted in `App.jsx` renders a transient stack (info/success/error,
+  tap to dismiss). Any code can `dispatchEvent(new CustomEvent('toast', {detail:{text,type}}))`.
+- **Treasury** (`reference/Treasury.jsx`) — was a 1-line stub. Now real:
+  PP/GP/EP/SP/CP with inline correction (+/- and direct entry), total gp value,
+  income + expense ledgers (from `incomeLog`/`expenseLog`), collapsible PHB
+  lifestyle reference. Reached by tapping the Treasury card in **Cargo**.
+- **Travel calculator** — in Journal → Places. Distance × pace (slow/normal/fast)
+  → days+hours (Law 5 free math). Honest/input-based: locations don't store
+  distances yet, so the player enters miles.
+- **Secrets** — Journal → Log now shows player-known secrets (`playerKnown`).
+
+### Workboard trim (the "clear the data" ask)
+- Phase 3 + Phase 4 sections rewritten from ~138 verbose lines (duplicated specs)
+  to ~36 lines of honest status checklists. Full UI detail already lives in
+  `ui-specs-v2.md` (§1–5) — workboard now points there instead of duplicating.
+- Legend added: [x] built+wired · [~] component renders, verify in play · [ ] not built.
+- Reality-Snapshot rows updated: Treasury 🟢, Toast 🟢, Glossary marked
+  intentional-stub (Compendium's glossary tab is the one home).
+- Net: workboard 1481 → ~1376 lines.
+
+### Decisions / honest notes
+- **Glossary stays a stub on purpose** — `Compendium.jsx` already browses the
+  seeded 97-term glossary in its own tab (Law 4: one home). A separate screen
+  would be a redundant face.
+- Gold is AI-owned but Treasury allows manual correction via direct `setStore`
+  (same escape-hatch pattern as CharSheet's HP override). Players needed this in v1.
+- Did NOT mass-mark the existing "face" components (Context banner, Situation bar,
+  Char tiles, Dice roller, Quick Actions, OOC) as done — left [~] "verify in play"
+  per the S39 rule: don't trust UI by reading code.
+
+### Next up
+- Phase 3 real gaps: mechanic pills, term/citation/NPC auto-linking in chat,
+  Previously On, Ask DM interception, push.
+- Encumbrance/weight bar (items already carry `weight`).
+- Play-verify the [~] components and promote to [x].
+
+### Key files
+- NEW real: `src/ui/shared/Toast.jsx`, `src/ui/reference/Treasury.jsx`
+- `src/ui/App.jsx` — mount `<Toast/>`
+- `src/ui/reference/Cargo.jsx` — Treasury link + lazy Treasury view
+- `src/ui/reference/Journal.jsx` — TravelCalc + Secrets section
+- `src/style.css` — Play/Reference block (toast, treasury, travel, secrets)
+- `.claude/workboard.md` — Phase 3+4 compressed, snapshot rows fixed
+
+**Branch state:** `claude/character-creation-phase-4-r94wpq` (commit pending). Not
+merged/deployed — awaiting developer call.
+
+---
+
 ## Session 41 · 2026-06-24 — Character creation Phase 4 (editable re-entry + VTT niceties)
 
 **Theme:** make character creation fully re-editable and bring it up to popular-VTT

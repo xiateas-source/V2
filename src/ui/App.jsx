@@ -5,6 +5,7 @@ import Chat from './play/Chat.jsx';
 import Cargo from './reference/Cargo.jsx';
 import Journal from './reference/Journal.jsx';
 import Settings from './manage/Settings.jsx';
+import Toast from './shared/Toast.jsx';
 
 export default function App() {
   const [mode, setMode] = createSignal('play');
@@ -73,6 +74,7 @@ export default function App() {
           Settings
         </button>
       </nav>
+      <Toast />
     </div>
   );
 }

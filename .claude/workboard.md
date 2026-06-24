@@ -60,7 +60,8 @@ All 🟠 = code exists and renders; **none of it is confirmed playable.** Line c
 | play/RollRequest.jsx | 1 | ⛔ | (RollBar superseded it) |
 | reference/CharSheet.jsx | 787 | 🟠 | 6-tab sheet incl. editable Bio (S37) |
 | reference/Journal, Cargo, Compendium | 155/98/93 | 🟠 | renders from store; depth unverified |
-| reference/Treasury.jsx, Glossary.jsx | 1/1 | ⛔ | unbuilt |
+| reference/Treasury.jsx | 130 | 🟢 | built S41 — currencies + ledger + lifestyle, reached from Cargo |
+| reference/Glossary.jsx | 1 | ⛔ | stub on purpose — Compendium's glossary tab is the one home |
 | setup/CharCreate.jsx | 488 | 🟠 | 3 paths + editable backstory; backstory edit was the one S37-confirmed-real bit |
 | setup/CampaignConfig.jsx | 371 | 🟠 | |
 | setup/PlayerOnboard, KeyGate | 71/54 | 🟠 | |
@@ -68,7 +69,8 @@ All 🟠 = code exists and renders; **none of it is confirmed playable.** Line c
 | manage/DevTools.jsx | 358 | 🟠 | flags, inspector, gate log |
 | manage/Settings.jsx | 109 | 🟠 | |
 | manage/Contracts.jsx, SessionReview.jsx | 1/1 | ⛔ | unbuilt |
-| shared/* (MechPill, Modal, Nav, Toast, LevelUp) | 1 each | ⛔ | stubs — play UI uses inline elements instead |
+| shared/Toast.jsx | 47 | 🟢 | built S41 — global host for dispatched `toast` events |
+| shared/* (MechPill, Modal, Nav, LevelUp) | 1 each | ⛔ | stubs — play UI uses inline elements instead |
 | AppSimple.jsx | 1 | ⛔ | child-friendly entry unbuilt |
 
 ### Content pipeline (`src/content/`)
@@ -1206,142 +1208,40 @@ Full specs for each gate: `.claude/enforcement-spec.md`
 
 ## Phase 3: Play Mode UI
 
-> Everything the player sees and taps during a session. Build after core loop works.
+> Everything the player sees and taps during a session. Full UI detail lives in `ui-specs-v2.md` (§1–5) and `chat-system-spec-v2.md` — not duplicated here. Legend: **[x]** built + wired · **[~]** component renders, verify by *playing* · **[ ]** not built.
 
-- [ ] **Context banner** — `ContextBanner.jsx`. Location, weather, time. All tappable → navigates to source (Journal locations, etc). Updates from state signals.
-- [ ] **Situation bar** — `SituationBar.jsx`. Horizontal scroll. Main quest pinned left (always visible). Active consequences/countdowns pinned after main quest, sorted by urgency, visually distinct. Player quests scrollable after. Each chip tappable → quest detail.
-- [ ] **Character tiles** — `CharTiles.jsx`. HP bar, name, conditions. One per PC. Tap → character sheet overlay. Compact enough for 3 PCs on one screen row, scalable to 6-7.
-- [ ] **Dice roller** — `DiceRoller.jsx`. Inline icon (not a tab). d4/d6/d8/d10/d12/d20 selector. Modifier input. Roll result displayed inline. Submits to `pendingRolls` for Gate 1.
-- [x] **Roll request banners** — roll prompts surface in `RollBar.jsx` (reads `roll_request` mechanics + derives Initiative rolls from combatState). `RollRequest.jsx` is an unused stub. Roll-request is code-enforced PC-only (Gate in mechanics validation rejects enemy targets — the DM rolls NPCs itself). [Session 37]
-- [ ] **Mechanic pills** — `shared/MechPill.jsx`. Tappable pills in AI responses. `hp: -5` shows as red pill. `item_add: Shortsword` shows as item pill. Tap → navigates to source (character sheet HP, cargo inventory, etc).
-- [ ] **Term glossary links** — Auto-link D&D terms in AI messages. Tap → definition popup. Data from `v1-seed-data.md` glossary (97 terms).
-- [ ] **Checkpoint/rewind** — `Rewind.jsx`. State snapshots at: long rest, level-up, PC at 0 HP, periodic auto. Rewind stack. One-tap restore. Accessible mid-session in play mode, not buried in manage.
-- [ ] **TTS toggle** — `TTS.jsx`. Browser speech synthesis. Toggle on/off per message or continuous. Not automatic. ElevenLabs free tier as upgrade path.
-- [ ] **Previously On / Catch Up** — AI-powered session recap. Depends on memory.js (Phase 1) for session summaries and state diff. **Two triggers:** (1) AFK return — detect idle time > threshold. (2) Player handoff — mode switches from single → multi, returning player gets caught up on what happened. Both show: narrative recap (AI call via memory.js summary) + tracker audit (pure state diff: HP, quests, inventory, location, gold, NPCs). UI: dismissable card at top of chat. See "Previously On as handoff tool" in chat spec.
-- [?] **Quick Actions** — `QuickActions.jsx`. Floating action button. Needs redesign from v1. See spec below.
-- [x] **Combat overlay + turn system** — `Combat.jsx` (zone grid, initiative strip, tokens, **minimize toggle**, **live ally HP** from char store / enemy HP from initiative). Turn engine rebuilt so **code owns the turn pointer** (`advanceCombatToNextPC` in gates.js): initiative rolled deterministically in RollBar → kickoff → engine stops on each living PC, enemies stream in the AI's narration. `TurnPrompt.jsx` shows whose turn on all devices (derived from synced state) with quick-action buttons. Round markers drop into narrative on wrap. [Session 37]
-  - NOTE: turn order is code-enforced; the AI *stopping* at each PC is prompt-enforced (contract + combat block). Watch in play; Gate 2 flags over-runs. Open: engine auto-roll for enemies (no DM stall), manual skip/pass control, push wired to TurnPrompt.
-- [ ] **Nav badges** — Dot badges on bottom nav when state changes in other modes. In-chat alerts for important state changes.
-- [ ] **OOC tab** — Player text by default, no AI. Ask DM button injects an AI response into the OOC stream. Ask DM prompt includes: current situation from Narrative history + OOC history + character data + relevant compendium data pulled from IndexedDB. System instruction: "advisory only — answer the question, don't emit mechanics, don't advance the game." Two tabs total: Narrative (the game) and OOC (everything else).
-- [ ] **Ask DM interception layer** — Before Ask DM sends to the AI, pattern-match the question for app issues. "Can't modify/change/edit [X]" → route to relevant editor/wizard. "What's in my inventory" → open Cargo. "How much gold" → open Treasury. "What are my spells" → open CharSheet Spells tab. Detection patterns: "can't/won't/how do I" + field name → system tool. Only questions the app can't answer directly hit the AI. Saves API calls, gives better answers.
-- [ ] **Ask DM data injection** — Before Ask DM prompt goes out, detect what the question is about and pull relevant data from IndexedDB/state. Spell questions → pull spell entries. Feat questions → pull feat data. NPC questions → pull NPC tracker entries. Class feature questions → pull class progression data. Grounds AI answers in actual app data, not training data. Especially important for homebrew content the AI has never seen.
-- [ ] **Citation linking** — Auto-link rules references in AI responses (spell names, feat names, conditions, PHB citations) to compendium entries when content is imported. Same auto-linking tech as term glossary, extended to Ask DM and Narrative responses. AI cites "PHB 182" → tappable link to travel pace rules in compendium. Tap-to-source for AI knowledge.
-- [ ] **Inline NPC name linking** — Auto-link NPC names in chat messages to NPC tracker entries in Journal. Same tech as term glossary + citation linking. Tap NPC name → navigate to NPC detail. From player-requests: requested, designed in v1, never built.
-- [ ] **Push notifications** — Web Push API (free, works on Android Chrome + iOS Safari 16.4+). Fires for ALL OOC messages (not just Ask DM), Narrative responses on other player's device, state changes needing attention, combat turn prompts. Player opts in during onboarding. Pairs with Firebase Cloud Messaging. Needed from day one for 2-player — without it, OOC is dead (v1 problem: no notifications meant no one checked OOC). Full notification table in chat spec "Push notifications — scope" section.
+**Built + wired**
+- [x] Roll request banners — `RollBar.jsx` (PC-only, derives initiative from combatState). [S37]
+- [x] Combat overlay + turn system — `Combat.jsx` / `TurnPrompt.jsx`; code owns the turn pointer (`advanceCombatToNextPC`). [S37] Open: enemy auto-roll, manual skip/pass, push→TurnPrompt.
+- [x] Nav badges — dot badges on Cargo / Journal when state changes (`App.jsx`).
+- [x] Toast host — global `shared/Toast.jsx` renders dispatched `toast` events (engine stop, manual override, rest). [S41]
 
-### Quick Actions — design needed
+**Component exists — verify in play, don't trust the code**
+- [~] Context banner · Situation bar · Character tiles · Dice roller · TTS toggle · Quick Actions · OOC two-tab Chat. All render + wired to the store; confirm in a real session.
 
-v1 Quick Actions was a FAB with common play actions. Carried forward but needs redesign.
+**Not built**
+- [ ] Mechanic pills (`shared/MechPill.jsx` stub) — tappable pills in AI responses → source.
+- [ ] Term-glossary / citation / inline-NPC linking — auto-link terms, spells, NPC names in chat → popup / Journal. (Glossary + spells are seeded; Compendium already browses them.)
+- [ ] Checkpoint/rewind surfacing — `Rewind.jsx` exists; confirm one-tap restore is reachable mid-session.
+- [ ] Previously On / Catch Up — AI recap + tracker diff on AFK return / handoff (needs memory.js).
+- [ ] Ask DM interception + data injection — route app-issue questions to tools; pull IndexedDB data into the prompt.
+- [ ] Push notifications — Web Push + FCM. Without it OOC is dead in 2-player (v1 lesson).
 
-**Questions to resolve:**
-- What actions belong here? (Short rest, long rest, check inventory, ask about location, request recap?)
-- Are these AI-directed (inject a message) or system-directed (trigger a function)?
-- Should system operations (HP reset, stat correction) live here instead of going through AI chat?
-- Mobile ergonomics: FAB placement, action list size, one-tap vs two-tap
-
-**Candidate actions:**
-- Short rest / Long rest (system operation: restore hit dice, reset slots, HP recovery)
-- Check inventory (reference shortcut → Cargo overlay)
-- Where are we? (reference shortcut → Journal locations)
-- What do I know? (reference shortcut → Journal with discovered filter)
-- Request recap (AI message: "Previously On")
-- Roll initiative (system operation: start combat mode)
-- End combat (system operation: exit combat mode)
-- Toggle single/multi player mode (system operation: switches mode, triggers Previously On on multi→single handoff)
+**Quick Actions — design still open:** which actions (rest / recap / check inventory…), AI-directed vs system-directed, FAB ergonomics. `QuickActions.jsx` exists but predates the decision.
 
 ---
 
 ## Phase 4: Reference Mode
 
-> Mid-session orientation. Overlays over chat — tap to open, tap away to close. No mode switch friction.
+> Mid-session orientation — overlays over chat, tap to open / tap away to close. Full detail in `ui-specs-v2.md`: §1 Character Sheet · §2 Cargo · §3 Treasury · §4 Journal. Legend as Phase 3.
 
-- [ ] **Character sheet** — `CharSheet.jsx`. 6-tab overlay (Stats/Vitals/Spells/Features/Equipment/Bio). Full spec below. See `charsheet-mockup.html` for interactive visual reference.
-
-### Character sheet spec
-
-**Layout:** Overlay that slides up from character tile tap. Drag handle to dismiss. Header + XP bar + swipe indicator + lock bar + 6 tabs + scrollable content.
-
-**Header:**
-- PC avatar (colored circle with initial, border = PC accent color)
-- Name + inspiration star toggle (tap to toggle)
-- Class/race/level subtitle
-- HP mini badge (always visible regardless of tab)
-- **Color picker:** tap avatar color dot → color picker for PC accent color (tokens, borders, name displays). Stored in `characters[].color`.
-- **XP bar:** below header. Shows `currentXP / nextLevelXP`. Tap to manually edit XP. **Level-up glow:** when XP >= threshold, bar pulses green. Tapping opens level-up wizard. The character IS the notification.
-- **Swipe between PCs:** dot indicators below XP bar. Swipe left/right on header to switch PCs without closing the sheet. All tabs reload for the new PC. Quick reference during combat.
-- **JSON import button:** in lock bar. "Update from JSON" per character. Auto-detects format, preserves HP/XP/conditions.
-
-**Lock bar:** "Fields locked during play" + unlock toggle. Unlock enables editing system-owned fields (with confirmation). Lock bar also shows JSON import button.
-
-**"What changed" tab badges:** After AI mechanics apply, pulsing gold dot appears on tabs where fields changed. Vitals dot = HP changed. Spells dot = slot used. Clears on tab view. Tap-to-source in reverse — connects mechanic pills in chat to where they landed.
-
-**Every modifier is a roll:** Any field with a d20 modifier is tappable for a roll. Ability scores → d20+mod. Skills → d20+bonus. Saves → d20+bonus. Initiative → d20+DEX. Attacks → d20+hit. Spell attack → d20+bonus. Fields without roll context (AC, speed, DC) are not rollable. Visual hint: rollable values show in accent color. Active press state: border flash + background tint.
-
-#### Stats tab
-- **Ability scores** — 3x2 grid. Each box: abbreviation, score, modifier. All tappable (roll d20+mod).
-- **Saving throws** — 6 rows. Proficiency dot (filled = proficient). Name + bonus. All tappable (roll).
-- **Skills** — All 18 skills. Proficiency dot (blue = proficient, gold = expertise). Name + ability tag + bonus. All tappable (roll).
-- **Quick reference** — Initiative (tappable, roll d20+DEX), Proficiency bonus, Speed, Passive Perception, Passive Investigation.
-
-#### Vitals tab
-- **Hit Points** — Large HP display (current/max), HP bar, +/- buttons (-5, -1, custom, +1, +5), temp HP row. AI-owned with player override (logged).
-- **Armor Class** — Shield display with AC number, source breakdown (armor type + DEX).
-- **Attacks** — Cards with weapon/spell name, hit bonus, damage, range. Tappable (roll d20+hit). "d20" hint on right side.
-- **Conditions** — Chips with condition name + optional duration counter (rounds/hours). Tap to remove. Duration auto-decrements. Concentration shown as a condition here too.
-- **Hit Dice** — Pip display (filled = available, empty = used). Tap available pip to spend (heal d{hitDie}+CON). Shows heal estimate.
-- **Death Saves** — Heart and skull pips, tap to toggle each.
-- **Exhaustion** — 1-6 scale, tap to set level.
-- **Familiar/mount** — Card with name, type, HP bar, AC, speed. Gets own combat token. Shows when `characters[].familiar` is not null. AI-owned.
-- **Rest buttons** — Short Rest and Long Rest side by side at bottom. Short: spend hit dice + class recovery features (Arcane Recovery, etc). Long: full HP, all slots, half hit dice. System operations — not AI chat. The "fix it" button is right where you see depleted resources.
-
-#### Spells tab
-- **Spellcasting stats** — Three boxes at top: Spell Save DC (8+prof+ability), Spell Attack bonus (prof+ability, tappable roll), Spellcasting Ability (ability + modifier). Always visible.
-- **Concentration pinned spell** — When concentrating, the active spell pins to top with glowing border and "End" button. Reminds player they'll lose concentration if they cast another concentration spell. Same spell also shows as condition in Vitals.
-- **Spell slots** — Rows per level. Pip display (filled = available). Tap to use/restore.
-- **Spell card layout** — Collapsed: level badge, spell name, school tag, expand arrow. Expanded: three lines — (1) casting time · range · duration, (2) **V, S, M component badges** (prominent purple pills, each component separate — player-requested), (3) description text. Browse Compendium button under spellcasting notes.
-- **Cantrips** — Level badge "C", green tag. Same expand/collapse as leveled spells.
-- **Known spells** — Grouped by level. Same expand/collapse. Tap for full description (from compendium/IndexedDB).
-
-#### Features tab
-- **Class features** — Cards with name, source (class + level), description. Sorted by acquisition level.
-- **Racial traits** — Cards with name, source, description.
-- **Resources** — Pip displays for limited-use features (Superiority Dice, Channel Divinity, etc). Tap to use/restore.
-- **Feats** — Cards with name, source level, description.
-- **Proficiencies** — Tag chips (weapons, armor, tools, etc).
-
-#### Equipment tab
-- **Encumbrance bar** — Current weight / capacity (STR x 15). Warning color when over 2/3.
-- **Items** — Each item shows: name, color-coded type tag (WEAPON/TOOL/SUPPLY/HERB/COMPONENT/ITEM/TREASURE), acquisition metadata ("+4 Day 18, 06:00 AM — Mere of Dead Men"). Tappable for detail.
-- **Party currency** — Bottom footer: CP/SP/GP/PP displayed inline. "Tap for full Treasury" link.
-- **Footer** — "Wagon & Hoard in Cargo tab" link.
-
-#### Bio tab
-- **Race reference card** — Pulled from compendium (IndexedDB). Name, lore description, trait chips (Darkvision, Fey Ancestry, etc), size, speed, age. Read-only. Player shouldn't need to ask AI what their species looks like.
-- **Identity** — Background, Alignment, Languages. System-owned.
-- **Appearance** — Player-owned. Tap to edit.
-- **Personality** — Player-owned. Tap to edit.
-- **Backstory** — Player-owned. Tap to edit.
-- **Notes** — Player-owned. Tap to edit. Freeform.
-
-#### Manual Override (v1's "Advanced Editor")
-Accessed via lock icon / edit button on character sheet. Full form-based editor for when the engine gets it wrong. Not the primary path — wizards and enforcement handle normal play. This is the escape hatch.
-
-- **Core fields** — Name, race, class, subclass, level, background, alignment, HP, max HP, AC, initiative, speed, XP, all 6 ability scores. System-owned fields require unlock confirmation.
-- **Skills sub-tab** — Proficiency toggles on saves + skills. All bonuses **derived at render time** (not stored) — `mod = abilityMod + (isProficient ? profBonus : 0)`. V1 stored computed values and they drifted; V2 computes on the fly.
-- **Features sub-tab** — Edit feature text, add/remove. Resources with MAX/USED counters.
-- **Attacks sub-tab** — Attack builder: stat selector, bonus, prof checkbox, damage dice + modifier, properties (finesse, versatile, thrown, etc). Add/remove attacks.
-- **Spells sub-tab** — Spell slot editor (MAX/USED per level). Spell Compendium browser inline (search, filter by class/level, import). Manual add for homebrew.
-- **Gear sub-tab** — Add/remove items. Equipped vs Carried. Type, weight, description fields.
-- **Familiar** — Full stat block editor (all 6 abilities, HP, AC, speed, passive perception, special abilities). Add/remove.
-- **Danger zone** — Delete character, color picker, Update from JSON, Share Character.
-- **Audit** — All Manual Override edits are logged (field, old value, new value, timestamp). Visible in DevTools.
-
-- [ ] **Journal** — `Journal.jsx`. Sections: Quests, Locations, NPCs, Travel Log, Consequences, Town Reputation, Secrets. All AI-owned via mechanics. Secrets consolidated to one home with `playerKnown` / `aiOnly` flags. Quests show status (active/completed/failed). Locations show discovered/undiscovered. NPCs show disposition.
-- [ ] **Cargo** — `Cargo.jsx`. Three containers: Carried (per-PC), Wagon (party shared), Hoard (stored/stashed). Items from `item_add` mechanics. Weight tracking (encumbrance). AI-generated items (Firebase) vs compendium items (IndexedDB) display the same.
-- [ ] **Travel calculator** — In Journal's locations section. Tap a known destination → see distance, estimated travel time at current party speed (accounts for slowest member — mounts, oxen, vehicles), encounter risk level. Math is free (Law 5). AI handles "should we go?" judgment via Ask DM — app handles "how long will it take?" Depends on locations tracked in Journal state with distance/terrain data.
-- [ ] **Treasury** — `Treasury.jsx`. PP/GP/EP/SP/CP tracked separately. Income/expense log (every `income:` / `expense:` mechanic). Lifestyle tracker. Business profile (if applicable). All AI-owned via mechanics.
-- [ ] **Compendium** — `Compendium.jsx`. Spell browser, feat browser, item browser. Data from IndexedDB (imported content). Search + filter. Spell details include: level, school, casting time, range, components, duration, description. Populated by content pipeline, not hardcoded.
-- [ ] **Glossary** — `Glossary.jsx`. D&D term definitions. Seed data from v1 (97 terms in v1-seed-data.md). Expandable. Same data that powers auto-linking in chat.
+- [~] **Character sheet** (`CharSheet.jsx`, ~856L) — 6 tabs (Stats / Vitals / Spells / Features / Equipment / Bio), editable Bio + TIBF, Manual Override (HP / temp / XP / exhaustion / conditions / inspiration), wizard re-entry edits the build in place [S41]. Verify rolls / rest / swipe-between-PCs in play.
+- [~] **Journal** (`Journal.jsx`) — Quests / NPCs / Places / Log / Lookup. Travel calculator + player-known Secrets added [S41].
+- [x] **Cargo** (`Cargo.jsx`) — carried (per-PC) / wagon / hoard + tappable Treasury link [S41].
+- [x] **Treasury** (`Treasury.jsx`) — PP/GP/EP/SP/CP with inline correction, income + expense ledger, total gp value, lifestyle reference. Reached from Cargo. [S41]
+- [x] **Travel calculator** — distance × pace → time, in Journal → Places. Input-based until locations carry distance data. [S41]
+- [~] **Compendium** (`Compendium.jsx`) — spell / rules / glossary browser from IndexedDB, search. **This is the home for the Glossary item** (own tab); standalone `Glossary.jsx` left a stub on purpose (one home, Law 4).
+- [ ] **Encumbrance / weight** in Cargo + CharSheet Equipment — capacity = STR×15, warning color. Items already carry `weight`; the bar isn't shown yet.
 
 ---
 
