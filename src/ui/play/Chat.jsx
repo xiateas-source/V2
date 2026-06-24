@@ -127,8 +127,10 @@ export default function Chat() {
       <PreviouslyOn />
       <ContextBanner />
       <div class="hr" />
-      <CharTiles />
-      <SituationBar />
+      <Show when={!store.campaign.combatState?.active}>
+        <CharTiles />
+        <SituationBar />
+      </Show>
       <Combat />
 
       <div class="chat-tabs">

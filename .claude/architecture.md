@@ -192,7 +192,7 @@ v2/
 
 **Multi-player model:** Device-local setting for "which PC am I." No formal identity system — family shares informally, one player can act for another. Firebase syncs game state between all connected devices. Push notifications (Web Push + FCM) for cross-device awareness.
 
-**Seed data:** On first launch, static JSON files (bundled with app) populate IndexedDB: 94 spells, 44 feats, 97 glossary terms, XP thresholds, 3 class progressions, 16 maneuvers. One-time load before content pipeline exists.
+**Seed data:** On first launch, static JSON files (bundled with app) populate IndexedDB: 339 SRD spells (levels 0-9, 8 caster classes), 44 feats, 97 glossary terms, XP thresholds, 12 class progressions (levels 2-20), 16 maneuvers, rules compendium. Versioned migrations (v4) handle updates for existing users.
 
 **Error recovery:** When callAI() fails, retry + provider fallback (built). When AI returns unparseable mechanics, drift detectors flag it, rewind is available (built). "When Firebase disconnects, continue locally and reconcile on reconnect" is ⚠ **not yet implemented** — see Offline behavior note above.
 
@@ -298,10 +298,16 @@ src/
 │   └── index.js
 ├── data/
 │   ├── firebase.js        # init, auth, sync, merge, offline fallback
-│   ├── local.js           # IndexedDB wrapper (compendiums, seed data)
+│   ├── local.js           # IndexedDB wrapper (compendiums, seed data, spell queries)
 │   ├── bundles.js         # shared content pack generation + import
-│   ├── seed.js            # first-launch seeding from static JSON
+│   ├── seed.js            # first-launch seeding from static JSON (version 4)
 │   ├── migrate.js         # state version migration
+│   ├── forge.js           # canonical character builder (class data, stat gen)
+│   ├── quickBuild.js      # quick-build helpers (class data tables, spell lookups)
+│   ├── persist.js         # local persistence (save/load game JSON export)
+│   ├── keys.js            # API key management (per-provider storage)
+│   ├── demo.js            # demo campaign data (pre-built scenario)
+│   ├── sync.js            # Firebase sync (write campaign state, dirty-edit guard)
 │   └── index.js
 ├── state/
 │   ├── store.js           # SolidJS signals, field ownership enforcement, owned setters
@@ -318,7 +324,9 @@ src/
 │   │   ├── Combat.jsx     # zone grid → visual tile map, initiative strip, tokens
 │   │   ├── QuickActions.jsx # floating action button, common play actions
 │   │   ├── DiceRoller.jsx # d4-d20 roller (inline icon)
-│   │   ├── RollRequest.jsx # roll request banners (pre-filled from AI mechanic)
+│   │   ├── TurnPrompt.jsx  # whose turn, what to do (appears above input during combat)
+│   │   ├── RollBar.jsx    # roll request UI (pre-filled from AI mechanic, replaces input)
+│   │   ├── PreviouslyOn.jsx # session recap + state diff on return
 │   │   ├── Rewind.jsx     # checkpoint/rewind controls (accessible mid-session)
 │   │   └── TTS.jsx        # text-to-speech toggle
 │   ├── reference/
@@ -331,20 +339,24 @@ src/
 │   ├── setup/
 │   │   ├── SessionZero.jsx    # campaign name, setting, narration style, module
 │   │   ├── CharCreate.jsx     # race, class, abilities, background, equipment, spells
+│   │   ├── CharWizard.jsx     # canonical character builder (step-by-step, reads spell DB)
+│   │   ├── KeyGate.jsx        # API key entry gate (before play)
 │   │   ├── ContentImport.jsx  # file upload, web URL, paste, JSON
 │   │   ├── CampaignConfig.jsx # module selection, house rules, contract customization
 │   │   └── PlayerOnboard.jsx  # identity, character selection, mode, push opt-in
 │   ├── manage/
 │   │   ├── Contracts.jsx  # AI contract editor (code-enforced vs prompt-enforced)
 │   │   ├── SessionReview.jsx  # archive, export, past session summaries
+│   │   ├── MechTest.jsx   # mechanics test container (inject mechanics, watch state)
 │   │   ├── DevTools.jsx   # flags, state inspector, gate fire log
-│   │   └── Settings.jsx   # API keys, TTS, theme toggle + cycle, narration style
+│   │   └── Settings.jsx   # API keys, TTS, theme toggle + cycle, save/load game, narration style
 │   ├── shared/
 │   │   ├── MechPill.jsx   # tappable mechanic pills (tap → source)
 │   │   ├── Toast.jsx      # notification toasts
 │   │   ├── Modal.jsx      # bottom sheet overlays
-│   │   ├── Nav.jsx        # bottom nav: Cargo / Journal / Settings
-│   │   └── LevelUp.jsx    # event-driven wizard (triggers on XP threshold)
+│   │   ├── Nav.jsx        # bottom nav: Cargo / Play / Journal / Settings
+│   │   ├── icons.jsx      # d20 SVG mark for nav
+│   │   └── LevelUp.jsx    # full 12-class level 2-20 wizard (subclass/ASI/feat/spell/expertise/HP)
 │   ├── App.jsx            # root component, mode router, bottom nav
 │   └── AppSimple.jsx      # child-friendly entry point — same state/engine, simplified UI
 ├── audio/
@@ -357,14 +369,24 @@ src/
 **Static data (bundled with app, not in src):**
 ```
 data/
-├── xp-thresholds.json
-├── level-up-fighter.json
-├── level-up-rogue.json
+├── spells.json              # 339 SRD spells, levels 0-9, all 8 caster classes
+├── feats.json               # 44 feats
+├── glossary.json            # 97 D&D term definitions
+├── maneuvers.json           # 16 battle master maneuvers
+├── xp-thresholds.json       # XP per level
+├── rules.json               # compendium rules entries
+├── level-up-barbarian.json  # class progression data (levels 2-20)
 ├── level-up-bard.json
-├── spells.json
-├── maneuvers.json
-├── feats.json
-└── glossary.json
+├── level-up-cleric.json
+├── level-up-druid.json
+├── level-up-fighter.json
+├── level-up-monk.json
+├── level-up-paladin.json
+├── level-up-ranger.json
+├── level-up-rogue.json
+├── level-up-sorcerer.json
+├── level-up-warlock.json
+└── level-up-wizard.json
 ```
 
 ---

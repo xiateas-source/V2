@@ -15,7 +15,7 @@ const TIBF = [
   { key: 'bond', label: 'Bond', rows: 2, placeholder: 'A person, place, or cause they hold dear…' },
   { key: 'flaw', label: 'Flaw', rows: 2, placeholder: 'A weakness, vice, or fear…' },
 ];
-import { getByIndex } from '../../data/local.js';
+import { getByIndex, getSpellsForClass } from '../../data/local.js';
 import { callProvider } from '../../ai/providers.js';
 import { GENERATE_BIO_SYSTEM } from '../../ai/setupPrompts.js';
 
@@ -459,10 +459,10 @@ export default function CharWizard(props) {
     const slots = cd.slotTable?.[level()] || {};
     const maxLv = Math.max(0, ...Object.keys(slots).map(Number));
     try {
-      const all = await getByIndex('spells', 'class', cls());
-      const cantrips = all.filter(s => s.level === 0).map(s => ({ name: s.name, desc: s.desc || '' }));
+      const all = await getSpellsForClass(cls());
+      const cantrips = all.filter(s => s.level === 0).map(s => ({ name: s.name, desc: s.description || '' }));
       const leveled = all.filter(s => s.level > 0 && s.level <= maxLv)
-        .map(s => ({ name: s.name, level: s.level, desc: s.desc || '' }));
+        .map(s => ({ name: s.name, level: s.level, desc: s.description || '' }));
       setSpellPool({
         cantrips: cantrips.length > 0 ? cantrips : FALLBACK_CANTRIPS.map(n => ({ name: n, desc: '' })),
         leveled: leveled.length > 0 ? leveled : getFallbackLeveled(maxLv),
@@ -486,7 +486,7 @@ export default function CharWizard(props) {
     setInfo({
       title: s.name,
       sub: s.level ? `Level ${s.level} spell` : 'Cantrip',
-      body: s.desc || 'No description available — this spell is a placeholder until the compendium is loaded.',
+      body: s.desc || s.description || 'No description available — this spell is a placeholder until the compendium is loaded.',
     });
   }
   function showSkillInfo(skill) {

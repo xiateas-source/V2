@@ -1,4 +1,4 @@
-import { getByIndex } from './local.js';
+import { getByIndex, getSpellsForClass } from './local.js';
 import { forgeCharacter, autoAssignScores } from './forge.js';
 
 export const RACE_BONUSES = {
@@ -542,7 +542,7 @@ export async function autoSelectSpells(className, level) {
 
   let knownSpells = [];
   try {
-    const pool = await getByIndex('spells', 'class', className);
+    const pool = await getSpellsForClass(className);
     knownSpells = pool
       .filter(s => s.level > 0 && s.level <= maxSpellLevel)
       .slice(0, spellCount)

@@ -124,6 +124,22 @@ export async function getByKey(storeName, key) {
   });
 }
 
+export async function clearStore(storeName) {
+  const db = await openDB();
+  const tx = db.transaction(storeName, 'readwrite');
+  tx.objectStore(storeName).clear();
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+export async function getSpellsForClass(className) {
+  const all = await getAll('spells');
+  const lc = className.toLowerCase();
+  return all.filter(s => (s.classes || []).some(c => c.toLowerCase() === lc));
+}
+
 export async function countStore(storeName) {
   const db = await openDB();
   return new Promise((resolve, reject) => {

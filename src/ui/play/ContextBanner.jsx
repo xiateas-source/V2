@@ -9,6 +9,7 @@ export default function ContextBanner() {
   const weather = () => store.campaign.weather;
   const pending = () => store.campaign.pendingLocation;
   const isMulti = () => store.system.playerIdentity.mode === 'multi';
+  const inCombat = () => store.campaign.combatState?.active;
 
   function toggleMultiPlayer() {
     const newMode = isMulti() ? 'single' : 'multi';
@@ -30,10 +31,10 @@ export default function ContextBanner() {
         </div>
       </Show>
       <Show when={loc() || time()}>
-        <div class="head">
+        <div class={`head ${inCombat() ? 'head-compact' : ''}`}>
           <div class="head-left">
             <Show when={loc()}><div class="loc">{loc()}</div></Show>
-            <Show when={time() || weather()}>
+            <Show when={!inCombat() && (time() || weather())}>
               <div class="loc-meta">
                 <Show when={time()}><span>{time()}</span></Show>
                 <Show when={time() && weather()}><span class="sep">·</span></Show>
@@ -41,22 +42,24 @@ export default function ContextBanner() {
               </div>
             </Show>
           </div>
-          <div class="head-right">
-            <button
-              class={`btn-icon ${isMulti() ? 'active' : ''}`}
-              onClick={toggleMultiPlayer}
-              title={isMulti() ? 'Multi-player' : 'Solo'}
-            >
-              <i class={isMulti() ? 'ph ph-users-three' : 'ph ph-user'} />
-            </button>
-            <button
-              class={`btn-icon ${autoRead() ? 'active' : ''}`}
-              onClick={toggleAutoRead}
-              title="Read aloud"
-            >
-              <i class="ph ph-speaker-high" />
-            </button>
-          </div>
+          <Show when={!inCombat()}>
+            <div class="head-right">
+              <button
+                class={`btn-icon ${isMulti() ? 'active' : ''}`}
+                onClick={toggleMultiPlayer}
+                title={isMulti() ? 'Multi-player' : 'Solo'}
+              >
+                <i class={isMulti() ? 'ph ph-users-three' : 'ph ph-user'} />
+              </button>
+              <button
+                class={`btn-icon ${autoRead() ? 'active' : ''}`}
+                onClick={toggleAutoRead}
+                title="Read aloud"
+              >
+                <i class="ph ph-speaker-high" />
+              </button>
+            </div>
+          </Show>
         </div>
       </Show>
     </>

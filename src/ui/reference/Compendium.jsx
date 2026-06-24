@@ -30,7 +30,7 @@ export default function Compendium() {
 
   function getSubtitle(item) {
     if (tab() === 'spells') {
-      return `Level ${item.level || 0} ${item.school || ''} — ${(item.class || []).join(', ')}`;
+      return `Level ${item.level || 0} ${item.school || ''} — ${(item.classes || []).join(', ')}`;
     }
     if (tab() === 'glossary') return item.category || '';
     return item.type || item.source || '';

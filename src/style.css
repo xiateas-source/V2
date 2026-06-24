@@ -1858,7 +1858,7 @@ body {
   border-top: 2px solid var(--color-danger);
   padding: var(--spacing-sm) var(--spacing-md);
   flex-shrink: 0;
-  max-height: 40vh;
+  max-height: 28vh;
   overflow-y: auto;
 }
 
@@ -5879,6 +5879,7 @@ body {
   border: none; background: transparent; cursor: pointer;
 }
 .head .btn-icon.active { color: var(--color-accent); }
+.head.head-compact { padding: 6px 16px 4px; }
 
 /* ---------- PARTY HUD (char tiles) ---------- */
 .party {

@@ -2,7 +2,7 @@ import { createSignal, createMemo, For, Show, onMount, batch } from 'solid-js';
 import { store, setStore, systemSet } from '../../state/store.js';
 import { abilityMod, proficiencyBonus } from '../../data/forge.js';
 import { CLASS_DATA, ALL_SKILLS, SKILL_ABILITIES, SKILL_DESC } from '../../data/quickBuild.js';
-import { getByIndex, getAll } from '../../data/local.js';
+import { getByIndex, getAll, getSpellsForClass } from '../../data/local.js';
 
 const XP_THRESHOLDS = [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000];
 const ABILITIES = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
@@ -138,7 +138,7 @@ export default function LevelUp(props) {
 
     // Load spells
     try {
-      const allSpells = await getByIndex('spells', 'class', character.class);
+      const allSpells = await getSpellsForClass(character.class);
       if (allSpells.length > 0) {
         setSpellPool(allSpells.filter(s => s.level > 0).sort((a, b) => a.level - b.level || a.name.localeCompare(b.name)));
         setCantripPool(allSpells.filter(s => s.level === 0).sort((a, b) => a.name.localeCompare(b.name)));
