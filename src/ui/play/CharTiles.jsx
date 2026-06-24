@@ -1,6 +1,7 @@
 import { createSignal, For, Show, onMount, onCleanup } from 'solid-js';
 import { store } from '../../state/index.js';
 import CharSheet from '../reference/CharSheet.jsx';
+import LevelUp from '../shared/LevelUp.jsx';
 
 const XP_THRESHOLDS = [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000];
 
@@ -23,11 +24,16 @@ function classAbbr(cls) { return CLASS_ABBR[(cls || '').toLowerCase()] || (cls |
 export default function CharTiles() {
   const [sheetOpen, setSheetOpen] = createSignal(false);
   const [sheetPC, setSheetPC] = createSignal(0);
+  const [levelUpPC, setLevelUpPC] = createSignal(null);
   const chars = () => store.campaign.characters;
 
   function openSheet(idx) {
     setSheetPC(idx);
     setSheetOpen(true);
+  }
+
+  function openLevelUp(idx) {
+    setLevelUpPC(idx);
   }
 
   // Tap-to-source: a mechanic pill / link can request a specific PC's sheet.
@@ -41,8 +47,20 @@ export default function CharTiles() {
     );
     openSheet(idx >= 0 ? idx : 0);
   }
-  onMount(() => window.addEventListener('tp-charsheet', onOpenSheet));
-  onCleanup(() => window.removeEventListener('tp-charsheet', onOpenSheet));
+
+  function onOpenLevelUp(e) {
+    const pcIndex = e.detail?.pcIndex;
+    if (pcIndex != null) openLevelUp(pcIndex);
+  }
+
+  onMount(() => {
+    window.addEventListener('tp-charsheet', onOpenSheet);
+    window.addEventListener('tp-levelup', onOpenLevelUp);
+  });
+  onCleanup(() => {
+    window.removeEventListener('tp-charsheet', onOpenSheet);
+    window.removeEventListener('tp-levelup', onOpenLevelUp);
+  });
 
   return (
     <>
@@ -87,7 +105,9 @@ export default function CharTiles() {
                           <i class="ph ph-moon warn" title={`Exhaustion ${pc.exhaustion}`} />
                         </Show>
                         <Show when={canLevelUp()}>
-                          <i class="ph ph-star ok" title="Level up available" />
+                          <button class="levelup-star" onClick={(e) => { e.stopPropagation(); openLevelUp(idx()); }} title="Level up available">
+                            <i class="ph ph-star ok" />
+                          </button>
                         </Show>
                       </span>
                     </div>
@@ -114,6 +134,14 @@ export default function CharTiles() {
         <div class="sheet-overlay" onClick={() => setSheetOpen(false)}>
           <div class="sheet-panel" onClick={(e) => e.stopPropagation()}>
             <CharSheet initialPC={sheetPC()} onClose={() => setSheetOpen(false)} />
+          </div>
+        </div>
+      </Show>
+
+      <Show when={levelUpPC() !== null}>
+        <div class="sheet-overlay" onClick={() => setLevelUpPC(null)}>
+          <div class="sheet-panel" onClick={(e) => e.stopPropagation()}>
+            <LevelUp pcIndex={levelUpPC()} onClose={() => setLevelUpPC(null)} />
           </div>
         </div>
       </Show>

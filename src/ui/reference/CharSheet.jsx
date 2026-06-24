@@ -857,6 +857,14 @@ export default function CharSheet(props) {
         <span class="cs-xp-nums">
           {xpProgress().current} XP{xpProgress().next > 0 ? ` / ${xpProgress().next}` : ''}
         </span>
+        <Show when={xpProgress().ready}>
+          <button class="cs-levelup-btn" onClick={() => {
+            if (props.onClose) props.onClose();
+            window.dispatchEvent(new CustomEvent('tp-levelup', { detail: { pcIndex: activePC() } }));
+          }}>
+            <i class="ph ph-star" /> Level Up
+          </button>
+        </Show>
       </div>
 
       {/* Swipe indicator */}

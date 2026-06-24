@@ -1,7 +1,7 @@
 import { createSignal, Show } from 'solid-js';
 import { store, setStore, resetCampaign } from '../../state/index.js';
 import { saveKeys as persistKeys, saveProviderSettings } from '../../data/keys.js';
-import { clearActiveCampaign } from '../../data/persist.js';
+import { clearActiveCampaign, exportSnapshot, saveLocalNow } from '../../data/persist.js';
 
 const GEMINI_MODELS = [
   { id: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash (free, newest)' },
@@ -33,6 +33,45 @@ export default function Settings() {
     if (store.campaign.id && !confirm('Start a new campaign? This clears the current game on this device.')) return;
     await clearActiveCampaign();
     resetCampaign(setStore);
+  }
+
+  function exportGame() {
+    const snap = exportSnapshot();
+    const json = JSON.stringify(snap, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const name = (store.campaign.name || 'campaign').replace(/[^a-z0-9]/gi, '-').toLowerCase();
+    a.download = `${name}-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  let fileInput;
+
+  function importGame() {
+    fileInput?.click();
+  }
+
+  async function handleImportFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!data.campaign?.id || !data.campaign?.characters) {
+        alert('Invalid save file: missing campaign data.');
+        return;
+      }
+      if (!confirm(`Load save "${data.campaign.name || 'Untitled'}"? This replaces the current game.`)) return;
+      setStore('campaign', data.campaign);
+      await saveLocalNow();
+      window.dispatchEvent(new CustomEvent('toast', { detail: { text: `Game loaded: ${data.campaign.name || 'Untitled'}` } }));
+    } catch (err) {
+      alert('Failed to load save file: ' + (err.message || 'Unknown error'));
+    }
+    e.target.value = '';
   }
 
   function cycleTheme() {
@@ -104,6 +143,24 @@ export default function Settings() {
           {store.campaign.id ? 'New Campaign (save & start fresh)' : 'Start a Campaign'}
         </button>
         <p class="settings-hint">Your game saves automatically and survives reloads. Starting a new campaign clears the current one on this device.</p>
+      </section>
+
+      <section class="settings-section">
+        <h3 class="settings-label">Save / Load</h3>
+        <div class="settings-save-section">
+          <Show when={store.campaign.id}>
+            <button class="btn-export" onClick={exportGame}>Export Save (JSON)</button>
+          </Show>
+          <button class="btn-import" onClick={importGame}>Import Save File</button>
+          <input
+            ref={fileInput}
+            type="file"
+            accept=".json"
+            class="import-file-input"
+            onChange={handleImportFile}
+          />
+        </div>
+        <p class="settings-hint">Export downloads your game as a JSON file. Import loads a previously saved game, replacing the current one.</p>
       </section>
 
       <section class="settings-section">

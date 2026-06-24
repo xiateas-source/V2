@@ -6983,3 +6983,294 @@ body {
 }
 .btn-new-campaign:active { background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface)); }
 .settings-hint { font-size: 11px; color: var(--color-text-muted); margin-top: 8px; line-height: 1.5; }
+
+/* ── Level-Up Wizard ── */
+.lu-wizard {
+  display: flex; flex-direction: column; height: 100%;
+  background: var(--color-bg); color: var(--color-text);
+  overflow: hidden;
+}
+.lu-loading { padding: 40px 20px; text-align: center; color: var(--faint); font-size: 14px; }
+
+/* Header */
+.lu-header { padding: 14px 16px 8px; position: relative; text-align: center; }
+.lu-close {
+  position: absolute; top: 10px; right: 12px;
+  background: none; border: none; color: var(--color-text-muted); font-size: 22px; cursor: pointer;
+  width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+}
+.lu-title { font-family: var(--disp); font-size: 16px; font-weight: 600; letter-spacing: .03em; }
+.lu-subtitle { font-size: 12px; color: var(--color-accent); margin-top: 2px; }
+
+/* Level progress (multi-level) */
+.lu-level-progress {
+  display: flex; gap: 8px; justify-content: center; padding: 6px 16px 2px;
+}
+.lu-level-dot {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600;
+  border: 2px solid var(--line); color: var(--faint);
+  transition: all .2s;
+}
+.lu-level-dot.done { border-color: var(--color-success); color: var(--color-success); background: color-mix(in srgb, var(--color-success) 12%, transparent); }
+.lu-level-dot.active { border-color: var(--color-accent); color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 14%, transparent); }
+
+/* Step progress bar */
+.lu-step-bar {
+  display: flex; gap: 4px; padding: 8px 16px; overflow-x: auto;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.lu-step-bar::-webkit-scrollbar { display: none; }
+.lu-step-dot {
+  flex: 0 0 auto; padding: 4px 10px; border-radius: 14px;
+  font-size: 10px; letter-spacing: .03em;
+  background: var(--color-surface); color: var(--faint);
+  border: 1px solid var(--line-soft); transition: all .2s;
+}
+.lu-step-dot.done { background: color-mix(in srgb, var(--color-success) 12%, transparent); color: var(--color-success); border-color: color-mix(in srgb, var(--color-success) 30%, transparent); }
+.lu-step-dot.active { background: color-mix(in srgb, var(--color-accent) 14%, transparent); color: var(--color-accent); border-color: color-mix(in srgb, var(--color-accent) 40%, transparent); }
+.lu-step-label { white-space: nowrap; }
+
+/* Body */
+.lu-body {
+  flex: 1; overflow-y: auto; padding: 8px 16px 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Step content shared */
+.lu-step-content { min-height: 120px; }
+.lu-step-title { font-family: var(--disp); font-size: 15px; font-weight: 600; margin-bottom: 10px; }
+.lu-hint { font-size: 12px; color: var(--color-text-muted); margin-bottom: 10px; line-height: 1.45; }
+.lu-label { font-size: 12px; font-weight: 600; color: var(--color-text-muted); margin-bottom: 4px; display: block; }
+.lu-empty { font-size: 12px; color: var(--faint); font-style: italic; }
+
+/* HP step */
+.lu-hp-methods { display: flex; gap: 10px; margin-bottom: 14px; }
+.lu-hp-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 16px 8px; border-radius: var(--radius-md, 10px);
+  background: var(--color-surface); border: 2px solid var(--line);
+  color: var(--color-text); cursor: pointer; transition: all .2s;
+  min-height: 72px;
+}
+.lu-hp-btn.active { border-color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 10%, var(--color-surface)); }
+.lu-hp-btn:active { transform: scale(.97); }
+.lu-hp-btn-val { font-size: 28px; font-weight: 700; line-height: 1; }
+.lu-hp-btn-label { font-size: 11px; color: var(--faint); margin-top: 4px; }
+.lu-hp-summary { background: var(--color-surface); border-radius: var(--radius-md, 10px); padding: 14px; }
+.lu-hp-math { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 20px; font-weight: 600; }
+.lu-hp-op { color: var(--faint); font-size: 16px; }
+.lu-hp-num { min-width: 24px; text-align: center; }
+.lu-hp-label-small { font-size: 10px; color: var(--faint); text-transform: uppercase; margin-left: -4px; }
+.lu-hp-total { color: var(--color-success); }
+.lu-hp-result { text-align: center; font-size: 13px; color: var(--color-text-muted); margin-top: 8px; }
+
+.lu-manual-hd { margin-bottom: 12px; }
+.lu-hd-options { display: flex; gap: 8px; margin-top: 6px; }
+.lu-hd-btn {
+  padding: 8px 16px; border-radius: 8px; cursor: pointer;
+  background: var(--color-surface); border: 1px solid var(--line);
+  color: var(--color-text); font-size: 13px;
+}
+.lu-hd-btn.active { border-color: var(--color-accent); color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 10%, var(--color-surface)); }
+
+/* Feature cards */
+.lu-feature-list { display: flex; flex-direction: column; gap: 8px; }
+.lu-feature-card {
+  padding: 12px; border-radius: var(--radius-md, 10px);
+  background: var(--color-surface); border: 1px solid var(--line-soft);
+  cursor: pointer;
+}
+.lu-feature-card:active { background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface)); }
+.lu-feature-name { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+.lu-feature-desc { font-size: 12px; color: var(--color-text-muted); line-height: 1.45; }
+
+/* Subclass grid */
+.lu-subclass-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.lu-subclass-card {
+  display: flex; align-items: center; justify-content: center;
+  padding: 18px 10px; border-radius: var(--radius-md, 10px);
+  background: var(--color-surface); border: 2px solid var(--line);
+  cursor: pointer; transition: all .2s; min-height: 56px;
+}
+.lu-subclass-card.active { border-color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 10%, var(--color-surface)); }
+.lu-subclass-card:active { transform: scale(.97); }
+.lu-subclass-name { font-weight: 600; font-size: 14px; }
+
+/* ASI step */
+.lu-asi-toggle { display: flex; gap: 0; margin-bottom: 12px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); }
+.lu-toggle-btn {
+  flex: 1; padding: 10px 8px; background: var(--color-surface);
+  border: none; color: var(--faint); font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all .2s;
+}
+.lu-toggle-btn.active { background: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface)); color: var(--color-accent); }
+
+.lu-asi-grid { display: flex; flex-direction: column; gap: 6px; }
+.lu-asi-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; background: var(--color-surface);
+  border-radius: 8px; border: 1px solid var(--line-soft);
+}
+.lu-asi-label { font-weight: 600; font-size: 12px; width: 36px; text-transform: uppercase; }
+.lu-asi-score { font-size: 18px; font-weight: 700; width: 28px; text-align: center; }
+.lu-asi-mod { font-size: 11px; color: var(--faint); width: 30px; }
+.lu-asi-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--color-surface); border: 1px solid var(--line);
+  color: var(--color-text); font-size: 18px; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.lu-asi-btn:disabled { opacity: .3; cursor: default; }
+.lu-asi-btn:active:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface)); }
+.lu-asi-delta { font-size: 14px; color: var(--color-success); font-weight: 600; min-width: 24px; text-align: center; }
+
+/* Feat list */
+.lu-feat-search { margin-bottom: 10px; }
+.lu-search-input {
+  width: 100%; padding: 10px 12px; border-radius: 8px;
+  background: var(--color-surface); border: 1px solid var(--line);
+  color: var(--color-text); font-size: 13px;
+}
+.lu-search-input::placeholder { color: var(--faint); }
+.lu-feat-list { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; }
+.lu-feat-card {
+  padding: 10px 12px; border-radius: 8px;
+  background: var(--color-surface); border: 2px solid var(--line-soft);
+  cursor: pointer; transition: all .15s;
+}
+.lu-feat-card.active { border-color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface)); }
+.lu-feat-card:active { transform: scale(.99); }
+.lu-feat-header { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+.lu-feat-name { font-weight: 600; font-size: 13px; }
+.lu-feat-asi-badge {
+  font-size: 10px; padding: 2px 7px; border-radius: 10px;
+  background: color-mix(in srgb, var(--color-success) 14%, transparent);
+  color: var(--color-success); font-weight: 600;
+}
+.lu-feat-desc { font-size: 11px; color: var(--color-text-muted); line-height: 1.4; }
+.lu-feat-prereq { font-size: 10px; color: var(--color-warning); margin-top: 3px; }
+
+.lu-feat-asi-pick { margin-top: 10px; padding: 10px; background: var(--color-surface); border-radius: 8px; }
+.lu-feat-asi-options { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.lu-asi-opt {
+  padding: 8px 14px; border-radius: 8px;
+  background: var(--color-surface); border: 1px solid var(--line);
+  color: var(--color-text); font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.lu-asi-opt.active { border-color: var(--color-accent); color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 10%, var(--color-surface)); }
+
+/* Spell/cantrip chips */
+.lu-spell-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.lu-spell-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 8px 12px; border-radius: 16px;
+  background: var(--color-surface); border: 1px solid var(--line);
+  color: var(--color-text); font-size: 12px; cursor: pointer;
+  transition: all .15s;
+}
+.lu-spell-chip.active { border-color: var(--color-accent); color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface)); }
+.lu-spell-chip.active.remove { border-color: var(--color-danger); color: var(--color-danger); background: color-mix(in srgb, var(--color-danger) 12%, var(--color-surface)); }
+.lu-spell-chip:active { transform: scale(.96); }
+.lu-spell-name { font-weight: 500; }
+.lu-spell-lvl { font-size: 10px; color: var(--faint); font-weight: 600; }
+
+/* Spell swap section */
+.lu-swap-section { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line-soft); }
+.lu-swap-toggle {
+  background: none; border: 1px dashed var(--line); color: var(--color-text-muted);
+  padding: 8px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; width: 100%;
+}
+.lu-swap-toggle:active { background: color-mix(in srgb, var(--color-accent) 6%, transparent); }
+.lu-swap-body { margin-top: 10px; }
+.lu-swap-row { margin-bottom: 10px; }
+
+/* Skill chips (expertise) */
+.lu-skill-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.lu-skill-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 10px 14px; border-radius: 16px;
+  background: var(--color-surface); border: 1px solid var(--line);
+  color: var(--color-text); font-size: 13px; cursor: pointer;
+  transition: all .15s;
+}
+.lu-skill-chip.active { border-color: var(--color-accent); color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface)); }
+.lu-skill-chip:active { transform: scale(.96); }
+.lu-skill-name { font-weight: 500; }
+.lu-skill-ability { font-size: 10px; color: var(--faint); text-transform: uppercase; }
+
+/* Summary card */
+.lu-summary-card {
+  background: var(--color-surface); border-radius: var(--radius-md, 10px);
+  padding: 14px; border: 1px solid var(--line-soft);
+}
+.lu-summary-row { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--line-soft); }
+.lu-summary-row:last-child { border-bottom: none; }
+.lu-summary-label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); font-weight: 600; }
+.lu-summary-value { font-size: 13px; font-weight: 500; text-align: right; max-width: 60%; }
+.lu-continue-hint { text-align: center; margin-top: 14px; color: var(--color-accent); }
+
+/* Info overlay */
+.lu-info-overlay {
+  position: fixed; inset: 0; z-index: 900;
+  background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.lu-info-card {
+  background: var(--color-surface); border-radius: 12px; padding: 20px;
+  max-width: 340px; width: 100%; max-height: 60vh; overflow-y: auto;
+}
+.lu-info-text { font-size: 13px; line-height: 1.55; color: var(--color-text); }
+.lu-info-close {
+  margin-top: 14px; width: 100%; padding: 10px;
+  background: var(--color-accent); color: var(--color-bg);
+  border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+
+/* Navigation bar */
+.lu-nav {
+  display: flex; gap: 10px; padding: 12px 16px;
+  border-top: 1px solid var(--line-soft);
+  background: var(--color-bg);
+}
+.lu-btn {
+  flex: 1; padding: 14px; border-radius: 10px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  border: none; transition: all .15s;
+  min-height: 48px;
+}
+.lu-btn:disabled { opacity: .35; cursor: default; }
+.lu-btn:active:not(:disabled) { transform: scale(.97); }
+.lu-btn-back { background: var(--color-surface); color: var(--color-text); border: 1px solid var(--line); }
+.lu-btn-next { background: var(--color-accent); color: var(--color-bg); }
+
+/* Level-up star button in CharTiles */
+.levelup-star {
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: inherit; display: inline-flex; align-items: center;
+}
+.levelup-star i { color: var(--color-warning, #e0d040); }
+.levelup-star:active { transform: scale(1.2); }
+
+/* CharSheet level-up button */
+.cs-levelup-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 14px; border-radius: 14px;
+  background: color-mix(in srgb, var(--color-warning) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-warning) 40%, transparent);
+  color: var(--color-warning); font-size: 11px; font-weight: 600;
+  cursor: pointer; margin-left: 8px;
+}
+.cs-levelup-btn:active { background: var(--color-warning); color: var(--color-bg); }
+
+/* Settings — save/load buttons */
+.settings-save-section { display: flex; flex-direction: column; gap: 8px; }
+.btn-export, .btn-import {
+  width: 100%;
+  background: var(--color-surface); border: 1px solid var(--line);
+  color: var(--color-text); font-size: 13px; font-weight: 500;
+  padding: 11px; border-radius: 10px; cursor: pointer;
+}
+.btn-export:active, .btn-import:active { background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface)); }
+.import-file-input { display: none; }
