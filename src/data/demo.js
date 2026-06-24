@@ -190,6 +190,19 @@ export function loadFullDemo() {
   c.primaryMission = 'Stop the Cult of the Dragon from gathering the hoard to summon Tiamat.';
   c.gold = { pp: 4, gp: 318, ep: 2, sp: 51, cp: 77 };
 
+  // Coherent context so the fixture is a valid PLAY test (not just a UI test):
+  // premise, DM secrets, and the opening narrative all match Castle Naerytar.
+  c.setting = 'Forgotten Realms — Sword Coast';
+  c.premise = 'The party, disguised in cult robes taken from the hunting lodge, has infiltrated Castle Naerytar — a fog-bound bog-fortress where the Cult of the Dragon is gathering a vast hoard to summon Tiamat. They must find where the treasure is being moved without blowing their cover.';
+  c.contracts = {
+    ...c.contracts,
+    dmSecrets: 'The hoard is teleported out of the castle via a portal hidden in the bog behind the great hall. Rath Modar (Red Wizard) secretly serves Thay, not the cult. Snapjaw the lizardfolk can be turned against the bullywugs. The Wearer of Purple suspects infiltrators and will call a muster by nightfall.',
+  };
+  c.narrative = [
+    { id: 'nar_full_1', type: 'dm', content: 'Fog drags across the flagstones of Castle Naerytar, thick with the rotten-egg stink of the bog. Hooded cultists shuffle past with crates on their shoulders, paying you no mind — your stolen robes hold, for now. Ahead, a broad-shouldered figure in violet directs the loading: the Wearer of Purple. Somewhere beyond the great hall, the treasure is vanishing faster than any wagon could carry it.\n\nIvy, your thief\'s eye marks the patrol gaps. Thorn, you catch a snatch of Draconic — something about "the next gate opening at dusk."\n\nWhat do you do?\n\n***\n**Campaign State:**\nLocation: Castle Naerytar\nTime: Day 60, 08:00 AM\nStatus: Infiltrated in disguise — hunting the hoard\'s exit', ts: 1, gameTs: 'Day 60, 08:00 AM', playerName: null, partial: false, mechanics: { applied: [{ key: 'location', value: 'Castle Naerytar', applied: true }, { key: 'time', value: 'Day 60, 08:00 AM', applied: true }], rejected: [] } },
+  ];
+  c.ooc = [];
+
   c.quests = [
     { id: 'q1', text: 'Infiltrate Castle Naerytar disguised as laborers', status: 'active', location: 'Castle Naerytar', giverNpc: 'Leosin Erlanthar', notes: 'Wear the cult robes from the lodge.', gameTs: 'Day 58' },
     { id: 'q2', text: 'Find where the hoard is being moved', status: 'active', location: 'Castle Naerytar', giverNpc: '', notes: 'Wyrmlings mentioned a portal in the bog.', gameTs: 'Day 59' },
