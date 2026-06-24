@@ -1,6 +1,8 @@
 import { createSignal, createMemo, For, Show, lazy } from 'solid-js';
 import { store } from '../../state/index.js';
-import { validateMechanics, applyMechanics } from '../../ai/mechanics.js';
+import { extractMechanics, validateMechanics, applyMechanics } from '../../ai/mechanics.js';
+import { callProvider } from '../../ai/providers.js';
+import { DEEP_SEED_SYSTEM } from '../../ai/setupPrompts.js';
 
 const Compendium = lazy(() => import('./Compendium.jsx'));
 
@@ -147,11 +149,62 @@ export default function Journal() {
     return active.some(x => urgencyRank(x) <= 1);
   });
 
+  const [seeding, setSeeding] = createSignal(false);
+  const [seedMsg, setSeedMsg] = createSignal('');
+
+  // Deep Seed — re-read the play log and backfill journal data the DM narrated
+  // but never recorded (places visited, NPCs met, quests given, threats).
+  async function runDeepSeed() {
+    if (seeding()) return;
+    setSeeding(true);
+    setSeedMsg('Reading the story for anything the journal missed…');
+    try {
+      const camp = store.campaign;
+      const tracked = [
+        `NPCs: ${camp.npcs.map(n => n.name).join(', ') || 'none'}`,
+        `Locations: ${camp.locations.map(l => l.name).join(', ') || 'none'}`,
+        `Quests: ${camp.quests.map(q => q.text).join(' | ') || 'none'}`,
+        `Consequences: ${camp.consequences.map(x => x.text).join(' | ') || 'none'}`,
+        `Reputation: ${camp.townReputation.map(r => r.town).join(', ') || 'none'}`,
+        `Primary mission: ${camp.primaryMission || 'none'}`,
+        `Current location: ${camp.location || 'unknown'}`,
+      ].join('\n');
+      const log = (camp.narrative || []).slice(-24)
+        .map(m => `${m.type === 'player' ? 'PLAYER' : 'DM'}: ${stripProse(m.content)}`)
+        .filter(l => l.length > 6).join('\n\n');
+      const input = `ALREADY TRACKED:\n${tracked}\n\nPLAY LOG:\n${log}`;
+
+      let full = '';
+      for await (const ch of callProvider([{ role: 'user', content: input }], DEEP_SEED_SYSTEM)) full += ch;
+
+      const parsed = extractMechanics(full);
+      const { valid } = validateMechanics(parsed);
+      const applied = applyMechanics(valid).filter(m => m.applied);
+      setSeedMsg(applied.length === 0
+        ? 'Journal is already up to date — nothing was missing.'
+        : `Recovered ${applied.length} entr${applied.length === 1 ? 'y' : 'ies'} from the story.`);
+    } catch (_) {
+      setSeedMsg('Deep Seed needs an AI key (Settings) and a connection.');
+    } finally {
+      setSeeding(false);
+      setTimeout(() => setSeedMsg(''), 6000);
+    }
+  }
+
   return (
     <div class="journal-page">
       <Show when={!lookup()} fallback={<div class="journal-lookup"><Compendium /></div>}>
         <div class="journal-scroll">
           <JournalNow counts={c()} />
+
+          <div class="journal-actions">
+            <button class="seed-btn" onClick={runDeepSeed} disabled={seeding()}>
+              <i class={`ph ${seeding() ? 'ph-circle-notch seed-spin' : 'ph-magnifying-glass-plus'}`} />
+              {seeding() ? 'Seeding…' : 'Deep Seed'}
+            </button>
+            <span class="seed-hint">Recover anything the story mentioned but the journal missed.</span>
+          </div>
+          <Show when={seedMsg()}><div class="seed-status">{seedMsg()}</div></Show>
 
           {/* Need-ordered: most-asked first. Empty sections hide entirely. */}
           <Show when={c().objectives + c().objectivesDone > 0}>

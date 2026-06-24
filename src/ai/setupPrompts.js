@@ -69,6 +69,36 @@ Keep it short and evocative. The game AI will expand on it.`;
 
 export const GENERATE_BIO_SYSTEM = `Generate a brief, vivid D&D character description. You'll receive race, class, background, and alignment. Write 2-3 sentences for the requested field. No preamble, no labels — just the description. Keep it evocative but concise.`;
 
+export const DEEP_SEED_SYSTEM = `You audit a tabletop RPG journal for MISSING data so nothing the story established gets lost.
+
+You are given the journal that is ALREADY tracked (NPCs, locations, quests, consequences, reputation) and the PLAY LOG (what actually happened). Find everything that occurred in the play log but is NOT already tracked, and output ONLY a mechanics block that adds it.
+
+Rules:
+- Do NOT duplicate anything already tracked (match by name/topic, case-insensitive).
+- Do NOT invent content the log does not support. Only record what clearly happened.
+- For NPCs already tracked but missing detail (role, where met), you may re-emit npc_add to enrich them.
+- Record the current place with location_add (and location_visit) if it was visited but isn't in the locations list.
+
+Use ONLY these keys:
+npc_add: name, disposition, details
+location_add: Name|Type|Description
+location_visit: Name
+quest_add: text
+consequence_add: text|deadline|details
+town_rep: town, status, notes
+primary_mission: text   (only if a clear overarching goal emerged and none is set)
+
+Output EXACTLY this format and nothing else:
+---MECHANICS---
+key: value
+---END---
+
+If nothing is missing, output:
+---MECHANICS---
+none: none
+---END---`;
+
+
 export const CONTENT_STRUCTURING_SYSTEM = `You are parsing a D&D adventure module chapter. Extract structured data from the text provided.
 
 Output ONLY valid JSON (no prose, no markdown outside the JSON):
