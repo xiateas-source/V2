@@ -21,62 +21,17 @@
 ```
 
 ### 1. UI — What you see and tap
-The screens, buttons, chat, overlays. Organized by mode:
 
-**Setup mode screens:**
-- Session Zero wizard (campaign name, setting, narration style, module selection)
-- Character creation (race, class, abilities, background, equipment, spells)
-- Content import (PDF, epub, mobi, web, JSON)
-- Campaign configuration
-- Player onboarding (share link, identity, character selection, push opt-in)
+Organized by mode. Full specs in `ui-specs-v2.md` and `chat-system-spec-v2.md`.
 
-**Play mode screens:**
-- Chat (the canvas — always visible)
-  - Two tabs: **Narrative** (full AI pipeline, emits mechanics) + **OOC** (player text + Ask DM button, advisory only)
-  - Mechanic pills in AI responses (tappable → navigates to source)
-  - Term glossary — D&D terms auto-linked in AI messages, tap for definition
-  - Citation linking — spell/feat/PHB references auto-linked to compendium entries
-- Context banner (location, weather, time — all tappable, each navigates to its source)
-- Situation bar: `[Main Quest]` `[⚡Consequence]` `[⚡Countdown]` `[Quest 2]` `[Quest 3]` →
-  - Main quest: pinned left, always visible (DM's railroad — keeps players on the story)
-  - Active consequences/countdowns: pinned after main quest, visually distinct, auto-sorted by urgency
-  - Player quests: scrollable after, player-arranged by preference
-- Character tiles (tap → sheet overlay, swipe between PCs)
-- Combat overlay (zone grid, initiative strip — appears when combat starts)
-  - Phase 1: zone-based (Frontline/Backline/Flanks) with token chips
-  - Phase 2: visual tile map — tappable grid, terrain backgrounds, token movement (mobile VTT inspired)
-- Quick Actions (floating action button — common play actions, one tap)
-- Dice roller (inline icon, not a tab — small and accessible)
-- Input bar (changes per chat tab: Narrative has send + stop; OOC has send + Ask DM)
-- TTS toggle
-- Roll request banners (system prompts player to roll, pre-filled from AI mechanic)
-- Level-up wizard (event-driven overlay — triggers when XP threshold met, not a button)
-- Rewind controls (checkpoint restore, accessible mid-session)
-- Nav dot badges + in-chat alerts (notify player when state changes elsewhere)
-- Push notifications (Web Push + FCM — OOC messages, other player's turns, state changes)
-- Previously On / Catch Up — AI-powered session recap + state diff, triggers on AFK return or player handoff
+- **Setup:** PlayerOnboard, KeyGate, CharCreate/CharWizard, CampaignConfig, SessionZero (stub), ContentImport (stub)
+- **Play:** Chat (two tabs: Narrative + OOC), InputBar, TurnPrompt (minimizable, spell info icons), Combat (auto-minimize on PC turns), RollBar, ContextBanner, SituationBar, CharTiles, QuickActions, DiceRoller, TTS, PreviouslyOn, Rewind
+- **Reference:** CharSheet (6 tabs: Stats/Vitals/Spells/Features/Equipment/Bio + familiar stat block), Journal, Cargo, Treasury, Compendium (4 tabs: Spells/Rules/Glossary/Feats)
+- **Manage:** Settings, DevTools, MechTest (mechanics testing + build audit), Contracts (stub), SessionReview (stub)
 
-**Reference mode screens:**
-- Character sheet (slides up over chat, 6 tabs: Stats/Vitals/Spells/Features/Equipment/Bio)
-  - Familiar/mount in Vitals tab — gets own combat token
-  - Every modifier is a roll (tap ability/skill/save/attack → d20 + mod)
-  - Manual Override editor (escape hatch for when engine gets it wrong)
-- Journal (quests, locations, NPCs, travel log, consequences, town reputation, secrets, travel calculator)
-- Cargo (inventory: carried per-PC, wagon, hoard — with encumbrance tracking)
-- Treasury (PP/GP/EP/SP/CP, income/expense log, lifestyle tracker, business profile)
-- Compendium (spell/feat/item browser from IndexedDB)
-- Glossary (97 D&D term definitions, auto-linked in chat)
-
-**Manage mode screens:**
-- AI contracts editor (view code-enforced vs prompt-enforced)
-- Session review / archive
-- Campaign data export/import
-- Dev tools (flags, error log, state inspector, gate fire log)
-- Settings (providers, TTS config, color theme, narration style)
-- Level-up wizard re-entry (fix missed choices)
+**Bottom nav:** Cargo / **Play** (d20 mark) / Journal / Settings. Combat and level-up are event-driven overlays, not tabs.
 
 ### 2. ENGINE — The AI brain
-Everything between "player sends message" and "state updates."
 
 ```
 Player types action
@@ -93,7 +48,7 @@ Player types action
        ↓
    extractMechanics()  ←── pulls structured data from complete response
        ↓
-   validateMechanics()  ←── Law 2: 9 enforcement gates
+   validateMechanics()  ←── Law 2: enforcement gates
        ↓
    applyMechanics()  ←── writes to state (only valid changes)
        ↓
@@ -101,42 +56,31 @@ Player types action
 ```
 
 **Engine modules:**
-- `providers.js` — API wrappers (Gemini, OpenRouter). Retry, timeout, fallback. Provider health tracking. Never depends on one provider.
-- `prompt.js` — buildPrompt() assembles system prompt from state + contracts + ledger + active consequences + silent OOC context injection. genLedger() compiles compact state summary (v1 format preserved). Prompt budget tracking. Narration style directive injection.
-- `mechanics.js` — dispatch table registry. 65 mechanic keys, each registered with handler. extractMechanics() parses, validateMechanics() runs 9 gates, applyMechanics() writes through owned setters. Drift detectors catch AI narrating state changes without emitting mechanics.
-- `engine.js` — sendMsg() orchestrates the full loop. callAI() handles streaming + retry + fallback. Double-send guard. Stop generation (keeps partial text, discards incomplete mechanics). Context injection for corrections.
-- `contracts.js` — loads, validates, and injects AI contracts. Tracks which are code-enforced vs prompt-enforced. Two contract voices: Narrative DM (epic narrator + rules lawyer) and Ask DM (objective rules arbiter).
-- `memory.js` — summarizeAndPrune(), session archive, Previously On generation, context injection. Keeps prompt lean as history grows. Called before buildPrompt() every turn.
-
-**The 9 enforcement gates (validateMechanics):**
-1. Roll confirmation — reject mechanics depending on unsubmitted rolls
-2. Combat turn — enforce initiative order, action economy per turn
-3. Drift detection — flag narrated state changes without matching mechanics
-4. Scene transition — hold location/time changes for player confirmation
-5. Unmentioned PC actions — flag AI acting for PCs player didn't mention (player-aware in multi-player)
-6. Spell validation — check known spells, slot availability, concentration conflicts
-7. Skill check requirement — flag actions resolved without appropriate checks
-8. XP audit — flag missing XP after quest/combat/chapter events
-9. Income/loot reconciliation — flag items without corresponding gold mechanics
+- `providers.js` — Gemini + OpenRouter. Retry, timeout, fallback. Provider health tracking.
+- `prompt.js` — buildPrompt(), genLedger(), OOC context injection, narration style directive.
+- `mechanics.js` — 72 mechanic keys in dispatch table. extract → validate → apply. Handles HP, combat, economy, quests, NPCs, locations, familiars, inventory, consequences, chapters, travel, rest, death saves, etc.
+- `engine.js` — sendMsg() orchestrator. callAI() streaming + retry. Stop generation, double-send guard.
+- `contracts.js` — Two voices: Narrative DM (epic narrator + rules lawyer) + Ask DM (rules arbiter).
+- `memory.js` — summarizeAndPrune(), session archive, context injection.
+- `gates.js` — Enforcement gates (scene transition, unmentioned PC, etc.). Full specs: `enforcement-spec.md`.
+- `drift.js` — Detects AI narrating state changes without emitting mechanics.
+- `rules.js` — Rules reference helpers.
+- `setupPrompts.js` — Setup/onboarding prompt assembly.
+- `messages.js` — Message schema + migration.
 
 ### 3. STATE — The single source of truth
-One reactive state object (SolidJS signals). Everything reads from here, everything writes through controlled paths.
 
-**Field ownership (Law 2):**
-- **AI-owned** (via mechanics pipeline, player override with audit log): `hp`, `hpTemp`, `conditions`, `concentration`, `exhaustion`, `inspiration`, `gold`, `incomeLog`, `expenseLog`, `quests`, `npcs`, `location`, `weather`, `time`, `locDesc`, `townReputation`, `secrets`, `consequences`, `combatState`, `chapters`, `travelLog`, `moduleProgress`
-- **Player-owned** (via UI editors only): `name`, `backstory`, `appearance`, `personality`, `notes`, `playerIdentity`
-- **System-owned** (via wizards only): `level`, `hpMax`, `class`, `subclass`, `features`, `spells`, `knownSpells`, `cantrips`, `spellSlots`, `currentSlots`, `resources`, `proficiencies`, `savingThrows`, `skills`, `abilityScores`, `race`, `ac`, `hitDice`, `speed`, `xp`, `background`, `alignment`, `languages`, `attacks`, `color`
+SolidJS reactive store. Field ownership enforced on every write.
 
-**Derived, not stored:** All skill/save bonuses derived at render time (`mod = abilityMod + (isProficient ? profBonus : 0)`). Nothing stored that can be computed — prevents v1's stale-bonus drift.
+**Owners:**
+- **AI-owned** (via mechanics): hp, conditions, gold, quests, npcs, location, weather, time, combatState, consequences, chapters, inventory, familiar, etc.
+- **Player-owned** (via editors): name, backstory, appearance, personality, notes, traits, playerIdentity
+- **System-owned** (via wizards): level, hpMax, class, features, spells, slots, resources, abilityScores, ac, speed, etc.
 
-**Checkpoint/rewind (Law 2 recovery):**
-- State snapshots at key moments (long rest, level-up, PC at 0 HP, periodic auto)
-- Rewind stack — one-tap full state restore when enforcement fails
-- Surfaces in play mode, not buried in manage — safety nets must be accessible mid-session
+**Campaign data** resets on swap: PCs, world, NPCs, quests, chat, combat, contracts, inventory.
+**System data** survives: spell DB, class data, feats, settings, provider config, active campaign pointer.
 
-**Campaign vs System split (Content portability):**
-- **Campaign data** (reset on swap): PCs, worldData, NPCs, quests, chatHistory, combat, treasury, inventory, consequences, locations, townReputation, secrets, moduleProgress, sessionArchive, contracts
-- **System data** (survives swap): spell compendiums, class progressions, feat databases, app settings, player preferences, provider config, active campaign pointer
+All bonuses derived at render time — nothing stored that can be computed.
 
 ### 4. DATA — Where things are stored
 
@@ -145,266 +89,151 @@ One reactive state object (SolidJS signals). Everything reads from here, everyth
 │   Firebase   │     │  IndexedDB   │     │  Shared Bundles  │
 │   (synced)   │     │   (local)    │     │   (on import)    │
 ├──────────────┤     ├──────────────┤     ├──────────────────┤
-│ HP, quests   │     │ Spell DB     │     │ Content packs    │
-│ inventory    │     │ Class data   │     │ generated by one │
-│ chat history │     │ Feat DB      │     │ player, imported │
-│ combat state │     │ Module text  │     │ by others as     │
-│ NPC tracker  │     │ Parsed books │     │ they join        │
-│ locations    │     │ Web imports  │     │                  │
-│ treasury     │     │ Monster data │     │ Reusable — new   │
-│ contracts    │     │ Glossary     │     │ players import   │
-│ world data   │     │ Map images   │     │ same bundle      │
-│ consequences │     │ Maneuvers    │     │ anytime          │
-│ secrets      │     │              │     │                  │
-│ town rep     │     │ Never synced │     │ Firebase carries │
-│              │     │ Same on all  │     │ "has pack X"     │
-│ Changes      │     │ devices via  │     │ flag only        │
-│ during play  │     │ import/seed  │     │                  │
+│ Campaign     │     │ 339 spells   │     │ Content packs    │
+│ state that   │     │ 12 class     │     │ generated by one │
+│ changes      │     │   progns     │     │ player, imported │
+│ during play  │     │ 56 feats     │     │ by others        │
+│              │     │ 84 glossary  │     │                  │
+│ HP, quests,  │     │ 34 rules     │     │ Firebase carries │
+│ inventory,   │     │ 16 maneuvers │     │ "has pack X"     │
+│ chat, NPCs,  │     │ XP thresh    │     │ flag only        │
+│ combat,      │     │              │     │                  │
+│ contracts    │     │ Parsed books │     │ (unbuilt)        │
+│              │     │ Map images   │     │                  │
 └──────────────┘     └──────────────┘     └──────────────────┘
 ```
 
-**Firebase path structure:**
-```
-v2/
-├── campaigns/{campaignId}/
-│   ├── meta/          ← name, setting, narrationStyle, premise
-│   ├── characters/    ← full character objects (all owner fields)
-│   ├── world/         ← location, time, weather, locDesc
-│   ├── economy/       ← gold, incomeLog, expenseLog
-│   ├── inventory/     ← carried, wagon, hoard, wagonState
-│   ├── story/         ← quests, npcs, chapters, consequences, townRep, secrets, moduleProgress
-│   ├── combat/        ← combatState (ephemeral)
-│   ├── narrative/     ← Narrative chat messages
-│   ├── ooc/           ← OOC chat messages
-│   ├── contracts/     ← AI contract text
-│   ├── sessions/      ← session archive
-│   └── checkpoints/   ← rewind snapshots
-└── players/{deviceId}/
-    ├── identity/      ← name, selectedPCs, mode
-    └── settings/      ← theme, tts, push
-```
+**Local-first persistence (Law 1):** Campaign snapshots to IndexedDB on change (debounced 800ms). Boot restore loads local snapshot first, then reconciles with cloud if a newer copy exists (union chat by ID, cloud world state wins on timestamp). `activeCampaignId` hydrated back into system store on restore. Tab close/background flushes immediately.
 
-**Offline behavior (Law 1) — ⚠ DESIGN INTENT, NOT YET IMPLEMENTED (S39):** *Intended:* when Firebase is unreachable, state writes to localStorage; on reconnect, reconcile via clock-independent merge (ID-based dedup, local wins). *Reality:* `data/sync.js` writes campaign state to **Firebase only** — no local save, and boot never reloads a campaign. This is the persistence spine to build first (see workboard Reality Snapshot). The 3-second dirty-edit guard does exist.
+**Firebase sync:** `sync.js` writes campaign state. `persist.js` handles local snapshots. 3-second dirty-edit guard on concurrent writes.
 
-**Item data split:** Compendium items (from sourcebooks) → IndexedDB. AI-generated items (created during play) → Firebase as inventory game state with structured properties via mechanics pipeline.
-
-**Map images:** Uploaded campaign/area maps stored in IndexedDB (too large for Firebase). Location pins and discovered state sync via Firebase.
-
-**Multi-player model:** Device-local setting for "which PC am I." No formal identity system — family shares informally, one player can act for another. Firebase syncs game state between all connected devices. Push notifications (Web Push + FCM) for cross-device awareness.
-
-**Seed data:** On first launch, static JSON files (bundled with app) populate IndexedDB: 339 SRD spells (levels 0-9, 8 caster classes), 44 feats, 97 glossary terms, XP thresholds, 12 class progressions (levels 2-20), 16 maneuvers, rules compendium. Versioned migrations (v4) handle updates for existing users.
-
-**Error recovery:** When callAI() fails, retry + provider fallback (built). When AI returns unparseable mechanics, drift detectors flag it, rewind is available (built). "When Firebase disconnects, continue locally and reconcile on reconnect" is ⚠ **not yet implemented** — see Offline behavior note above.
+**API keys:** Local-only, never synced to Firebase.
 
 ### 5. CONTENT — The import pipeline
 
 ```
-Input                    Parser              Output
-─────                    ──────              ──────
-PDF/epub/mobi    →    fileParser.js    →    structured data
-Web reference    →    webParser.js     →    structured data
-Markdown/text    →    mdParser.js      →    structured data
-AI-generated JSON →   jsonParser.js    →    structured data
-                                              ↓
-                                        ┌─────────────┐
-                                        │  Normalizer  │
-                                        │  (one format │
-                                        │   for all)   │
-                                        └──────┬──────┘
-                                               ↓
-                                        ┌─────────────┐
-                                        │  IndexedDB   │
-                                        │  compendium  │
-                                        └─────────────┘
+Input (PDF/epub/web/md/JSON) → Parser → Normalizer → IndexedDB
 ```
 
-**Content types:**
-- Spells → spell compendium (replaces hardcoded SPELL_DB)
-- Classes → class progression data (replaces hardcoded LEVEL_UP_DATA)
-- Feats → feat database (replaces hardcoded FEATS_DB)
-- Monsters → encounter reference
-- Adventures/modules → episode tracker + chapter text for AI context
-- Items → item compendium
-
-All content normalized to a common schema per type. The engine, level-up wizard, spell picker, and module tracker all read from IndexedDB, not constants.
+Seed data (bundled JSON) covers base D&D 5e. Content pipeline extends it with imported sourcebooks, homebrew, adventure modules. All content normalized to common schemas per type.
 
 ---
 
-## How the Pieces Connect
-
-### The Core Loop (Law 1)
-```
-Player taps send
-  → engine.sendMsg()
-    → prompt.buildPrompt(state, contracts, ledger)
-    → providers.callAI(messages, systemPrompt)
-    → mechanics.extractMechanics(response)
-    → mechanics.validateMechanics(changes, state)  ← Law 2
-    → mechanics.applyMechanics(validChanges, state)
-    → state updates (SolidJS signals)
-    → UI reacts automatically
-    → data.syncToFirebase(changedFields)
-    → data.saveToLocal(state)
-```
-
-### Mode Transitions (Law 4)
-```
-SETUP → first launch, locked after campaign starts
-  ↓
-PLAY ↔ REFERENCE → seamless, no friction
-  ↓        ↑
-MANAGE → intentional transition, between sessions
-```
-
-- Setup → Play: `launchCampaign()` locks setup
-- Play → Reference: tap character tile, bottom nav (Cargo/Journal), or links in chat. Overlay, not navigation.
-- Play → Manage: tap Settings in bottom nav. One step removed. Intentional.
-- Reference → Play: tap away, close overlay. Instant.
-
-**Bottom nav:** Cargo / **Play** / Journal / Settings. Four items (S43 — Play item reinstated, uses the d20 mark). Combat and level-up are event-driven overlays, not tabs. Quick Actions opens from the d20 dice button beside Send. Treasury accessed via links (charsheet Equipment footer, Cargo).
-
-**Tap-to-source principle:** Any displayed information is tappable and navigates to its source. No dead text. Location in the banner → journal locations. Quest chip → quest detail. Character tile → character sheet. Mechanic pill → relevant reference. The UI is a web of links, not isolated panels.
-
-### Information Gating (Law 2)
-```
-Imported module content
-  → all chapters stored in IndexedDB
-  → each chapter has: discovered = true/false
-  → buildPrompt() only injects discovered chapters
-  → UI only shows discovered content in play/reference
-  → setup/manage shows everything
-```
-
----
-
-## Module Map (file structure)
+## Module Map
 
 ```
 src/
 ├── ai/
-│   ├── providers.js       # API wrappers (Gemini, OpenRouter), retry, fallback
-│   ├── prompt.js          # buildPrompt(), genLedger(), OOC context injection
-│   ├── mechanics.js       # 65 keys, dispatch table, extract, validate (9 gates), apply
-│   ├── engine.js          # sendMsg(), callAI(), streaming, stop generation, double-send guard
-│   ├── contracts.js       # contract loading, validation, injection (Narrative + Ask DM voices)
-│   ├── memory.js          # summarizeAndPrune(), Previously On, session archive
-│   └── index.js           # barrel export
+│   ├── providers.js       # Gemini + OpenRouter, retry, fallback
+│   ├── prompt.js          # buildPrompt(), genLedger(), OOC injection
+│   ├── mechanics.js       # 72 keys, dispatch table, extract/validate/apply
+│   ├── engine.js          # sendMsg(), callAI(), streaming, stop generation
+│   ├── contracts.js       # Narrative + Ask DM contract voices
+│   ├── memory.js          # summarize/prune, session archive
+│   ├── gates.js           # enforcement gates (scene hold, unmentioned PC, etc.)
+│   ├── drift.js           # narrated-state-change detector
+│   ├── rules.js           # rules reference helpers
+│   ├── setupPrompts.js    # setup/onboarding prompt assembly
+│   ├── messages.js        # message schema + migration
+│   └── index.js
 ├── content/
-│   ├── fileParser.js      # PDF, epub, mobi parsing
-│   ├── webParser.js       # web reference import
-│   ├── mdParser.js        # markdown/text parsing
-│   ├── jsonParser.js      # AI-generated JSON import
-│   ├── normalizer.js      # normalize all inputs to common schemas
+│   ├── fileParser.js      # PDF, epub, mobi
+│   ├── adventureParser.js # adventure module parsing
+│   ├── markdownAdventureParser.js
+│   ├── normalizer.js      # common schema normalization
+│   ├── chunkSplitter.js   # text chunking
+│   ├── webParser.js       # stub
+│   ├── mdParser.js        # stub
+│   ├── jsonParser.js      # stub
 │   └── index.js
 ├── data/
-│   ├── firebase.js        # init, auth, sync, merge, offline fallback
-│   ├── local.js           # IndexedDB wrapper (compendiums, seed data, spell queries)
-│   ├── bundles.js         # shared content pack generation + import
-│   ├── seed.js            # first-launch seeding from static JSON (version 4)
-│   ├── migrate.js         # state version migration
-│   ├── forge.js           # canonical character builder (class data, stat gen)
-│   ├── quickBuild.js      # quick-build helpers (class data tables, spell lookups)
-│   ├── persist.js         # local persistence (save/load game JSON export)
-│   ├── keys.js            # API key management (per-provider storage)
-│   ├── demo.js            # demo campaign data (pre-built scenario)
-│   ├── sync.js            # Firebase sync (write campaign state, dirty-edit guard)
+│   ├── firebase.js        # init, auth, read/write
+│   ├── sync.js            # Firebase campaign sync, dirty-edit guard
+│   ├── local.js           # IndexedDB wrapper, getSpellsForClass(), countStore()
+│   ├── seed.js            # first-launch seeding v4 (339 spells, 12 classes)
+│   ├── persist.js         # local-first persistence: snapshot, restore, cloud reconcile
+│   ├── forge.js           # canonical character builder
+│   ├── quickBuild.js      # quick-build helpers, class data tables
+│   ├── keys.js            # API key management
+│   ├── demo.js            # demo campaign data (includes familiar)
+│   ├── bundles.js         # stub — shared content packs
+│   ├── migrate.js         # stub — state version migration
 │   └── index.js
 ├── state/
-│   ├── store.js           # SolidJS signals, field ownership enforcement, owned setters
+│   ├── store.js           # SolidJS signals, ownership enforcement
 │   ├── campaign.js        # campaign data shape + resetCampaign()
-│   ├── system.js          # system data shape (survives campaign swap)
+│   ├── system.js          # system data shape
 │   └── index.js
 ├── ui/
 │   ├── play/
-│   │   ├── Chat.jsx       # two-tab chat (Narrative + OOC)
-│   │   ├── ContextBanner.jsx  # location, weather, time (all tappable)
-│   │   ├── SituationBar.jsx   # main quest pinned, consequences, player quests
-│   │   ├── CharTiles.jsx  # character HP tiles (tap → sheet)
-│   │   ├── InputBar.jsx   # message input (changes per tab: send/stop vs send/Ask DM)
-│   │   ├── Combat.jsx     # zone grid → visual tile map, initiative strip, tokens
-│   │   ├── QuickActions.jsx # floating action button, common play actions
-│   │   ├── DiceRoller.jsx # d4-d20 roller (inline icon)
-│   │   ├── TurnPrompt.jsx  # whose turn, what to do (appears above input during combat)
-│   │   ├── RollBar.jsx    # roll request UI (pre-filled from AI mechanic, replaces input)
-│   │   ├── PreviouslyOn.jsx # session recap + state diff on return
-│   │   ├── Rewind.jsx     # checkpoint/rewind controls (accessible mid-session)
-│   │   └── TTS.jsx        # text-to-speech toggle
+│   │   ├── Chat.jsx       # two-tab chat, spell tooltips, combat auto-hide
+│   │   ├── InputBar.jsx   # input + dice button (toggles TurnPrompt in combat)
+│   │   ├── TurnPrompt.jsx # turn card with spell/attack actions, minimizable
+│   │   ├── Combat.jsx     # initiative tracker, auto-minimize on PC turns
+│   │   ├── RollBar.jsx    # roll request UI
+│   │   ├── QuickActions.jsx
+│   │   ├── ContextBanner.jsx  # location/time/weather (compacts during combat)
+│   │   ├── SituationBar.jsx   # quests + consequences
+│   │   ├── CharTiles.jsx  # PC HP tiles (hidden during combat)
+│   │   ├── DiceRoller.jsx
+│   │   ├── PreviouslyOn.jsx
+│   │   ├── Rewind.jsx
+│   │   └── TTS.jsx
 │   ├── reference/
-│   │   ├── CharSheet.jsx  # 6-tab overlay: Stats/Vitals/Spells/Features/Equipment/Bio
-│   │   ├── Journal.jsx    # quests, locations, NPCs, consequences, secrets, travel calc
-│   │   ├── Cargo.jsx      # inventory (carried per-PC, wagon, hoard), encumbrance
-│   │   ├── Treasury.jsx   # PP/GP/EP/SP/CP, income/expense log, lifestyle
-│   │   ├── Compendium.jsx # spell/feat/item browser (reads IndexedDB)
-│   │   └── Glossary.jsx   # 97 D&D term definitions, auto-linked in chat
+│   │   ├── CharSheet.jsx  # 6 tabs + familiar stat block in Vitals
+│   │   ├── Journal.jsx    # quests, NPCs, places, log, lookup
+│   │   ├── Cargo.jsx      # inventory (carried/wagon/hoard)
+│   │   ├── Treasury.jsx   # currencies, ledger, lifestyle
+│   │   ├── Compendium.jsx # 4 tabs: Spells/Rules/Glossary/Feats
+│   │   └── Glossary.jsx   # stub (Compendium's glossary tab is the one home)
 │   ├── setup/
-│   │   ├── SessionZero.jsx    # campaign name, setting, narration style, module
-│   │   ├── CharCreate.jsx     # race, class, abilities, background, equipment, spells
-│   │   ├── CharWizard.jsx     # canonical character builder (step-by-step, reads spell DB)
-│   │   ├── KeyGate.jsx        # API key entry gate (before play)
-│   │   ├── ContentImport.jsx  # file upload, web URL, paste, JSON
-│   │   ├── CampaignConfig.jsx # module selection, house rules, contract customization
-│   │   └── PlayerOnboard.jsx  # identity, character selection, mode, push opt-in
+│   │   ├── CharCreate.jsx     # 3 creation paths
+│   │   ├── CharWizard.jsx     # guided step-by-step builder
+│   │   ├── CampaignConfig.jsx # campaign setup, editable premise
+│   │   ├── PlayerOnboard.jsx  # identity, character selection
+│   │   ├── KeyGate.jsx        # API key entry
+│   │   ├── SessionZero.jsx    # stub
+│   │   └── ContentImport.jsx  # stub
 │   ├── manage/
-│   │   ├── Contracts.jsx  # AI contract editor (code-enforced vs prompt-enforced)
-│   │   ├── SessionReview.jsx  # archive, export, past session summaries
-│   │   ├── MechTest.jsx   # mechanics test container (inject mechanics, watch state)
-│   │   ├── DevTools.jsx   # flags, state inspector, gate fire log
-│   │   └── Settings.jsx   # API keys, TTS, theme toggle + cycle, save/load game, narration style
+│   │   ├── MechTest.jsx   # mechanics testing, quick fire, build audit
+│   │   ├── DevTools.jsx   # flags, inspector, gate log
+│   │   ├── Settings.jsx   # API keys, TTS, themes, save/load
+│   │   ├── Contracts.jsx  # stub
+│   │   └── SessionReview.jsx  # stub
 │   ├── shared/
-│   │   ├── MechPill.jsx   # tappable mechanic pills (tap → source)
-│   │   ├── Toast.jsx      # notification toasts
-│   │   ├── Modal.jsx      # bottom sheet overlays
-│   │   ├── Nav.jsx        # bottom nav: Cargo / Play / Journal / Settings
-│   │   ├── icons.jsx      # d20 SVG mark for nav
-│   │   └── LevelUp.jsx    # full 12-class level 2-20 wizard (subclass/ASI/feat/spell/expertise/HP)
-│   ├── App.jsx            # root component, mode router, bottom nav
-│   └── AppSimple.jsx      # child-friendly entry point — same state/engine, simplified UI
+│   │   ├── LevelUp.jsx    # full 12-class L2-20 wizard
+│   │   ├── Toast.jsx      # global toast events
+│   │   ├── sourceBus.js   # cross-component navigation (navigateTo, openCharSheet)
+│   │   ├── icons.jsx      # d20 SVG mark
+│   │   ├── MechPill.jsx   # stub
+│   │   ├── Modal.jsx      # stub
+│   │   └── Nav.jsx        # stub
+│   ├── App.jsx            # root, mode router, 4-item bottom nav
+│   └── AppSimple.jsx      # stub — child-friendly entry
 ├── audio/
-│   ├── browserTTS.js      # free browser speech synthesis
-│   └── elevenlabs.js      # ElevenLabs free tier
-├── main.js                # entry point, mounts App, calls initData()
-└── style.css              # 20 themes as [data-theme] blocks, shared properties
+│   ├── browserTTS.js      # browser speech synthesis
+│   └── elevenlabs.js      # stub
+├── main.js
+└── style.css              # ~7400 lines, 20 themes, Chronograph aesthetic
 ```
 
-**Static data (bundled with app, not in src):**
+**Static data (bundled):**
 ```
 data/
-├── spells.json              # 339 SRD spells, levels 0-9, all 8 caster classes
-├── feats.json               # 44 feats
-├── glossary.json            # 97 D&D term definitions
+├── spells.json              # 339 SRD spells (levels 0-9, 8 caster classes)
+├── feats.json               # 56 feats
+├── glossary.json            # 84 D&D terms
 ├── maneuvers.json           # 16 battle master maneuvers
-├── xp-thresholds.json       # XP per level
-├── rules.json               # compendium rules entries
-├── level-up-barbarian.json  # class progression data (levels 2-20)
-├── level-up-bard.json
-├── level-up-cleric.json
-├── level-up-druid.json
-├── level-up-fighter.json
-├── level-up-monk.json
-├── level-up-paladin.json
-├── level-up-ranger.json
-├── level-up-rogue.json
-├── level-up-sorcerer.json
-├── level-up-warlock.json
-└── level-up-wizard.json
+├── rules.json               # 34 rules/compendium entries
+├── xp-thresholds.json
+└── level-up-{class}.json    # 12 class progressions (barbarian through wizard, L2-20)
 ```
-
----
-
-## What This Gives Us
-
-- **AI can build autonomously** — "build the spell compendium browser" → it knows to create `src/ui/reference/Compendium.jsx`, read from `src/data/local.js` IndexedDB, display spells from the normalized schema
-- **Law 2 enforced structurally** — mechanics go through extract → validate (9 gates) → apply. No shortcut. Ownership checked on every write.
-- **Law 4 enforced by folders** — play components can't import manage components. Modes are directory boundaries.
-- **Law 5 respected** — clear separation of Firebase (synced) vs IndexedDB (local) vs bundles (one-time transfer). Free providers, free hosting.
-- **Content pipeline is universal** — any input → normalizer → same schema → IndexedDB. No more hardcoded SPELL_DB.
-- **Child-friendly view is a second entry point** — `AppSimple.jsx` wraps the same state and engine with bigger targets, less text, guided choices. Separate URL, same Firebase + API keys. Not a toggle — a different UI root.
 
 ---
 
 ## Canonical Reference
 
-This file is the architecture source of truth. If it conflicts with other docs:
-- **workboard.md** has the most detailed specs (full data shapes, acceptance tests) — architecture.md summarizes
+This file is the architecture source of truth. When it conflicts with other docs:
+- **workboard.md** tracks build status and remaining work
 - **decisions.md** records specific design choices — architecture.md reflects their outcome
-- When architecture.md drifts from workboard/decisions, update architecture.md (not the other way around)
+- When architecture.md drifts from reality, update architecture.md

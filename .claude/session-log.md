@@ -1,76 +1,83 @@
 # Session Log — Handoff Note
 
-## Session 45 · 2026-06-24 — Spell database overhaul + combat space fix + premise editing (DEPLOYED)
+## Session 46 · 2026-06-25 — Familiar tab, combat UX, Compendium feats, post-deploy fixes, doc trim (DEPLOYED)
 
-**Theme:** Three-task plan from S44 context: (1) replace the empty spell database with 339 real SRD spells, fix the field-name mismatch that prevented any descriptions from ever displaying, (2) reclaim chat space during combat by auto-hiding redundant UI, (3) update drifted architecture.md. Plus a bonus: editable premise field during onboarding.
+**Theme:** Shipped 8 feature areas from a comprehensive plan (familiar stat block, familiar mechanics, spell info icons, TurnPrompt minimize, combat auto-minimize, Compendium feats tab, MechTest build audit, demo familiar data). Post-deploy testing via full JSON export revealed two bugs (activeCampaignId empty on restore, NPC dedup creating duplicates). Both fixed and merged. Then trimmed workboard.md (1384→~170 lines) and architecture.md (411→~240 lines) to remove stale snapshots and duplicated specs.
 
-Branch `claude/app-styling-tabs-c1khdr`. Build clean. **All commits merged to main + deployed.**
+Branch `claude/character-sheet-familiar-tab-2u3wsw`. Build clean. **All commits merged to main + deployed.**
 
 ### Shipped
 
-**Spell Database Overhaul:**
-- **339 SRD spells** replace 89 empty-description placeholders. Levels 0-9, all 8 caster classes (Bard, Cleric, Druid, Paladin, Ranger, Sorcerer, Warlock, Wizard), real descriptions parsed from the 5e SRD markdown.
-- **Field name mismatch fixed** — the root bug. JSON data used `desc`/`castTime` but CharSheet, Chat, and Compendium all read `description`/`castingTime`. Even if spells had descriptions, they'd never display. Now the JSON uses the correct field names.
-- **`item.class` → `item.classes`** in Compendium.jsx (line 33) — spell class lists were always showing empty.
-- **`s.desc` → `s.description`** in CharWizard.jsx (3 lines) — wizard spell info sheets were always blank.
-- **`getSpellsForClass()` helper** added to local.js — filters by `classes` array instead of the broken IndexedDB `class` index (which can't handle arrays). All 3 callers updated (quickBuild.js, LevelUp.jsx, CharWizard.jsx).
-- **Seed version 4** — migration clears and re-seeds spells + all 12 class progressions. Existing users get updated automatically on next load.
-- **Build script** `scripts/build-spells.js` — Node script that parses `scripts/srd/spells.md` (downloaded SRD markdown) into `data/spells.json`. Reproducible, run once during development.
+**Familiar Stat Block (CharSheet Vitals tab):**
+- Full stat block: collapsed header with name/species/type/HP/AC, expandable detail with ability scores + modifiers, speeds, senses, skills, special abilities, familiar actions
+- Action buttons: See Through Eyes / Dismiss / Resummon (dispatch `prefill-input` events)
+- Backward-compatible: handles both `form`/`species` and `abilities` as string/object
 
-**Combat Chat Space Fix:**
-- **CharTiles + SituationBar hidden during combat** — wrapped in `<Show when={!combatState.active}>` in Chat.jsx. CharTiles is redundant (initiative tracker shows PC HP/AC/names). SituationBar shows quests/consequences — not combat-relevant. Saves ~100px.
-- **ContextBanner compact mode** — during combat, hides time/weather meta and head-right buttons (multi-player toggle, TTS). Location stays visible. Saves ~30px.
-- **Combat overlay max-height reduced** from 40vh to 28vh. Saves ~84px on typical viewport.
-- **Total: ~214px reclaimed** during combat. Messages go from ~40% to ~70% of viewport on small phones.
+**Familiar Mechanics (`familiar_add`, `familiar_update`):**
+- `familiar_add: PCName|Name,Species,Type,HP,HpMax,AC` — creates/replaces familiar with full defaults
+- `familiar_update: PCName|field=value` — updates individual fields (status, hp, etc.)
+- Both in KNOWN_KEYS, use aiSet(), guard with findPC()
 
-**Editable Premise:**
-- Premise field in onboarding step 3 (CampaignConfig → Fresh Campaign) changed from read-only display to an editable textarea. Players can type their own premise directly, or use the brainstorm button and then edit the AI's suggestion.
+**Combat Spell Info Icons:**
+- ⓘ button on spell chips in TurnPrompt
+- Dispatches `spell-tooltip` event → Chat.jsx shows spell description in existing tooltip overlay
+- Tap chip = prefill action, tap ⓘ = see description
 
-**Architecture.md Updated:**
-- Added missing files to module map: forge.js, quickBuild.js, persist.js, keys.js, demo.js, sync.js, MechTest.jsx, CharWizard.jsx, KeyGate.jsx, TurnPrompt.jsx, RollBar.jsx, PreviouslyOn.jsx, icons.jsx
-- Data directory listing now shows all 12 level-up files + rules.json
-- LevelUp description updated (full 12-class wizard, not a stub)
-- Seed data description updated (339 spells, 12 classes, version 4)
-- Nav.jsx description corrected (4-item with Play)
-- Settings.jsx description updated (includes save/load game)
+**TurnPrompt Minimize:**
+- Exported `turnPromptMinimized` signal from TurnPrompt.jsx
+- Dice button in InputBar toggles minimize during combat (opens QuickActions outside combat)
+- Minimized bar: "⚔ PC's turn · Round N · tap to expand"
+
+**Combat Auto-Minimize:**
+- createEffect in Combat.jsx watches currentTurn
+- PC turn (alive) → minimize overlay; NPC turn → expand
+- Reduces combat UI stack to one visible panel at a time
+
+**Compendium Feats Tab:**
+- 4th tab in Compendium: 56 feats from IndexedDB
+- Subtitle: prerequisite or "No prerequisite"
+- Search works across all tabs
+
+**MechTest Build Audit:**
+- "Build Status" section with `runAudit()` function
+- Checks 6 IndexedDB stores (counts vs expected) + campaign state (characters, quests, NPCs, familiar, combat, contracts, narrative)
+- Color-coded rows: green/yellow/red
+
+**Demo Familiar Data:**
+- Quill (Owl) on Ivy in `loadFullDemo()`
+- Full structured data: abilities object, speeds, specialAbilities array, senses, skills
+
+**Post-Deploy Fixes:**
+- `activeCampaignId` hydrated on boot restore in `persist.js` — was only used as IndexedDB lookup key, never written back to system store
+- NPC fuzzy dedup in `npc_add` — exact match → startsWith + first-word match (same as findPC pattern). "Leosin" now matches "Leosin Erlanthar"
+
+**Documentation Trim:**
+- workboard.md: 1384→~170 lines. Fresh S46 Reality Snapshot. Removed inline specs (color palette, chat system, state shapes) that duplicate their own reference files. Removed stale S39 snapshot.
+- architecture.md: 411→~240 lines. Fixed stale numbers (65→72 keys, 94→339 spells, 44→56 feats, 97→84 glossary, 3→12 classes). Added missing files (sourceBus.js, gates.js, rules.js, setupPrompts.js). Updated persist.js description. Compendium 4 tabs.
 
 ### Decisions made
-- **Spell field names match the UI** — JSON renamed to `description`/`castingTime` (not the other way around). Safe because only 3 lines in CharWizard read the short names; all other `desc` references are on different object types (features, feats, backgrounds).
-- **Array-based class lookup** instead of IndexedDB multiEntry index — `getSpellsForClass()` does `getAll` + filter. With 339 records, in-memory filtering is instant and avoids a DB_VERSION bump.
-- **Auto-hide party HUD during combat** — CharTiles is redundant with the initiative tracker. SituationBar is irrelevant mid-fight. Both reappear when combat ends.
-- **Premise is directly editable** — brainstorm is a nice-to-have, not the only way in. Players should be able to type what they want.
+- NPC dedup uses fuzzy matching (exact, startsWith, first-word) — same as findPC
+- Combat auto-minimizes on PC turns, expands on NPC turns
+- TurnPrompt minimize toggled via dice button during combat
+- Spell info icons use existing tooltip overlay via custom event dispatch
+- Compendium gets a Feats tab (4 tabs total)
+- MechTest gets build audit with color-coded status rows
+- Workboard trimmed aggressively: specs live in their own files, workboard tracks status only
+- Architecture trimmed: gate details → enforcement-spec.md, data shapes → workboard/spec files
 
 ### Known issues / watch
-- **Deep Seed** still no real-session feedback.
-- **Spell descriptions are SRD only** — non-SRD PHB spells aren't in the data. If a character has a non-SRD spell, they'll get "No description recorded." in CharSheet. Could add stub entries with "See Player's Handbook" text.
-- **IndexedDB `class` index on spells store is now orphaned** — the data uses `classes` (array) but the DB schema still has a `class` index. Harmless (nothing queries it anymore) but could be cleaned up with a future DB_VERSION bump.
-- Still not exhaustively play-verified with a live API key.
-- `scripts/srd/spells.md` is 6025 lines committed to the repo — consider adding to `.gitignore` if repo size is a concern (it's a build input, not runtime).
+- Still not play-verified with a live AI session (no API key exercised)
+- Non-SRD PHB spells show "No description recorded"
+- IndexedDB `class` index on spells store orphaned (harmless)
 
 ### In progress
 - Nothing in progress — clean handoff.
 
 ### Next up
-1. Play-verify spells end-to-end: open Compendium → tap spell → see description. Open CharSheet → Spells → expand → see description + metadata. In Chat, tap spell-link → tooltip shows description.
-2. Play-verify combat space: enter combat → CharTiles/SituationBar disappear → messages have room. Exit combat → they reappear.
-3. Play-verify premise editing: fresh campaign → type premise → start → premise appears in AI system prompt.
-4. Deep Seed real-session check.
-5. Remaining Phase 3 gaps: Previously On (memory.js), Ask DM interception, push.
+1. **Play-verify with a real AI session** — the gate for everything else
+2. Phase 3 remaining: MechPill, term-glossary linking, Previously On, push notifications
+3. Phase 5: Session Zero wizard
+4. Phase 6: Contracts editor, SessionReview
 
-### Key files
-- NEW: `scripts/build-spells.js`, `scripts/srd/spells.md`
-- `data/spells.json` — complete rewrite (89 → 339 spells, real descriptions)
-- `src/data/local.js` — `clearStore()`, `getSpellsForClass()`
-- `src/data/seed.js` — version 4, all 12 class imports, migration
-- `src/data/quickBuild.js` — updated import + spell query
-- `src/ui/setup/CharWizard.jsx` — field name fixes + import
-- `src/ui/shared/LevelUp.jsx` — updated import + spell query
-- `src/ui/reference/Compendium.jsx` — `item.classes` fix
-- `src/ui/play/Chat.jsx` — combat auto-hide for CharTiles/SituationBar
-- `src/ui/play/ContextBanner.jsx` — compact mode during combat
-- `src/ui/setup/CampaignConfig.jsx` — editable premise textarea
-- `src/style.css` — combat overlay 28vh, head-compact, premise-input
-- `.claude/architecture.md` — module map + data directory + descriptions
-
-**Branch state:** `claude/app-styling-tabs-c1khdr` @ `6c76687`; **merged to main (ff), deployed.**
-main and feature branch even.
+### Branch state
+`claude/character-sheet-familiar-tab-2u3wsw` @ `596e7b8`; **merged to main, deployed.**

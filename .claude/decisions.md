@@ -100,6 +100,9 @@
 | **Combat tracker: live ally HP, minimize toggle** | Allies (PCs) render HP live from the character store (snapshot in the initiative entry drifted on heal/override/level-up); enemies render from the initiative entry, updated by the `hp` mechanic. Overlay has a minimize button (collapses to round/turn bar). Contract now requires an `hp` mechanic whenever ANY combatant takes damage/heals so enemy HP actually tracks. | 37 |
 | **Auto-hide CharTiles + SituationBar during combat** | CharTiles is redundant with the initiative tracker (shows PC HP/AC/names). SituationBar (quests/consequences) is irrelevant mid-fight. Both auto-hide via `<Show when={!combatState.active}>`, reappear when combat ends. ContextBanner compacts (hides meta+buttons, keeps location). Combat overlay max-height reduced 40vh→28vh. Reclaims ~214px on small phones. | 45 |
 | **Initiative rolls sourced from combatState, not events** | `combat_start`'s side-effect roll_requests were heard by nobody (no listener; `applyMechanics` only returns top-level mechanics), so initiative never surfaced and combat hung on turn 1. RollBar now derives Initiative prompts from PCs flagged `rollPending`. | 37 |
+| **Combat auto-minimize on PC turns** | When it's a PC's turn, combat overlay auto-minimizes (only TurnPrompt visible). On NPC turn, overlay expands so player can see what's happening. Reduces combat stack to one panel at a time. `createEffect` in Combat.jsx watches `currentTurn`. | 46 |
+| **TurnPrompt minimizable via dice button** | During combat, dice button in InputBar toggles TurnPrompt minimize instead of opening QuickActions. Exported `turnPromptMinimized` signal from TurnPrompt.jsx. Minimized bar shows "⚔ PC's turn · Round N · tap to expand". Outside combat, dice button still opens QuickActions. | 46 |
+| **Spell info icons on combat turn card** | ⓘ button on spell chips in TurnPrompt. Dispatches `spell-tooltip` custom event → Chat.jsx shows description in existing tooltip overlay. Tap chip = prefill action, tap ⓘ = see description. Stops players from picking spells blind during combat. | 46 |
 
 ## Onboarding & Character Creation
 
@@ -147,6 +150,17 @@
 | **Build-time spell script, committed output** | `scripts/build-spells.js` parses SRD markdown into `data/spells.json`. Runs once during development (not at runtime). Output committed to repo for deterministic builds. SRD source committed to `scripts/srd/`. | 45 |
 | D&D 5e primary, not the only system | Architecture supports any game content. System-agnostic content pipeline. | 30 |
 | Episode/module tracking is a workboard item | How the AI tracks campaign progress, chapter triggers, discovery conditions — needs its own spec. Architecture acknowledges it exists. | 30 |
+
+## Familiar System
+
+| Decision | Rationale | Session |
+|----------|-----------|---------|
+| **`familiar_add` / `familiar_update` mechanics** | AI had no way to create a familiar through the pipeline — only `familiar_hp` existed. `familiar_add: PCName\|Name,Species,Type,HP,HpMax,AC` creates/replaces. `familiar_update: PCName\|field=value` updates individual fields. Both use `aiSet()` + `findPC()`. | 46 |
+| **Full familiar stat block in CharSheet Vitals** | Collapsed header (name, species, type, HP, AC, status badge) + expandable detail (ability scores with modifiers, speeds, senses, skills, special abilities, familiar actions). Action buttons dispatch `prefill-input` so player narrates and AI emits mechanics. Backward-compat: guards every field, handles both `form`/`species` and abilities as string/object. | 46 |
+| **NPC fuzzy dedup (same as findPC)** | `npc_add: Leosin` didn't match existing "Leosin Erlanthar" because handler used exact name match. Applied findPC's pattern: exact, startsWith, first-word match. Prevents duplicates while allowing partial names from the AI. | 46 |
+| **`activeCampaignId` hydrated on boot restore** | `restoreSession()` restored campaign data from IndexedDB snapshot but never wrote `activeCampaignId` back to `store.system`. The ACTIVE_KEY in IndexedDB was only a lookup key. Added `setStore('system', 'activeCampaignId', snap.campaign.id)`. | 46 |
+| **Compendium Feats tab (4 tabs total)** | 56 feats in IndexedDB had no browsing UI. Added as 4th Compendium tab (Spells/Rules/Glossary/Feats). Subtitle shows prerequisite. | 46 |
+| **MechTest build audit** | Color-coded status rows checking IndexedDB store counts (vs expected) and campaign state health. Answers "is everything seeded and wired?" without needing to play. | 46 |
 
 ## Features Carried Forward (v1 → v2)
 
