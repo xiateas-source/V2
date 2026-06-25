@@ -1,4 +1,4 @@
-import { For, Show, createMemo, createSignal } from 'solid-js';
+import { For, Show, createMemo, createSignal, createEffect } from 'solid-js';
 import { store, setStore } from '../../state/index.js';
 import { validateMechanics, applyMechanics } from '../../ai/mechanics.js';
 import { createNarrativeMsg } from '../../ai/messages.js';
@@ -8,6 +8,12 @@ export default function Combat() {
   const combat = () => store.campaign.combatState;
   const active = () => combat().active;
   const [minimized, setMinimized] = createSignal(false);
+
+  createEffect(() => {
+    if (!active()) return;
+    const cur = combat().initiative[combat().currentTurn];
+    if (cur) setMinimized(cur.type === 'pc' && cur.hp > 0);
+  });
 
   // Initiative is stored sorted (highest first); currentTurn indexes it directly.
   const order = createMemo(() => (active() ? combat().initiative : []));

@@ -5,6 +5,7 @@ import { createNarrativeMsg } from '../../ai/messages.js';
 import { loadDemoCampaign, loadFullDemo } from '../../data/demo.js';
 import { clearActiveCampaign, exportSnapshot } from '../../data/persist.js';
 import { navigateTo, openCharSheet } from '../shared/sourceBus.js';
+import { countStore } from '../../data/local.js';
 
 // Testing area — load environments, fire mechanics through the real pipeline,
 // jump to any tab, and export the whole campaign for review with Claude. No AI
@@ -19,10 +20,20 @@ xp: 25
 consequence_add: Wounded by kobold ambush|threat
 ---END---`;
 
+const DATA_STORES = [
+  { store: 'spells', label: 'Spells', expect: 339 },
+  { store: 'classData', label: 'Class progressions', expect: 12 },
+  { store: 'feats', label: 'Feats', expect: 56 },
+  { store: 'glossary', label: 'Glossary', expect: 84 },
+  { store: 'compendium', label: 'Rules / Compendium', expect: 34 },
+  { store: 'maneuvers', label: 'Maneuvers', expect: 16 },
+];
+
 export default function MechTest(props) {
   const [text, setText] = createSignal(SAMPLE);
   const [last, setLast] = createSignal(null);
   const [copied, setCopied] = createSignal('');
+  const [audit, setAudit] = createSignal(null);
 
   const firstPC = () => store.campaign.characters[0]?.name || 'the party';
 
@@ -57,6 +68,7 @@ export default function MechTest(props) {
     { label: 'Town rep', line: () => `town_rep: Greenest, Friendly, saved the town` },
     { label: 'Start combat', line: () => `combat_start: Kobold|6|13|10` },
     { label: 'End combat', line: () => `combat_end: Victory` },
+    { label: 'Add familiar', line: () => `familiar_add: ${pc()}|Quill,Owl,Fey,1,1,11` },
   ];
 
   async function newCampaign() {
@@ -75,6 +87,34 @@ export default function MechTest(props) {
       setCopied('Clipboard blocked — use Download');
     }
     setTimeout(() => setCopied(''), 2500);
+  }
+
+  async function runAudit() {
+    const results = [];
+    for (const ds of DATA_STORES) {
+      try {
+        const count = await countStore(ds.store);
+        const status = count >= ds.expect ? 'green' : count > 0 ? 'yellow' : 'red';
+        results.push({ label: ds.label, detail: `${count} / ${ds.expect}`, status });
+      } catch (_) {
+        results.push({ label: ds.label, detail: 'Error', status: 'red' });
+      }
+    }
+    const chars = store.campaign.characters || [];
+    results.push({ label: 'Characters', detail: `${chars.length} loaded`, status: chars.length > 0 ? 'green' : 'red' });
+    const hasFamiliar = chars.some(c => c.familiar);
+    results.push({ label: 'Familiar data', detail: hasFamiliar ? 'Present' : 'None', status: hasFamiliar ? 'green' : 'yellow' });
+    const quests = store.campaign.quests || [];
+    results.push({ label: 'Quests', detail: `${quests.length}`, status: quests.length > 0 ? 'green' : 'yellow' });
+    const npcs = store.campaign.npcs || [];
+    results.push({ label: 'NPCs', detail: `${npcs.length}`, status: npcs.length > 0 ? 'green' : 'yellow' });
+    const cs = store.campaign.combatState;
+    results.push({ label: 'Combat state', detail: cs ? 'Initialized' : 'Missing', status: cs ? 'green' : 'red' });
+    const contracts = store.campaign.contracts;
+    results.push({ label: 'Contracts', detail: contracts?.length ? `${contracts.length}` : 'None', status: contracts?.length ? 'green' : 'yellow' });
+    const narrative = store.campaign.narrative || [];
+    results.push({ label: 'Narrative', detail: `${narrative.length} messages`, status: narrative.length > 0 ? 'green' : 'yellow' });
+    setAudit(results);
   }
 
   function downloadExport() {
@@ -164,6 +204,27 @@ export default function MechTest(props) {
           </Show>
         </div>
       </Show>
+
+      {/* Build Status Audit */}
+      <div class="mt-section">
+        <div class="mt-label">Build Status</div>
+        <div class="mechtest-actions">
+          <button class="mechtest-run" onClick={runAudit}><i class="ph ph-list-checks" /> Run Audit</button>
+        </div>
+        <Show when={audit()}>
+          <div class="audit-results">
+            <For each={audit()}>
+              {(row) => (
+                <div class={`audit-row audit-${row.status}`}>
+                  <span class="audit-dot" />
+                  <span class="audit-label">{row.label}</span>
+                  <span class="audit-detail">{row.detail}</span>
+                </div>
+              )}
+            </For>
+          </div>
+        </Show>
+      </div>
     </div>
   );
 }

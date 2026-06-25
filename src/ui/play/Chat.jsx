@@ -28,6 +28,15 @@ export default function Chat() {
   let isAtBottom = true;
   let lastMsgCount = 0;
 
+  function showSpellTooltip(name) {
+    const sp = spellList().find(s => (s.name || '').toLowerCase() === name.toLowerCase());
+    if (sp) {
+      const meta = [sp.level ? `Level ${sp.level}` : 'Cantrip', sp.school].filter(Boolean).join(' · ');
+      const stats = [sp.castingTime && `Cast ${sp.castingTime}`, sp.range && `Range ${sp.range}`, sp.duration && `Duration ${sp.duration}`].filter(Boolean).join(' · ');
+      setTooltip({ title: sp.name, body: `${meta}\n${stats}\n\n${sp.description || sp.content || ''}`.trim(), action: { label: 'Open Compendium', mode: 'journal' } });
+    }
+  }
+
   onMount(async () => {
     try {
       const terms = await getAll('glossary');
@@ -37,6 +46,8 @@ export default function Chat() {
       const spells = await getAll('spells');
       setSpellList(spells || []);
     } catch (_) {}
+
+    window.addEventListener('spell-tooltip', (e) => showSpellTooltip(e.detail?.name));
   });
 
   const npcNames = createMemo(() =>

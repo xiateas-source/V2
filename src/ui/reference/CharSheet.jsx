@@ -438,20 +438,90 @@ export default function CharSheet(props) {
           <div class="cs-section-label">Familiar</div>
           <div class="cs-familiar-card">
             <div class="cs-familiar-header" onClick={() => setExpandedFamiliar(!expandedFamiliar())}>
-              <div class="cs-familiar-name">{p.familiar.name || 'Familiar'}</div>
-              <span class="cs-familiar-type">{p.familiar.form || ''}</span>
+              <div class="cs-familiar-icon">{p.familiar.species === 'Owl' ? '🦉' : p.familiar.species === 'Cat' ? '🐱' : p.familiar.species === 'Hawk' ? '🦅' : p.familiar.species === 'Snake' ? '🐍' : p.familiar.species === 'Raven' ? '🐦‍⬛' : p.familiar.species === 'Rat' ? '🐀' : p.familiar.species === 'Frog' ? '🐸' : p.familiar.species === 'Spider' ? '🕷️' : '🐾'}</div>
+              <div class="cs-familiar-info">
+                <div class="cs-familiar-name">{p.familiar.name || 'Familiar'}</div>
+                <div class="cs-familiar-type">{[p.familiar.species || p.familiar.form, p.familiar.type && `${p.familiar.type} Spirit`, p.familiar.source].filter(Boolean).join(' · ')}</div>
+              </div>
               <span class={`cs-familiar-status ${p.familiar.status || 'active'}`}>{(p.familiar.status || 'active').toUpperCase()}</span>
+              <div class="cs-familiar-summary">
+                <span class="cs-fam-stat">HP <b>{p.familiar.hp ?? 1}/{p.familiar.hpMax ?? 1}</b></span>
+                <span class="cs-fam-stat">AC <b>{p.familiar.ac ?? 10}</b></span>
+              </div>
               <span class="cs-familiar-toggle">{expandedFamiliar() ? '▲' : '▼'}</span>
             </div>
             <Show when={expandedFamiliar()}>
               <div class="cs-familiar-detail">
-                <div class="cs-familiar-stats">
-                  <span>HP {p.familiar.hp || 1}/{p.familiar.hpMax || 1}</span>
-                  <span>AC {p.familiar.ac || 10}</span>
+                <div class="cs-familiar-vitals">
+                  <div class="cs-fam-vital"><div class="cs-fam-vital-label">HP</div><div class="cs-fam-vital-val">{p.familiar.hp ?? 1}/{p.familiar.hpMax ?? 1}</div></div>
+                  <div class="cs-fam-vital"><div class="cs-fam-vital-label">AC</div><div class="cs-fam-vital-val">{p.familiar.ac ?? 10}</div></div>
+                  <Show when={p.familiar.speeds?.walk}><div class="cs-fam-vital"><div class="cs-fam-vital-label">Walk</div><div class="cs-fam-vital-val">{p.familiar.speeds.walk} ft</div></div></Show>
+                  <Show when={p.familiar.speeds?.fly}><div class="cs-fam-vital"><div class="cs-fam-vital-label">Fly</div><div class="cs-fam-vital-val">{p.familiar.speeds.fly} ft</div></div></Show>
+                  <Show when={p.familiar.speeds?.swim}><div class="cs-fam-vital"><div class="cs-fam-vital-label">Swim</div><div class="cs-fam-vital-val">{p.familiar.speeds.swim} ft</div></div></Show>
+                  <Show when={p.familiar.size}><div class="cs-fam-vital"><div class="cs-fam-vital-label">Size</div><div class="cs-fam-vital-val">{p.familiar.size}</div></div></Show>
                 </div>
-                <Show when={p.familiar.abilities}>
-                  <div class="cs-familiar-abilities">{p.familiar.abilities}</div>
+
+                <Show when={p.familiar.abilities && typeof p.familiar.abilities === 'object' && p.familiar.abilities.str !== undefined}>
+                  <div class="cs-familiar-ab-grid">
+                    <For each={['str', 'dex', 'con', 'int', 'wis', 'cha']}>
+                      {(ab) => {
+                        const score = () => p.familiar.abilities[ab] ?? 10;
+                        const modifier = () => Math.floor((score() - 10) / 2);
+                        return (
+                          <div class="cs-fam-ab">
+                            <div class="cs-fam-ab-label">{ab.toUpperCase()}</div>
+                            <div class="cs-fam-ab-score">{score()}</div>
+                            <div class="cs-fam-ab-mod">{modifier() >= 0 ? `+${modifier()}` : modifier()}</div>
+                          </div>
+                        );
+                      }}
+                    </For>
+                  </div>
                 </Show>
+
+                <Show when={typeof p.familiar.abilities === 'string'}>
+                  <div class="cs-familiar-text">{p.familiar.abilities}</div>
+                </Show>
+
+                <Show when={p.familiar.senses || p.familiar.passivePerception}>
+                  <div class="cs-familiar-senses">
+                    <span class="cs-fam-sense-label">Senses</span>
+                    {[p.familiar.senses, p.familiar.passivePerception && `Passive Perception ${p.familiar.passivePerception}`].filter(Boolean).join(' · ')}
+                  </div>
+                </Show>
+
+                <Show when={p.familiar.skills}>
+                  <div class="cs-familiar-senses">
+                    <span class="cs-fam-sense-label">Skills</span>
+                    {p.familiar.skills}
+                  </div>
+                </Show>
+
+                <Show when={p.familiar.specialAbilities?.length}>
+                  <div class="cs-familiar-specials">
+                    <div class="cs-fam-spec-label">Special Abilities</div>
+                    <For each={p.familiar.specialAbilities}>
+                      {(sa) => <div class="cs-fam-spec"><b>{typeof sa === 'string' ? sa : sa.name}</b>{typeof sa === 'object' && sa.desc ? ` — ${sa.desc}` : ''}</div>}
+                    </For>
+                  </div>
+                </Show>
+
+                <div class="cs-familiar-specials">
+                  <div class="cs-fam-spec-label">Familiar Actions</div>
+                  <div class="cs-fam-spec">Can take the <b>Help</b> action (gives ally advantage). Can deliver <b>touch spells</b> cast by master. Cannot attack.</div>
+                </div>
+
+                <div class="cs-familiar-actions-row">
+                  <button class="cs-fam-action-btn" onClick={() => window.dispatchEvent(new CustomEvent('prefill-input', { detail: { text: `${p.name} looks through ${p.familiar.name}'s eyes.` } }))}>
+                    <i class="ph ph-eye" /> See Through Eyes
+                  </button>
+                  <button class="cs-fam-action-btn" onClick={() => window.dispatchEvent(new CustomEvent('prefill-input', { detail: { text: `${p.name} dismisses ${p.familiar.name} into a pocket dimension.` } }))}>
+                    <i class="ph ph-moon" /> Dismiss
+                  </button>
+                  <button class="cs-fam-action-btn" onClick={() => window.dispatchEvent(new CustomEvent('prefill-input', { detail: { text: `${p.name} resummons ${p.familiar.name} (10gp worth of incense).` } }))}>
+                    <i class="ph ph-arrows-clockwise" /> Resummon
+                  </button>
+                </div>
               </div>
             </Show>
           </div>

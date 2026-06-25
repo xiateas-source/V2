@@ -1,7 +1,9 @@
 import { createSignal, Show, lazy, Suspense, onMount, onCleanup } from 'solid-js';
 import { isSending, stopGeneration } from '../../ai/engine.js';
 import { sendMsg, sendTableTalk } from '../../ai/engine.js';
+import { store } from '../../state/index.js';
 import QuickActions from './QuickActions.jsx';
+import { turnPromptMinimized, setTurnPromptMinimized } from './TurnPrompt.jsx';
 import { D20 } from '../shared/icons.jsx';
 
 const MechTest = lazy(() => import('../manage/MechTest.jsx'));
@@ -81,9 +83,9 @@ export default function InputBar(props) {
         />
         <Show when={props.tab !== 'ooc'}>
           <button
-            class={`dice ${drawer() === 'actions' ? 'active' : ''}`}
-            onClick={() => toggle('actions')}
-            title="Quick actions"
+            class={`dice ${store.campaign.combatState?.active ? (turnPromptMinimized() ? '' : 'active') : (drawer() === 'actions' ? 'active' : '')}`}
+            onClick={() => store.campaign.combatState?.active ? setTurnPromptMinimized(!turnPromptMinimized()) : toggle('actions')}
+            title={store.campaign.combatState?.active ? 'Toggle turn card' : 'Quick actions'}
           >
             <D20 />
           </button>

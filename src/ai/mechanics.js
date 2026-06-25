@@ -16,7 +16,8 @@ const KNOWN_KEYS = new Set([
   'travel_note', 'loc_desc', 'gp', 'sp', 'cp', 'ep', 'pp', 'item_add', 'item_remove',
   'slot_use', 'slot_restore', 'resource_use', 'resource_restore', 'shell_defense',
   'wagon_add', 'wagon_cell_add', 'wagon_cell_update', 'wagon_cell_remove',
-  'wagon_hp', 'ox_hp', 'ox_condition', 'familiar_hp', 'animal_hp', 'animal_condition',
+  'wagon_hp', 'ox_hp', 'ox_condition', 'familiar_hp', 'familiar_add', 'familiar_update',
+  'animal_hp', 'animal_condition',
   'income', 'expense', 'xp', 'quest_add', 'quest_done', 'quest_fail', 'quest_update',
   'primary_mission', 'npc_add', 'npc_mood', 'pc_update', 'pc_add', 'pc_delete',
   'module_episode', 'short_rest', 'long_rest', 'town_rep', 'save_game', 'save', 'spell_add',
@@ -948,6 +949,53 @@ const DISPATCH = {
         return;
       }
     }
+  },
+
+  familiar_add(value) {
+    const parts = value.split('|').map(s => s.trim());
+    if (parts.length < 2) return;
+    const pcName = parts[0];
+    const fields = parts[1].split(',').map(s => s.trim());
+    const idx = store.campaign.characters.findIndex(c => c.name?.toLowerCase() === pcName.toLowerCase());
+    if (idx === -1) return;
+    const [name, species, type, hpStr, hpMaxStr, acStr] = fields;
+    const hp = parseInt(hpStr, 10) || 1;
+    const hpMax = parseInt(hpMaxStr, 10) || hp;
+    const ac = parseInt(acStr, 10) || 10;
+    const existing = store.campaign.characters[idx].familiar;
+    const familiar = {
+      name: name || 'Familiar',
+      species: species || 'Beast',
+      type: type || 'Fey',
+      size: 'Tiny',
+      hp, hpMax, ac,
+      speeds: existing?.speeds || { walk: 30 },
+      abilities: existing?.abilities || { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
+      senses: existing?.senses || '',
+      skills: existing?.skills || '',
+      passivePerception: existing?.passivePerception || 10,
+      specialAbilities: existing?.specialAbilities || [],
+      status: 'active',
+      source: existing?.source || 'Wild companion',
+    };
+    aiSet(`characters.${idx}.familiar`, familiar);
+  },
+
+  familiar_update(value) {
+    const parts = value.split('|').map(s => s.trim());
+    if (parts.length < 2) return;
+    const pcName = parts[0];
+    const idx = store.campaign.characters.findIndex(c => c.name?.toLowerCase() === pcName.toLowerCase());
+    if (idx === -1 || !store.campaign.characters[idx].familiar) return;
+    const assignment = parts[1];
+    const eqIdx = assignment.indexOf('=');
+    if (eqIdx === -1) return;
+    const field = assignment.slice(0, eqIdx).trim();
+    const val = assignment.slice(eqIdx + 1).trim();
+    const allowed = ['status', 'hp', 'name', 'species', 'type', 'size', 'senses', 'skills', 'source'];
+    if (!allowed.includes(field)) return;
+    const parsed = field === 'hp' ? Math.max(0, Math.min(parseInt(val, 10) || 0, store.campaign.characters[idx].familiar.hpMax)) : val;
+    aiSet(`characters.${idx}.familiar.${field}`, parsed);
   },
 
   animal_hp(value) {

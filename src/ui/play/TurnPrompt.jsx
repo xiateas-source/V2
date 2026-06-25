@@ -1,11 +1,7 @@
-import { Show, For, createMemo } from 'solid-js';
+import { Show, For, createSignal, createMemo } from 'solid-js';
 import { store, setStore } from '../../state/index.js';
 import { isSending } from '../../ai/engine.js';
 
-// Combat turn card. The engine owns the turn pointer; this just makes the
-// current PC's turn a clear, bounded choice: whose turn, what you can do, and a
-// light Action / Bonus / Move reminder (tapping an option marks its slot). The
-// engine resets the slots when the turn advances.
 const GENERIC = [
   { label: 'Dash', econ: 'action', text: ' takes the Dash action (move up to double speed).' },
   { label: 'Dodge', econ: 'action', text: ' takes the Dodge action (attacks against them have disadvantage).' },
@@ -14,12 +10,14 @@ const GENERIC = [
   { label: 'Help', econ: 'action', text: ' uses the Help action to aid ' },
 ];
 
+export const [turnPromptMinimized, setTurnPromptMinimized] = createSignal(false);
+
 export default function TurnPrompt() {
   const combat = () => store.campaign.combatState;
   const awaiting = () => combat().initiative.some(c => c.rollPending);
   const actor = () => combat().initiative[combat().currentTurn] || null;
 
-  const show = () => {
+  const shouldShow = () => {
     if (!combat().active || awaiting() || isSending()) return false;
     const a = actor();
     return !!a && a.type === 'pc' && a.hp > 0;
@@ -64,8 +62,6 @@ export default function TurnPrompt() {
   });
 
   function take(qa) {
-    // Light bookkeeping: mark the slot, then prefill the input so the player can
-    // finish the sentence (add a target) before sending.
     const u = { ...(combat().actionsUsed || {}) };
     u[qa.econ] = true;
     setStore('campaign', 'combatState', 'actionsUsed', u);
@@ -73,38 +69,51 @@ export default function TurnPrompt() {
   }
 
   return (
-    <Show when={show()}>
-      <div class="turn-prompt">
-        <div class="turn-prompt-head">
+    <Show when={shouldShow()}>
+      <Show when={turnPromptMinimized()} fallback={
+        <div class="turn-prompt">
+          <div class="turn-prompt-head">
+            <span class="turn-prompt-icon">⚔</span>
+            <span class="turn-prompt-name" style={pc()?.color ? { color: pc().color } : undefined}>
+              {actor()?.name}'s turn
+            </span>
+            <span class="turn-prompt-round">Round {combat().round}</span>
+          </div>
+
+          <div class="econ-slots">
+            <span class={`econ-slot ${used().action ? 'spent' : ''}`}>Action</span>
+            <span class={`econ-slot ${used().bonus ? 'spent' : ''}`}>Bonus</span>
+            <span class={`econ-slot ${used().movement ? 'spent' : ''}`}>Move</span>
+          </div>
+
+          <div class="turn-prompt-actions">
+            <For each={attacks()}>
+              {(qa) => <button class="turn-action-btn ta-atk" onClick={() => take(qa)}><i class="ph ph-sword" />{qa.label}</button>}
+            </For>
+            <For each={spells()}>
+              {(qa) => <button class="turn-action-btn ta-spell" onClick={() => take(qa)}>
+                <i class="ph ph-sparkle" />{qa.label}
+                <span class="ta-spell-info" onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('spell-tooltip', { detail: { name: qa.label } })); }}>ⓘ</span>
+              </button>}
+            </For>
+            <For each={bonus()}>
+              {(qa) => <button class="turn-action-btn ta-bonus" onClick={() => take(qa)}><i class="ph ph-lightning" />{qa.label}</button>}
+            </For>
+            <For each={GENERIC}>
+              {(g) => <button class="turn-action-btn ta-gen" onClick={() => take({ ...g, text: `${pc()?.name || ''}${g.text}` })}>{g.label}</button>}
+            </For>
+          </div>
+        </div>
+      }>
+        <div class="turn-prompt-minimized" onClick={() => setTurnPromptMinimized(false)}>
           <span class="turn-prompt-icon">⚔</span>
           <span class="turn-prompt-name" style={pc()?.color ? { color: pc().color } : undefined}>
             {actor()?.name}'s turn
           </span>
           <span class="turn-prompt-round">Round {combat().round}</span>
+          <span class="turn-prompt-expand">tap to expand</span>
         </div>
-
-        {/* action economy reminder */}
-        <div class="econ-slots">
-          <span class={`econ-slot ${used().action ? 'spent' : ''}`}>Action</span>
-          <span class={`econ-slot ${used().bonus ? 'spent' : ''}`}>Bonus</span>
-          <span class={`econ-slot ${used().movement ? 'spent' : ''}`}>Move</span>
-        </div>
-
-        <div class="turn-prompt-actions">
-          <For each={attacks()}>
-            {(qa) => <button class="turn-action-btn ta-atk" onClick={() => take(qa)}><i class="ph ph-sword" />{qa.label}</button>}
-          </For>
-          <For each={spells()}>
-            {(qa) => <button class="turn-action-btn ta-spell" onClick={() => take(qa)}><i class="ph ph-sparkle" />{qa.label}</button>}
-          </For>
-          <For each={bonus()}>
-            {(qa) => <button class="turn-action-btn ta-bonus" onClick={() => take(qa)}><i class="ph ph-lightning" />{qa.label}</button>}
-          </For>
-          <For each={GENERIC}>
-            {(g) => <button class="turn-action-btn ta-gen" onClick={() => take({ ...g, text: `${pc()?.name || ''}${g.text}` })}>{g.label}</button>}
-          </For>
-        </div>
-      </div>
+      </Show>
     </Show>
   );
 }

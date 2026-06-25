@@ -260,6 +260,27 @@ export function loadFullDemo() {
     { id: 4, title: 'Castle Naerytar', content: 'Entered the bog-fortress posing as laborers, hunting the portal.', gameTs: 'Day 60' },
   ];
 
+  c.characters[0].familiar = {
+    name: 'Quill',
+    species: 'Owl',
+    type: 'Fey',
+    size: 'Tiny',
+    hp: 1,
+    hpMax: 1,
+    ac: 11,
+    speeds: { walk: 5, fly: 60 },
+    abilities: { str: 3, dex: 13, con: 8, int: 2, wis: 12, cha: 7 },
+    senses: 'Darkvision 120 ft.',
+    skills: 'Perception +3, Stealth +3',
+    passivePerception: 13,
+    specialAbilities: [
+      { name: 'Flyby', description: 'The owl doesn\'t provoke opportunity attacks when it flies out of an enemy\'s reach.' },
+      { name: 'Keen Hearing & Sight', description: 'The owl has advantage on Wisdom (Perception) checks that rely on hearing or sight.' },
+    ],
+    status: 'active',
+    source: 'Wild companion met on the trade road',
+  };
+
   // Per-PC carried inventory + wagon + hoard so Cargo populates across owners.
   c.inventory = {
     carried: {

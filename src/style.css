@@ -2632,23 +2632,60 @@ body {
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  flex-wrap: wrap;
 }
+.cs-familiar-icon { font-size: 20px; }
+.cs-familiar-info { flex: 1; min-width: 0; }
 .cs-familiar-name { font-size: 13px; font-weight: 600; color: var(--color-text); }
-.cs-familiar-type { font-size: 10px; color: var(--color-text-muted); }
+.cs-familiar-type { font-size: 10px; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cs-familiar-status {
   font-size: 9px;
   padding: 1px 6px;
   border-radius: 3px;
   font-weight: 600;
-  margin-left: auto;
 }
 .cs-familiar-status.active { background: rgba(46, 204, 113, 0.15); color: var(--color-success); }
 .cs-familiar-status.dismissed { background: rgba(241, 196, 15, 0.15); color: #f1c40f; }
 .cs-familiar-status.dead { background: rgba(231, 76, 60, 0.15); color: var(--color-error); }
+.cs-familiar-summary { display: flex; gap: 8px; font-size: 11px; color: var(--color-text-muted); }
+.cs-fam-stat b { color: var(--color-text); }
 .cs-familiar-toggle { font-size: 10px; color: var(--color-text-muted); }
 .cs-familiar-detail { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--color-border); }
-.cs-familiar-stats { display: flex; gap: 12px; font-size: 12px; color: var(--color-text-muted); }
-.cs-familiar-abilities { font-size: 11px; color: var(--color-text-muted); margin-top: 6px; line-height: 1.4; }
+.cs-familiar-vitals { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
+.cs-fam-vital {
+  flex: 1; min-width: 50px;
+  text-align: center;
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface));
+  border-radius: 6px;
+  padding: 6px 4px;
+}
+.cs-fam-vital-label { font-size: 9px; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .05em; }
+.cs-fam-vital-val { font-size: 13px; font-weight: 600; color: var(--color-text); }
+.cs-familiar-ab-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-bottom: 10px; }
+.cs-fam-ab { text-align: center; padding: 4px 0; }
+.cs-fam-ab-label { font-size: 9px; color: var(--color-text-muted); font-weight: 600; letter-spacing: .06em; }
+.cs-fam-ab-score { font-size: 14px; font-weight: 700; color: var(--color-text); }
+.cs-fam-ab-mod { font-size: 10px; color: var(--color-accent); }
+.cs-familiar-senses { font-size: 11px; color: var(--color-text-muted); margin-bottom: 6px; line-height: 1.5; }
+.cs-fam-sense-label { font-size: 10px; font-weight: 600; color: var(--color-text); display: block; margin-bottom: 1px; }
+.cs-familiar-text { font-size: 11px; color: var(--color-text-muted); margin-bottom: 8px; line-height: 1.4; }
+.cs-familiar-specials { margin-bottom: 8px; }
+.cs-fam-spec-label { font-size: 10px; font-weight: 600; color: var(--color-text); margin-bottom: 3px; }
+.cs-fam-spec { font-size: 11px; color: var(--color-text-muted); line-height: 1.5; margin-bottom: 3px; }
+.cs-familiar-actions-row { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.cs-fam-action-btn {
+  flex: 1; min-width: 90px;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  padding: 8px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-accent);
+  font-size: 11px; font-weight: 500;
+  cursor: pointer;
+  min-height: var(--touch-target);
+}
+.cs-fam-action-btn:active { background: var(--color-accent); color: var(--color-bg); }
 
 .cs-rest-buttons { display: flex; gap: 6px; margin-bottom: 6px; }
 .cs-rest-btn {
@@ -6407,6 +6444,17 @@ body {
 .mr-rejected .mr-pill { color: var(--color-danger); border-color: color-mix(in srgb, var(--color-danger) 35%, transparent); }
 .mr-failed .mr-pill { color: var(--color-warning); border-color: color-mix(in srgb, var(--color-warning) 35%, transparent); }
 .mr-empty { font-size: 11px; color: var(--color-text-muted); font-style: italic; }
+.audit-results { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+.audit-row { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; font-size: 12px; }
+.audit-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.audit-green .audit-dot { background: var(--color-success); }
+.audit-yellow .audit-dot { background: var(--color-warning); }
+.audit-red .audit-dot { background: var(--color-danger); }
+.audit-label { flex: 1; color: var(--color-text); }
+.audit-detail { color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+.audit-green { background: color-mix(in srgb, var(--color-success) 6%, transparent); }
+.audit-yellow { background: color-mix(in srgb, var(--color-warning) 6%, transparent); }
+.audit-red { background: color-mix(in srgb, var(--color-danger) 6%, transparent); }
 .test-loading { padding: 16px; text-align: center; color: var(--color-text-muted); font-size: 12px; }
 
 .onboard-demo-btn {
@@ -6766,6 +6814,27 @@ body {
 .turn-action-btn.ta-spell { border-color: color-mix(in srgb, var(--color-accent) 35%, transparent); }
 .turn-action-btn.ta-bonus { border-color: color-mix(in srgb, var(--color-warning) 40%, transparent); color: var(--color-warning); }
 .turn-action-btn:active { background: var(--color-accent); color: var(--color-bg); }
+.ta-spell-info {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; margin-left: 2px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+  color: var(--color-accent);
+  font-size: 11px; font-weight: 600; line-height: 1;
+  cursor: pointer;
+}
+.ta-spell-info:active { background: var(--color-accent); color: var(--color-bg); }
+.turn-prompt-minimized {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0 14px 8px; padding: 9px 12px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-accent) 10%, var(--color-surface)), var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-accent) 32%, transparent);
+  border-radius: var(--r); cursor: pointer;
+}
+.turn-prompt-minimized .turn-prompt-icon { font-size: 14px; color: var(--color-danger); }
+.turn-prompt-minimized .turn-prompt-name { font-family: var(--disp); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--color-accent); font-weight: 600; flex: 1; }
+.turn-prompt-minimized .turn-prompt-round { font-size: 10px; color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+.turn-prompt-expand { font-size: 9px; color: var(--faint); letter-spacing: .05em; }
 
 /* journal footer */
 .journal-footer { padding: 12px 16px 18px; border-top: 1px solid var(--line-soft); }

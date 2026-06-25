@@ -9,11 +9,13 @@ export default function Compendium() {
   const [spells] = createResource(() => getAll('spells'));
   const [glossary] = createResource(() => getAll('glossary'));
   const [rules] = createResource(() => getAll('compendium'));
+  const [feats] = createResource(() => getAll('feats'));
 
   const filtered = () => {
     const q = search().toLowerCase();
     const source = tab() === 'spells' ? (spells() || [])
       : tab() === 'glossary' ? (glossary() || [])
+      : tab() === 'feats' ? (feats() || [])
       : (rules() || []);
 
     if (!q) return source.slice(0, 50);
@@ -33,6 +35,7 @@ export default function Compendium() {
       return `Level ${item.level || 0} ${item.school || ''} — ${(item.classes || []).join(', ')}`;
     }
     if (tab() === 'glossary') return item.category || '';
+    if (tab() === 'feats') return item.prerequisite || 'No prerequisite';
     return item.type || item.source || '';
   }
 
@@ -46,6 +49,7 @@ export default function Compendium() {
         <button class={`jtab ${tab() === 'spells' ? 'active' : ''}`} onClick={() => setTab('spells')}>Spells</button>
         <button class={`jtab ${tab() === 'rules' ? 'active' : ''}`} onClick={() => setTab('rules')}>Rules</button>
         <button class={`jtab ${tab() === 'glossary' ? 'active' : ''}`} onClick={() => setTab('glossary')}>Glossary</button>
+        <button class={`jtab ${tab() === 'feats' ? 'active' : ''}`} onClick={() => setTab('feats')}>Feats</button>
       </div>
 
       <div class="comp-search">
