@@ -26,6 +26,8 @@ const KNOWN_KEYS = new Set([
   'location_investment', 'roll_request', 'zone_move', 'zone_add_enemy', 'zone_remove',
   'zone_effect', 'zone_label', 'combat_start', 'combat_end', 'zone_fog',
   'death_save', 'none', 'round_advance', 'hit_dice_use', 'inspiration', 'temp_hp',
+  'resistance_add', 'resistance_remove', 'vulnerability_add', 'vulnerability_remove',
+  'immunity_add', 'immunity_remove',
 ]);
 
 function findPC(name) {
@@ -607,24 +609,28 @@ const DISPATCH = {
     const pcIdx = findPCIndex(parts[0]);
     const STORAGE_TARGETS = ['wagon', 'cargo', 'hoard', 'party'];
     const isStorage = STORAGE_TARGETS.includes(parts[0].toLowerCase());
-    let target, name, type, attunement;
+    let target, name, type, attunement, weightStr;
     if (pcIdx >= 0) {
       target = parts[0];
       name = parts[1] || 'item';
       type = parts[2] || 'item';
       attunement = parts[3] || 'none';
+      weightStr = parts[4];
     } else if (isStorage) {
       target = parts[0].toLowerCase();
       name = parts[1] || 'item';
       type = parts[2] || 'item';
       attunement = parts[3] || 'none';
+      weightStr = parts[4];
     } else {
       target = 'wagon';
       name = parts[0] || 'item';
       type = parts[1] || 'item';
       attunement = parts[2] || 'none';
+      weightStr = parts[3];
     }
-    const item = { name, qty: 1, type, attunement, weight: 0 };
+    const weight = parseFloat(weightStr) || 0;
+    const item = { name, qty: 1, type, attunement, weight };
 
     if (target === 'wagon' || target === 'cargo') {
       aiSet('inventory.wagon', [...store.campaign.inventory.wagon, item]);
@@ -1024,6 +1030,52 @@ const DISPATCH = {
   },
 
   spell_add() {},
+
+  resistance_add(value) {
+    const [name, type] = value.split(',').map(s => s.trim());
+    const idx = findPCIndex(name);
+    if (idx === -1) return;
+    const pc = store.campaign.characters[idx];
+    const existing = pc.resistances || [];
+    if (!existing.includes(type)) aiSet(`characters.${idx}.resistances`, [...existing, type]);
+  },
+  resistance_remove(value) {
+    const [name, type] = value.split(',').map(s => s.trim());
+    const idx = findPCIndex(name);
+    if (idx === -1) return;
+    const pc = store.campaign.characters[idx];
+    aiSet(`characters.${idx}.resistances`, (pc.resistances || []).filter(r => r.toLowerCase() !== type.toLowerCase()));
+  },
+  vulnerability_add(value) {
+    const [name, type] = value.split(',').map(s => s.trim());
+    const idx = findPCIndex(name);
+    if (idx === -1) return;
+    const pc = store.campaign.characters[idx];
+    const existing = pc.vulnerabilities || [];
+    if (!existing.includes(type)) aiSet(`characters.${idx}.vulnerabilities`, [...existing, type]);
+  },
+  vulnerability_remove(value) {
+    const [name, type] = value.split(',').map(s => s.trim());
+    const idx = findPCIndex(name);
+    if (idx === -1) return;
+    const pc = store.campaign.characters[idx];
+    aiSet(`characters.${idx}.vulnerabilities`, (pc.vulnerabilities || []).filter(r => r.toLowerCase() !== type.toLowerCase()));
+  },
+  immunity_add(value) {
+    const [name, type] = value.split(',').map(s => s.trim());
+    const idx = findPCIndex(name);
+    if (idx === -1) return;
+    const pc = store.campaign.characters[idx];
+    const existing = pc.immunities || [];
+    if (!existing.includes(type)) aiSet(`characters.${idx}.immunities`, [...existing, type]);
+  },
+  immunity_remove(value) {
+    const [name, type] = value.split(',').map(s => s.trim());
+    const idx = findPCIndex(name);
+    if (idx === -1) return;
+    const pc = store.campaign.characters[idx];
+    aiSet(`characters.${idx}.immunities`, (pc.immunities || []).filter(r => r.toLowerCase() !== type.toLowerCase()));
+  },
 
   pc_update() { throw new Error('PC structure is system-owned'); },
   pc_add() { throw new Error('PC structure is system-owned'); },

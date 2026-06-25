@@ -107,15 +107,18 @@ export function runGate2(mechanics, narrative) {
     });
   }
 
-  const actionVerbs = /\b(attacks?|strikes?|slashes?|shoots?|fires?|swings?)\b/ig;
-  const bonusVerbs = /\b(bonus\s+action|healing\s+word|misty\s+step|cunning\s+action|second\s+wind)\b/ig;
+  const actionVerbs = /\b(attacks?|strikes?|slashes?|shoots?|fires?|swings?|casts?\s+\w+)\b/ig;
+  const bonusVerbs = /\b(bonus\s+action|healing\s+word|misty\s+step|cunning\s+action|second\s+wind|shield\s+master|polearm\s+master|crossbow\s+expert|spiritual\s+weapon|hex|hunter'?s?\s+mark)\b/ig;
+  const reactionVerbs = /\b(opportunity\s+attack|counterspell|shield\s+spell|hellish\s+rebuke|reaction)\b/ig;
   const actionCount = [...narrative.matchAll(actionVerbs)].length;
+  const bonusCount = [...narrative.matchAll(bonusVerbs)].length;
+  const reactionCount = [...narrative.matchAll(reactionVerbs)].length;
+
+  const pcChar = store.campaign.characters.find(c => c.name === currentActor.name);
 
   if (actionCount > 2 && currentActor.type === 'pc') {
-    const hasActionSurge = store.campaign.characters.some(c =>
-      c.name === currentActor.name && c.features?.some(f =>
-        (typeof f === 'string' ? f : f.name || '').toLowerCase().includes('action surge')
-      )
+    const hasActionSurge = pcChar?.features?.some(f =>
+      (typeof f === 'string' ? f : f.name || '').toLowerCase().includes('action surge')
     );
     if (!hasActionSurge) {
       flags.push({
@@ -125,6 +128,24 @@ export function runGate2(mechanics, narrative) {
         pcName: currentActor.name,
       });
     }
+  }
+
+  if (bonusCount > 1) {
+    flags.push({
+      gate: 2,
+      type: 'multi_bonus',
+      text: `Multiple bonus actions narrated for ${currentActor.name} — only one per turn`,
+      pcName: currentActor.name,
+    });
+  }
+
+  if (reactionCount > 1) {
+    flags.push({
+      gate: 2,
+      type: 'multi_reaction',
+      text: `Multiple reactions narrated for ${currentActor.name} — only one per round`,
+      pcName: currentActor.name,
+    });
   }
 
   if (flags.length) {

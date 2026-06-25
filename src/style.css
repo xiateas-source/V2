@@ -2555,6 +2555,101 @@ body {
   color: var(--color-error);
 }
 
+/* Condition cards with mechanical effects */
+.cs-condition-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.cs-condition-card {
+  background: color-mix(in srgb, var(--color-danger) 8%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-danger) 20%, transparent);
+  border-radius: 8px; padding: 8px 10px;
+}
+.cs-condition-header {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.cs-condition-name {
+  font-size: 13px; font-weight: 600; color: var(--color-danger);
+}
+.cs-condition-remove {
+  background: none; border: none; color: var(--color-text-muted);
+  font-size: 16px; cursor: pointer; padding: 2px 6px;
+  min-width: 28px; min-height: 28px;
+}
+.cs-condition-effect {
+  font-size: 11px; color: var(--color-text-muted); line-height: 1.4;
+  margin-top: 4px; font-style: italic;
+}
+
+/* Damage modifiers (resistance/vulnerability/immunity) */
+.cs-dmg-modifiers { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.cs-dmg-row {
+  display: flex; align-items: flex-start; gap: 8px;
+  background: var(--color-surface); border-radius: 8px; padding: 8px 10px;
+}
+.cs-dmg-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; min-width: 60px; padding-top: 2px;
+}
+.cs-dmg-row.resist .cs-dmg-label { color: var(--color-success); }
+.cs-dmg-row.vuln .cs-dmg-label { color: var(--color-danger); }
+.cs-dmg-row.immune .cs-dmg-label { color: var(--color-accent); }
+.cs-dmg-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.cs-dmg-tag {
+  font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 500;
+}
+.cs-dmg-tag.resist {
+  background: color-mix(in srgb, var(--color-success) 12%, transparent);
+  color: var(--color-success);
+}
+.cs-dmg-tag.vuln {
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  color: var(--color-danger);
+}
+.cs-dmg-tag.immune {
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  color: var(--color-accent);
+}
+
+/* Encumbrance bar */
+.cs-encumbrance { margin-bottom: 12px; }
+.cs-enc-bar {
+  height: 8px; background: var(--color-surface-alt); border-radius: 4px;
+  position: relative; overflow: visible; margin-bottom: 4px;
+}
+.cs-enc-fill {
+  height: 100%; border-radius: 4px; transition: width 0.3s;
+  background: var(--color-success);
+}
+.cs-encumbrance.encumbered .cs-enc-fill { background: var(--color-warning); }
+.cs-encumbrance.heavy .cs-enc-fill { background: var(--color-danger); }
+.cs-encumbrance.over .cs-enc-fill { background: var(--color-danger); }
+.cs-enc-mark {
+  position: absolute; top: -2px; width: 2px; height: 12px;
+  background: var(--color-text-muted); opacity: 0.4;
+}
+.cs-enc-text {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 11px; color: var(--color-text-muted);
+}
+.cs-enc-warning {
+  font-size: 10px; font-weight: 600; font-style: italic;
+}
+.cs-encumbrance.encumbered .cs-enc-warning { color: var(--color-warning); }
+.cs-encumbrance.heavy .cs-enc-warning,
+.cs-encumbrance.over .cs-enc-warning { color: var(--color-danger); }
+
+/* Equipment meta row */
+.cs-equip-meta { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.cs-equip-wt { font-size: 10px; color: var(--color-text-muted); }
+.cs-equip-attuned {
+  font-size: 9px; font-weight: 700; color: var(--color-accent);
+  border: 1px solid var(--color-accent); border-radius: 3px;
+  padding: 0 3px; line-height: 1.4;
+}
+
+/* Costly spell component highlight */
+.cs-comp-costly {
+  color: var(--color-warning) !important; font-weight: 600;
+}
+
 .cs-hit-dice-row {
   display: flex;
   align-items: center;

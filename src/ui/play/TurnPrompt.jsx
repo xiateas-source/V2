@@ -10,7 +10,7 @@ const GENERIC = [
   { label: 'Help', econ: 'action', text: ' uses the Help action to aid ' },
 ];
 
-export const [turnPromptMinimized, setTurnPromptMinimized] = createSignal(false);
+export const [turnPromptMinimized, setTurnPromptMinimized] = createSignal(true);
 
 export default function TurnPrompt() {
   const combat = () => store.campaign.combatState;

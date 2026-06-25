@@ -27,6 +27,15 @@ export function genLedger(mode = 'compact') {
       if (pc.exhaustion > 0) {
         parts.push(`Exhaustion: ${pc.exhaustion}`);
       }
+      if (pc.resistances?.length) {
+        parts.push(`Resist: ${pc.resistances.join(', ')}`);
+      }
+      if (pc.vulnerabilities?.length) {
+        parts.push(`Vulnerable: ${pc.vulnerabilities.join(', ')}`);
+      }
+      if (pc.immunities?.length) {
+        parts.push(`Immune: ${pc.immunities.join(', ')}`);
+      }
 
       const slotParts = [];
       for (const [lvl, max] of Object.entries(pc.spellSlots)) {
@@ -59,11 +68,18 @@ export function genLedger(mode = 'compact') {
 
       lines.push(parts.join(' | '));
 
-      // PC carried inventory (brief)
       const pcCarried = c.inventory.carried[pc.id] || [];
       if (pcCarried.length) {
         const brief = pcCarried.map(i => i.name + (i.qty > 1 ? ` x${i.qty}` : '')).join(', ');
-        lines.push(`  Carrying: ${brief}`);
+        const totalWt = pcCarried.reduce((s, i) => s + (Number(i.weight) || 0) * (Number(i.qty) || 1), 0);
+        const str = pc.abilityScores?.str || 10;
+        const cap = str * 15;
+        const wtTag = totalWt > 0 ? ` [${totalWt}/${cap}lb]` : '';
+        let encTag = '';
+        if (totalWt > cap) encTag = ' OVER CAPACITY';
+        else if (totalWt > str * 10) encTag = ' HEAVILY ENCUMBERED (-20ft, disadv STR/DEX/CON)';
+        else if (totalWt > str * 5) encTag = ' ENCUMBERED (-10ft)';
+        lines.push(`  Carrying${wtTag}: ${brief}${encTag}`);
       }
     }
 

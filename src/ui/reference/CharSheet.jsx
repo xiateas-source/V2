@@ -25,6 +25,24 @@ const SKILL_ABILITY = {
 const ABILITY_NAMES = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
 const ABILITY_FULL = { str: 'Strength', dex: 'Dexterity', con: 'Constitution', int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma' };
 
+const CONDITION_EFFECTS = {
+  blinded: 'Auto-fail sight checks. Attack rolls have disadvantage. Attacks against you have advantage.',
+  charmed: 'Can\'t attack the charmer. Charmer has advantage on social checks.',
+  deafened: 'Auto-fail hearing checks.',
+  frightened: 'Disadvantage on ability checks and attacks while source is visible. Can\'t willingly move closer.',
+  grappled: 'Speed becomes 0. Ends if grappler is incapacitated or forced apart.',
+  incapacitated: 'Can\'t take actions or reactions.',
+  invisible: 'Attacks against you have disadvantage. Your attacks have advantage.',
+  paralyzed: 'Incapacitated. Auto-fail STR/DEX saves. Attacks have advantage. Melee hits are critical.',
+  petrified: 'Weight ×10. Incapacitated. Auto-fail STR/DEX saves. Resistance to all damage. Immune to poison/disease.',
+  poisoned: 'Disadvantage on attack rolls and ability checks.',
+  prone: 'Disadvantage on attacks. Melee attacks against you have advantage. Ranged attacks have disadvantage. Must use half movement to stand.',
+  restrained: 'Speed 0. Attacks have disadvantage. Attacks against you have advantage. Disadvantage on DEX saves.',
+  stunned: 'Incapacitated. Auto-fail STR/DEX saves. Attacks against you have advantage.',
+  unconscious: 'Incapacitated. Drop prone. Auto-fail STR/DEX saves. Attacks have advantage. Melee hits are critical.',
+  exhaustion: 'Penalties scale with level: 1=disadvantage on checks, 2=speed halved, 3=disadvantage on attacks/saves, 4=HP max halved, 5=speed 0, 6=death.',
+};
+
 const TABS = ['Stats', 'Vitals', 'Spells', 'Features', 'Equipment', 'Bio'];
 
 export default function CharSheet(props) {
@@ -222,6 +240,21 @@ export default function CharSheet(props) {
           setStore('campaign', 'characters', idx, 'conditions', updated);
           break;
         }
+        case 'addResistance': {
+          const existing = p.resistances || [];
+          if (!existing.includes(v)) setStore('campaign', 'characters', idx, 'resistances', [...existing, v]);
+          break;
+        }
+        case 'addVulnerability': {
+          const existing = p.vulnerabilities || [];
+          if (!existing.includes(v)) setStore('campaign', 'characters', idx, 'vulnerabilities', [...existing, v]);
+          break;
+        }
+        case 'addImmunity': {
+          const existing = p.immunities || [];
+          if (!existing.includes(v)) setStore('campaign', 'characters', idx, 'immunities', [...existing, v]);
+          break;
+        }
         case 'inspiration': {
           setStore('campaign', 'characters', idx, 'inspiration', v === '1' || v.toLowerCase() === 'true');
           break;
@@ -241,6 +274,9 @@ export default function CharSheet(props) {
             <option value="xp">XP</option>
             <option value="exhaustion">Exhaustion (0-6)</option>
             <option value="addCondition">Add Condition</option>
+            <option value="addResistance">Add Resistance</option>
+            <option value="addVulnerability">Add Vulnerability</option>
+            <option value="addImmunity">Add Immunity</option>
             <option value="inspiration">Inspiration (true/false)</option>
           </select>
           <input
@@ -382,18 +418,58 @@ export default function CharSheet(props) {
           </div>
         </Show>
         <Show when={p.conditions.length > 0} fallback={<div class="cs-muted">No conditions</div>}>
-          <div class="cs-condition-chips">
+          <div class="cs-condition-list">
             <For each={p.conditions}>
-              {(c, idx) => (
-                <span class="cs-condition-chip" onClick={() => {
-                  const i = activePC();
-                  const updated = store.campaign.characters[i].conditions.filter((_, j) => j !== idx());
-                  setStore('campaign', 'characters', i, 'conditions', updated);
-                }}>
-                  {c.name || c} ×
-                </span>
-              )}
+              {(c, idx) => {
+                const name = () => c.name || c;
+                const effect = () => CONDITION_EFFECTS[name().toLowerCase()] || null;
+                return (
+                  <div class="cs-condition-card">
+                    <div class="cs-condition-header">
+                      <span class="cs-condition-name">{name()}</span>
+                      <button class="cs-condition-remove" onClick={() => {
+                        const i = activePC();
+                        const updated = store.campaign.characters[i].conditions.filter((_, j) => j !== idx());
+                        setStore('campaign', 'characters', i, 'conditions', updated);
+                      }}>×</button>
+                    </div>
+                    <Show when={effect()}>
+                      <div class="cs-condition-effect">{effect()}</div>
+                    </Show>
+                  </div>
+                );
+              }}
             </For>
+          </div>
+        </Show>
+
+        <Show when={p.resistances?.length || p.vulnerabilities?.length || p.immunities?.length}>
+          <div class="cs-section-label">Damage Modifiers</div>
+          <div class="cs-dmg-modifiers">
+            <Show when={p.resistances?.length}>
+              <div class="cs-dmg-row resist">
+                <span class="cs-dmg-label">Resist</span>
+                <div class="cs-dmg-tags">
+                  <For each={p.resistances}>{(r) => <span class="cs-dmg-tag resist">{r}</span>}</For>
+                </div>
+              </div>
+            </Show>
+            <Show when={p.vulnerabilities?.length}>
+              <div class="cs-dmg-row vuln">
+                <span class="cs-dmg-label">Vulnerable</span>
+                <div class="cs-dmg-tags">
+                  <For each={p.vulnerabilities}>{(r) => <span class="cs-dmg-tag vuln">{r}</span>}</For>
+                </div>
+              </div>
+            </Show>
+            <Show when={p.immunities?.length}>
+              <div class="cs-dmg-row immune">
+                <span class="cs-dmg-label">Immune</span>
+                <div class="cs-dmg-tags">
+                  <For each={p.immunities}>{(r) => <span class="cs-dmg-tag immune">{r}</span>}</For>
+                </div>
+              </div>
+            </Show>
           </div>
         </Show>
 
@@ -561,7 +637,11 @@ export default function CharSheet(props) {
                 <Show when={sp().castingTime}><span><i class="ph ph-clock" />{sp().castingTime}</span></Show>
                 <Show when={sp().range}><span><i class="ph ph-target" />{sp().range}</span></Show>
                 <Show when={sp().duration}><span><i class="ph ph-hourglass" />{sp().duration}</span></Show>
-                <Show when={sp().components}><span>{sp().components}</span></Show>
+                <Show when={sp().components}>
+                  <span class={sp().components?.match(/\d+\s*gp/) ? 'cs-comp-costly' : ''}>
+                    {sp().components}
+                  </span>
+                </Show>
               </div>
             </Show>
             <div class="cs-spell-desc">{sp().description || sp().content || 'No description recorded.'}</div>
@@ -722,8 +802,45 @@ export default function CharSheet(props) {
     const items = carried();
     const gold = store.campaign.gold;
 
+    const totalWeight = () => items.reduce((s, i) => s + (Number(i.weight) || 0) * (Number(i.qty) || 1), 0);
+    const str = () => p.abilityScores?.str || 10;
+    const capacity = () => str() * 15;
+    const encumbered = () => str() * 5;
+    const heavilyEncumbered = () => str() * 10;
+    const encumbranceLevel = () => {
+      const w = totalWeight();
+      if (w > capacity()) return 'over';
+      if (w > heavilyEncumbered()) return 'heavy';
+      if (w > encumbered()) return 'encumbered';
+      return 'ok';
+    };
+    const encumbranceText = () => {
+      const lvl = encumbranceLevel();
+      if (lvl === 'over') return 'Over capacity! Cannot move.';
+      if (lvl === 'heavy') return 'Heavily encumbered: -20ft speed, disadvantage on STR/DEX/CON checks, attacks, and saves.';
+      if (lvl === 'encumbered') return 'Encumbered: -10ft speed.';
+      return '';
+    };
+
     return (
       <div class="cs-tab-body">
+        <div class="cs-section-label">Carrying Capacity <span class="cs-hint">STR {str()} × 15 = {capacity()} lb</span></div>
+        <Show when={totalWeight() > 0 || items.length > 0}>
+          <div class={`cs-encumbrance ${encumbranceLevel()}`}>
+            <div class="cs-enc-bar">
+              <div class="cs-enc-fill" style={{ width: `${Math.min(100, (totalWeight() / capacity()) * 100)}%` }} />
+              <div class="cs-enc-mark enc" style={{ left: `${(encumbered() / capacity()) * 100}%` }} />
+              <div class="cs-enc-mark heavy" style={{ left: `${(heavilyEncumbered() / capacity()) * 100}%` }} />
+            </div>
+            <div class="cs-enc-text">
+              <span>{totalWeight()} / {capacity()} lb</span>
+              <Show when={encumbranceText()}>
+                <span class="cs-enc-warning">{encumbranceText()}</span>
+              </Show>
+            </div>
+          </div>
+        </Show>
+
         <Show when={items.length > 0} fallback={<div class="cs-muted">No items carried</div>}>
           <div class="cs-section-label">Carried Items</div>
           <For each={items}>
@@ -733,8 +850,12 @@ export default function CharSheet(props) {
                   <div class="cs-equip-name">{item.name}</div>
                   <Show when={item.detail}><div class="cs-equip-detail">{item.detail}</div></Show>
                 </div>
-                <Show when={item.qty > 1}><span class="cs-equip-qty">x{item.qty}</span></Show>
-                <Show when={item.type}><span class={`cs-item-type-tag ${item.type}`}>{item.type}</span></Show>
+                <div class="cs-equip-meta">
+                  <Show when={item.qty > 1}><span class="cs-equip-qty">x{item.qty}</span></Show>
+                  <Show when={Number(item.weight) > 0}><span class="cs-equip-wt">{(Number(item.weight) * (Number(item.qty) || 1))} lb</span></Show>
+                  <Show when={item.attunement === 'attuned'}><span class="cs-equip-attuned">A</span></Show>
+                  <Show when={item.type}><span class={`cs-item-type-tag ${item.type}`}>{item.type}</span></Show>
+                </div>
               </div>
             )}
           </For>

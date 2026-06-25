@@ -119,6 +119,9 @@ export const DEFAULT_CHARACTER = {
   exhaustion: 0,
   inspiration: false,
   deathSaves: { successes: 0, failures: 0 },
+  resistances: [],
+  vulnerabilities: [],
+  immunities: [],
   familiar: null,
 };
 

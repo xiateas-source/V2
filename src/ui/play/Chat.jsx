@@ -1,4 +1,4 @@
-import { createSignal, createEffect, createMemo, For, Show, onMount } from 'solid-js';
+import { createSignal, createEffect, createMemo, For, Show, onMount, onCleanup } from 'solid-js';
 import { store } from '../../state/index.js';
 import { isSending } from '../../ai/engine.js';
 import { getAll } from '../../data/local.js';
@@ -15,6 +15,7 @@ import TTS from './TTS.jsx';
 import { autoRead, speak } from '../../audio/browserTTS.js';
 import MechPill from '../shared/MechPill.jsx';
 import { navigateTo } from '../shared/sourceBus.js';
+import { validateMechanics, applyMechanics } from '../../ai/mechanics.js';
 
 const [glossaryTerms, setGlossaryTerms] = createSignal([]);
 const [spellList, setSpellList] = createSignal([]);
@@ -48,7 +49,21 @@ export default function Chat() {
     } catch (_) {}
 
     window.addEventListener('spell-tooltip', (e) => showSpellTooltip(e.detail?.name));
+    window.addEventListener('rest-request', handleRest);
   });
+
+  onCleanup(() => window.removeEventListener('rest-request', handleRest));
+
+  function handleRest(e) {
+    const { type, pc } = e.detail || {};
+    if (!pc) return;
+    const key = type === 'long' ? 'long_rest' : 'short_rest';
+    const label = type === 'long' ? 'Long Rest' : 'Short Rest';
+    if (type === 'long' && !confirm(`${pc} takes a long rest (8 hours). HP restored, slots refilled, hit dice recovered. Continue?`)) return;
+    const { valid } = validateMechanics([{ key, value: pc, target: '', applied: false }]);
+    applyMechanics(valid);
+    window.dispatchEvent(new CustomEvent('toast', { detail: { text: `${pc}: ${label} complete` } }));
+  }
 
   const npcNames = createMemo(() =>
     store.campaign.npcs.filter(n => n.name && n.name.length > 2).map(n => n.name)
