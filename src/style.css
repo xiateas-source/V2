@@ -7071,6 +7071,94 @@ body {
 .btn-new-campaign:active { background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface)); }
 .settings-hint { font-size: 11px; color: var(--color-text-muted); margin-top: 8px; line-height: 1.5; }
 
+.btn-contracts {
+  width: 100%; display: flex; align-items: center; gap: 8px; justify-content: center;
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
+  color: var(--color-accent); font-size: 13px; font-weight: 600;
+  padding: 12px; border-radius: 10px; cursor: pointer; margin-bottom: 10px;
+}
+.btn-contracts i { font-size: 16px; }
+.btn-contracts:active { background: color-mix(in srgb, var(--color-accent) 20%, var(--color-surface)); }
+
+/* ── Contracts Editor ── */
+.contracts-page {
+  padding: var(--space-lg) var(--space-md);
+  overflow-y: auto; height: 100%;
+}
+.contracts-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 4px;
+}
+.contracts-back {
+  background: none; border: none; color: var(--color-accent);
+  font-size: 20px; padding: 4px; cursor: pointer;
+  min-width: var(--touch-target); min-height: var(--touch-target);
+  display: flex; align-items: center; justify-content: center;
+}
+.contracts-title {
+  font-family: var(--disp); font-size: 1.1rem; color: var(--color-text);
+  letter-spacing: .03em;
+}
+.contracts-desc {
+  font-size: 12px; color: var(--color-text-muted); line-height: 1.5;
+  margin-bottom: var(--space-lg);
+}
+.contract-section {
+  border: 1px solid var(--color-border); border-radius: 10px;
+  margin-bottom: 10px; overflow: hidden;
+  background: var(--color-surface);
+}
+.contract-section.open { border-color: color-mix(in srgb, var(--color-accent) 40%, transparent); }
+.contract-section-header {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  background: none; border: none; color: var(--color-text);
+  padding: 12px 14px; cursor: pointer; font-size: 14px;
+  min-height: var(--touch-target);
+}
+.contract-section-header i { color: var(--color-text-muted); font-size: 14px; }
+.contract-section-left {
+  display: flex; align-items: center; gap: 8px;
+}
+.contract-section-label { font-weight: 600; font-family: var(--ui); }
+.contract-modified-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--color-accent);
+}
+.contract-empty-tag {
+  font-size: 10px; color: var(--color-text-muted);
+  background: color-mix(in srgb, var(--color-text-muted) 12%, transparent);
+  padding: 1px 6px; border-radius: 4px; text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.contract-section-body { padding: 0 14px 14px; }
+.contract-hint {
+  font-size: 11px; color: var(--color-text-muted); margin-bottom: 8px; line-height: 1.4;
+}
+.contract-textarea {
+  width: 100%; background: var(--color-input-bg);
+  border: 1px solid var(--color-border); border-radius: 8px;
+  padding: 10px 12px; font-size: 13px; line-height: 1.5;
+  color: var(--color-text); font-family: var(--ui);
+  resize: vertical; min-height: 80px;
+}
+.contract-textarea:focus {
+  outline: none; border-color: var(--color-accent);
+}
+.contract-textarea::placeholder { color: var(--color-text-muted); opacity: 0.5; }
+.contract-actions {
+  display: flex; justify-content: flex-end; margin-top: 8px;
+}
+.contract-reset-btn {
+  background: none; border: 1px solid var(--color-border);
+  color: var(--color-text-muted); font-size: 11px;
+  padding: 6px 12px; border-radius: 6px; cursor: pointer;
+}
+.contract-reset-btn:disabled { opacity: 0.3; cursor: default; }
+.contract-reset-btn:not(:disabled):active {
+  background: color-mix(in srgb, var(--color-warning) 15%, transparent);
+  color: var(--color-warning); border-color: var(--color-warning);
+}
+
 /* ── Level-Up Wizard ── */
 .lu-wizard {
   display: flex; flex-direction: column; height: 100%;

@@ -2,6 +2,7 @@ import { createSignal, Show } from 'solid-js';
 import { store, setStore, resetCampaign } from '../../state/index.js';
 import { saveKeys as persistKeys, saveProviderSettings } from '../../data/keys.js';
 import { clearActiveCampaign, exportSnapshot, saveLocalNow } from '../../data/persist.js';
+import Contracts from './Contracts.jsx';
 
 const GEMINI_MODELS = [
   { id: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash (free, newest)' },
@@ -16,6 +17,7 @@ export default function Settings() {
   const [orKey, setOrKey] = createSignal(store.system.providers.openrouterKey);
   const [model, setModel] = createSignal(store.system.providers.geminiModel || 'gemini-3.5-flash');
   const [saved, setSaved] = createSignal(false);
+  const [subView, setSubView] = createSignal(null);
 
   function saveKeys() {
     const gk = gemKey().trim();
@@ -92,90 +94,96 @@ export default function Settings() {
   }
 
   return (
-    <div class="settings-page">
-      <h2 class="settings-heading">Settings</h2>
+    <Show when={subView() !== 'contracts'} fallback={<Contracts onBack={() => setSubView(null)} />}>
+      <div class="settings-page">
+        <h2 class="settings-heading">Settings</h2>
 
-      <section class="settings-section">
-        <h3 class="settings-label">AI Provider</h3>
-        <div class="field-group">
-          <label class="field-label">Gemini Model</label>
-          <select
-            class="field-input"
-            value={model()}
-            onChange={(e) => setModel(e.target.value)}
-          >
-            <For each={GEMINI_MODELS}>
-              {(m) => <option value={m.id}>{m.label}</option>}
-            </For>
-          </select>
-        </div>
-        <div class="field-group">
-          <label class="field-label">Gemini API Key</label>
-          <input
-            type="password"
-            class="field-input"
-            placeholder="AIza..."
-            value={gemKey()}
-            onInput={(e) => setGemKey(e.target.value)}
-          />
-        </div>
-        <div class="field-group">
-          <label class="field-label">OpenRouter Key (optional fallback)</label>
-          <input
-            type="password"
-            class="field-input"
-            placeholder="sk-or-..."
-            value={orKey()}
-            onInput={(e) => setOrKey(e.target.value)}
-          />
-        </div>
-        <button class="btn-save" onClick={saveKeys}>
-          {saved() ? 'Saved' : 'Save'}
-        </button>
-      </section>
+        <section class="settings-section">
+          <h3 class="settings-label">AI Provider</h3>
+          <div class="field-group">
+            <label class="field-label">Gemini Model</label>
+            <select
+              class="field-input"
+              value={model()}
+              onChange={(e) => setModel(e.target.value)}
+            >
+              <For each={GEMINI_MODELS}>
+                {(m) => <option value={m.id}>{m.label}</option>}
+              </For>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Gemini API Key</label>
+            <input
+              type="password"
+              class="field-input"
+              placeholder="AIza..."
+              value={gemKey()}
+              onInput={(e) => setGemKey(e.target.value)}
+            />
+          </div>
+          <div class="field-group">
+            <label class="field-label">OpenRouter Key (optional fallback)</label>
+            <input
+              type="password"
+              class="field-input"
+              placeholder="sk-or-..."
+              value={orKey()}
+              onInput={(e) => setOrKey(e.target.value)}
+            />
+          </div>
+          <button class="btn-save" onClick={saveKeys}>
+            {saved() ? 'Saved' : 'Save'}
+          </button>
+        </section>
 
-      <section class="settings-section">
-        <h3 class="settings-label">Campaign</h3>
-        <Show when={store.campaign.id}>
-          <div class="settings-campaign-name">{store.campaign.name || 'Untitled campaign'}</div>
-        </Show>
-        <button class="btn-new-campaign" onClick={newCampaign}>
-          {store.campaign.id ? 'New Campaign (save & start fresh)' : 'Start a Campaign'}
-        </button>
-        <p class="settings-hint">Your game saves automatically and survives reloads. Starting a new campaign clears the current one on this device.</p>
-      </section>
-
-      <section class="settings-section">
-        <h3 class="settings-label">Save / Load</h3>
-        <div class="settings-save-section">
+        <section class="settings-section">
+          <h3 class="settings-label">Campaign</h3>
           <Show when={store.campaign.id}>
-            <button class="btn-export" onClick={exportGame}>Export Save (JSON)</button>
+            <div class="settings-campaign-name">{store.campaign.name || 'Untitled campaign'}</div>
+            <button class="btn-contracts" onClick={() => setSubView('contracts')}>
+              <i class="ph ph-scroll" />
+              <span>DM Contracts</span>
+            </button>
           </Show>
-          <button class="btn-import" onClick={importGame}>Import Save File</button>
-          <input
-            ref={fileInput}
-            type="file"
-            accept=".json"
-            class="import-file-input"
-            onChange={handleImportFile}
-          />
-        </div>
-        <p class="settings-hint">Export downloads your game as a JSON file. Import loads a previously saved game, replacing the current one.</p>
-      </section>
+          <button class="btn-new-campaign" onClick={newCampaign}>
+            {store.campaign.id ? 'New Campaign (save & start fresh)' : 'Start a Campaign'}
+          </button>
+          <p class="settings-hint">Your game saves automatically and survives reloads. Starting a new campaign clears the current one on this device.</p>
+        </section>
 
-      <section class="settings-section">
-        <h3 class="settings-label">Theme</h3>
-        <div class="theme-controls">
-          <button class="btn-theme" onClick={toggleMode}>
-            {store.system.settings.theme.startsWith('dark') ? 'Light' : 'Dark'}
-          </button>
-          <button class="btn-theme" onClick={cycleTheme}>
-            Next Palette
-          </button>
-          <span class="theme-current">{store.system.settings.theme}</span>
-        </div>
-      </section>
-    </div>
+        <section class="settings-section">
+          <h3 class="settings-label">Save / Load</h3>
+          <div class="settings-save-section">
+            <Show when={store.campaign.id}>
+              <button class="btn-export" onClick={exportGame}>Export Save (JSON)</button>
+            </Show>
+            <button class="btn-import" onClick={importGame}>Import Save File</button>
+            <input
+              ref={fileInput}
+              type="file"
+              accept=".json"
+              class="import-file-input"
+              onChange={handleImportFile}
+            />
+          </div>
+          <p class="settings-hint">Export downloads your game as a JSON file. Import loads a previously saved game, replacing the current one.</p>
+        </section>
+
+        <section class="settings-section">
+          <h3 class="settings-label">Theme</h3>
+          <div class="theme-controls">
+            <button class="btn-theme" onClick={toggleMode}>
+              {store.system.settings.theme.startsWith('dark') ? 'Light' : 'Dark'}
+            </button>
+            <button class="btn-theme" onClick={cycleTheme}>
+              Next Palette
+            </button>
+            <span class="theme-current">{store.system.settings.theme}</span>
+          </div>
+        </section>
+      </div>
+    </Show>
   );
 }
 
