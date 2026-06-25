@@ -1,83 +1,56 @@
 # Session Log — Handoff Note
 
-## Session 46 · 2026-06-25 — Familiar tab, combat UX, Compendium feats, post-deploy fixes, doc trim (DEPLOYED)
+## Session 47 · 2026-06-25 — Rules audit, Contracts editor, gameplay mechanics elevation
 
-**Theme:** Shipped 8 feature areas from a comprehensive plan (familiar stat block, familiar mechanics, spell info icons, TurnPrompt minimize, combat auto-minimize, Compendium feats tab, MechTest build audit, demo familiar data). Post-deploy testing via full JSON export revealed two bugs (activeCampaignId empty on restore, NPC dedup creating duplicates). Both fixed and merged. Then trimmed workboard.md (1384→~170 lines) and architecture.md (411→~240 lines) to remove stale snapshots and duplicated specs.
+**Theme:** Law 2 compliance audit cross-referencing D&D 5e rules against codebase enforcement. Built the DM Contracts editor. User elevated gameplay mechanics (carrying capacity, resistance/vulnerability, critical hits, spell components, distance/time) from "cosmetic enrichment" to "important — they make it fun."
 
-Branch `claude/character-sheet-familiar-tab-2u3wsw`. Build clean. **All commits merged to main + deployed.**
+Branch `claude/character-sheet-familiar-tab-2u3wsw` @ `46b6e36`. Build clean. Tests 33/33. **Merged to main.**
 
 ### Shipped
 
-**Familiar Stat Block (CharSheet Vitals tab):**
-- Full stat block: collapsed header with name/species/type/HP/AC, expandable detail with ability scores + modifiers, speeds, senses, skills, special abilities, familiar actions
-- Action buttons: See Through Eyes / Dismiss / Resummon (dispatch `prefill-input` events)
-- Backward-compatible: handles both `form`/`species` and `abilities` as string/object
+**DM Contracts Editor (`Contracts.jsx`, 101 lines):**
+- 7 accordion sections: persona, prohibitions, pacing, continuity, multi-player, module fidelity, DM secrets
+- Each section: expand/collapse, textarea editor, modified dot indicator, empty tag for blank sections
+- Reset-to-default button for the 5 seeded sections (persona/never/actions/continuity/multi)
+- Writes to `store.campaign.contracts` → flows into `buildContracts()` → system prompt
+- Accessible from Settings → Campaign section → "DM Contracts" button (scroll icon)
+- Settings.jsx uses reactive `<Show>` to swap between settings and contracts views
 
-**Familiar Mechanics (`familiar_add`, `familiar_update`):**
-- `familiar_add: PCName|Name,Species,Type,HP,HpMax,AC` — creates/replaces familiar with full defaults
-- `familiar_update: PCName|field=value` — updates individual fields (status, hp, etc.)
-- Both in KNOWN_KEYS, use aiSet(), guard with findPC()
+**Rules-vs-Code Enforcement Audit:**
+- Cross-referenced `playingthegame.md` and `rulesglossary.md` against codebase
+- Found 16 hard-enforced rules (state ownership, HP/gold/items, roll delegation, turn order, drift detection, spell slots, scene transitions, concentration, temp HP, attunement limit)
+- Found 14 soft-enforced rules (action economy, advantage/disadvantage, cover, opportunity attacks, movement, rests, carrying capacity, conditions, massive damage, critical hits, resistance/vulnerability, spell components, proficiency)
+- Full audit preserved in plan file
 
-**Combat Spell Info Icons:**
-- ⓘ button on spell chips in TurnPrompt
-- Dispatches `spell-tooltip` event → Chat.jsx shows spell description in existing tooltip overlay
-- Tap chip = prefill action, tap ⓘ = see description
-
-**TurnPrompt Minimize:**
-- Exported `turnPromptMinimized` signal from TurnPrompt.jsx
-- Dice button in InputBar toggles minimize during combat (opens QuickActions outside combat)
-- Minimized bar: "⚔ PC's turn · Round N · tap to expand"
-
-**Combat Auto-Minimize:**
-- createEffect in Combat.jsx watches currentTurn
-- PC turn (alive) → minimize overlay; NPC turn → expand
-- Reduces combat UI stack to one visible panel at a time
-
-**Compendium Feats Tab:**
-- 4th tab in Compendium: 56 feats from IndexedDB
-- Subtitle: prerequisite or "No prerequisite"
-- Search works across all tabs
-
-**MechTest Build Audit:**
-- "Build Status" section with `runAudit()` function
-- Checks 6 IndexedDB stores (counts vs expected) + campaign state (characters, quests, NPCs, familiar, combat, contracts, narrative)
-- Color-coded rows: green/yellow/red
-
-**Demo Familiar Data:**
-- Quill (Owl) on Ivy in `loadFullDemo()`
-- Full structured data: abilities object, speeds, specialAbilities array, senses, skills
-
-**Post-Deploy Fixes:**
-- `activeCampaignId` hydrated on boot restore in `persist.js` — was only used as IndexedDB lookup key, never written back to system store
-- NPC fuzzy dedup in `npc_add` — exact match → startsWith + first-word match (same as findPC pattern). "Leosin" now matches "Leosin Erlanthar"
-
-**Documentation Trim:**
-- workboard.md: 1384→~170 lines. Fresh S46 Reality Snapshot. Removed inline specs (color palette, chat system, state shapes) that duplicate their own reference files. Removed stale S39 snapshot.
-- architecture.md: 411→~240 lines. Fixed stale numbers (65→72 keys, 94→339 spells, 44→56 feats, 97→84 glossary, 3→12 classes). Added missing files (sourceBus.js, gates.js, rules.js, setupPrompts.js). Updated persist.js description. Compendium 4 tabs.
+**Workboard Accuracy Corrections:**
+- MechPill.jsx (50 lines, built), PreviouslyOn.jsx (86 lines, built), Rewind.jsx (217 lines, built), DiceRoller.jsx (38 lines, built) — all marked as stubs but actually built
+- Ask DM interception built in engine.js, term-glossary linking built in Chat.jsx (346-360), spell citation linking built in Chat.jsx (328-344)
+- CampaignConfig.jsx (375 lines) has 3 real paths (Fresh/Adventure/BookUpload) — not stubbed
 
 ### Decisions made
-- NPC dedup uses fuzzy matching (exact, startsWith, first-word) — same as findPC
-- Combat auto-minimizes on PC turns, expands on NPC turns
-- TurnPrompt minimize toggled via dice button during combat
-- Spell info icons use existing tooltip overlay via custom event dispatch
-- Compendium gets a Feats tab (4 tabs total)
-- MechTest gets build audit with color-coded status rows
-- Workboard trimmed aggressively: specs live in their own files, workboard tracks status only
-- Architecture trimmed: gate details → enforcement-spec.md, data shapes → workboard/spec files
+- Gameplay mechanics (carrying capacity, resistance/vulnerability, critical hits, spell components, distance/time) are NOT low-priority enrichment — user says they "make the game harder for the player, gives them mechanics to think about. they make it fun"
+- Contracts editor lives as a sub-view within Settings (not a separate manage mode page)
+- `actionsUsed` flags exist in combatState but enforcement not yet wired to Gate 2
 
 ### Known issues / watch
-- Still not play-verified with a live AI session (no API key exercised)
-- Non-SRD PHB spells show "No description recorded"
-- IndexedDB `class` index on spells store orphaned (harmless)
+- Workboard still has stale entries (items marked stub/absent that are actually built) — needs update
+- Still not play-verified with a live AI session
+- Action economy enforcement gap: `actionsUsed` flags exist but aren't checked by any gate
 
 ### In progress
 - Nothing in progress — clean handoff.
 
-### Next up
-1. **Play-verify with a real AI session** — the gate for everything else
-2. Phase 3 remaining: MechPill, term-glossary linking, Previously On, push notifications
-3. Phase 5: Session Zero wizard
-4. Phase 6: Contracts editor, SessionReview
+### Next up (user-prioritized)
+1. **Gameplay mechanics features** (user elevated these):
+   - Carrying capacity (STR × 15, tracked against inventory weight)
+   - Resistance/vulnerability tracking on characters and enemies
+   - Critical hit enforcement (extra dice)
+   - Spell component requirements checking
+   - Distance/time tracking during travel
+2. **Action economy enforcement** — wire `actionsUsed` flags to Gate 2
+3. **Rest buttons** on CharSheet Vitals tab
+4. **Update workboard** — correct 8+ items listed as stubs that are actually built
+5. **Session Review** (`SessionReview.jsx` stub)
 
 ### Branch state
-`claude/character-sheet-familiar-tab-2u3wsw` @ `596e7b8`; **merged to main, deployed.**
+`claude/character-sheet-familiar-tab-2u3wsw` @ `46b6e36`; **merged to main.**

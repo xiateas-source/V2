@@ -63,11 +63,13 @@ Reconciled after deploying 8 feature areas + 2 post-deploy fixes. Verified via f
 | setup/ContentImport, SessionZero | 1/1 | ⛔ | Unbuilt. |
 | manage/MechTest.jsx | 237 | 🟢 | Fire mechanics, inject blocks, quick buttons (incl. familiar_add), build audit with color-coded status. |
 | manage/DevTools.jsx | 358 | 🟠 | Flags, inspector, gate log. |
-| manage/Settings.jsx | 109 | 🟠 | |
-| manage/Contracts, SessionReview | 1/1 | ⛔ | Unbuilt. |
+| manage/Settings.jsx | 195 | 🟠 | Sub-view routing to Contracts. |
+| manage/Contracts.jsx | 101 | 🟢 | 7-section accordion editor for DM contracts. |
+| manage/SessionReview.jsx | 1 | ⛔ | Unbuilt. |
 | shared/LevelUp.jsx | ~600 | 🟢 | Full 12-class L2-20 wizard (subclass/ASI/feat/spell/expertise/HP). |
 | shared/Toast, icons, sourceBus | 47/13/~80 | 🟢 | Toast events, d20 SVG, cross-component navigation bus. |
-| shared/MechPill, Modal, Nav | 1 each | ⛔ | Stubs. |
+| shared/MechPill.jsx | 50 | 🟢 | Routes pill taps to CharSheet/Cargo/Journal. |
+| shared/Modal.jsx, Nav.jsx | 1 each | ⛔ | Stubs. |
 | AppSimple.jsx | 1 | ⛔ | Child-friendly entry unbuilt. |
 
 ### Content pipeline (`src/content/`)
@@ -87,7 +89,7 @@ The app deploys, renders, navigates. The engine pipeline (sendMsg → extract �
 ### Honest "what's left"
 1. **Play-verify with a real session.** Exercise the loop: type → AI responds → mechanics apply → state updates → next message includes updated ledger. This is the gate.
 2. **Persistence spine is BUILT.** No longer a blocker.
-3. ⛔ Stubs to fill: SessionReview, Contracts editor, ContentImport, SessionZero, MechPill, Modal.
+3. ⛔ Stubs to fill: SessionReview, ContentImport, SessionZero, Modal.
 4. ◻️ Absent: multiplayer identity, push notifications, child view, shared bundles, state migration.
 5. Engine hardening (later): unit tests for untested gates, providers, memory.
 
@@ -128,7 +130,7 @@ CharCreate (3 paths), CharWizard (guided), CampaignConfig (editable premise), Pl
 
 ### Phase 6: Manage Mode — 🟡 PARTIAL
 DevTools, Settings, MechTest (with build audit). **Remaining:**
-- [ ] AI contracts editor
+- [x] AI contracts editor (S47)
 - [ ] Session review / archive
 - [ ] System operations UI (rest buttons, stat corrections)
 
