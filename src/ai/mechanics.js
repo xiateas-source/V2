@@ -466,7 +466,11 @@ const DISPATCH = {
     const name = parts[0] || '';
     const disposition = parts[1] || 'Unknown';
     const details = parts.slice(2).join(', ') || '';
-    const existing = store.campaign.npcs.findIndex(n => n.name.toLowerCase() === name.toLowerCase());
+    const lower = name.toLowerCase();
+    const existing = store.campaign.npcs.findIndex(n => {
+      const nLower = n.name.toLowerCase();
+      return nLower === lower || nLower.startsWith(lower) || lower.startsWith(nLower.split(' ')[0]);
+    });
     if (existing >= 0) {
       aiSet(`npcs.${existing}`, { ...store.campaign.npcs[existing], disposition, details, lastSeen: store.campaign.location });
     } else {

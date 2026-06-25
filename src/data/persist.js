@@ -143,6 +143,7 @@ export async function restoreSession() {
 
   if (snap?.campaign?.id) {
     setStore('campaign', { ...structuredClone(DEFAULT_CAMPAIGN), ...snap.campaign });
+    setStore('system', 'activeCampaignId', snap.campaign.id);
     // Heal older saves that predate default contracts (empty persona ⇒ no DM spine).
     const con = store.campaign.contracts || {};
     if (!con.persona) {
