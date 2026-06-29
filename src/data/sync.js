@@ -97,6 +97,9 @@ export function startLiveSync() {
     const merged = mergeCampaign(store.campaign, data);
     setStore('campaign', merged);
   });
+  // Push current state immediately so guests can join without waiting for a change event.
+  const mp = store.system.multiplay;
+  if (mp?.role !== 'guest') forceSyncNow();
 }
 
 export function stopLiveSync() {
