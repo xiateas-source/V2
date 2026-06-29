@@ -10,19 +10,18 @@ The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → va
 
 **Three-phase action resolution shipped** (S48): player actions are now classified before the AI responds. Code detects skill checks (Investigation, Stealth, Persuasion, etc.), shows the roll bar with DC, waits for the player's roll, then sends the predetermined outcome to the AI for narration. Skip button lets players bypass false classifications.
 
-**Live test crash fixed** (S49): first live test on mobile hit `"Failed to execute 'transaction' on 'IDBDatabase': The database connection is closing."` when typing "Search the room". Root cause: mobile browsers close IndexedDB connections when backgrounded; the cached `dbInstance` in `local.js` went stale and the next read (rules lookup in `buildRulesBlock()`) threw, killing the whole send. Fixed: `openDB()` now checks connection liveness before reuse, and `buildRulesBlock()` fails soft instead of crashing the action. User confirmed "Search the room" now classifies without crashing on live site.
+**Live test crash fixed** (S49): first live test on mobile hit `"Failed to execute 'transaction' on 'IDBDatabase': The database connection is closing."` when typing "Search the room". Root cause: mobile browsers close IndexedDB connections when backgrounded; the cached `dbInstance` in `local.js` went stale and the next read (rules lookup in `buildRulesBlock()`) threw, killing the whole send. Fixed: `openDB()` now checks connection liveness before reuse, and `buildRulesBlock()` fails soft instead of crashing the action.
 
-**Three-phase loop not yet fully play-verified.** The crash is gone, but full end-to-end (roll bar appears with correct DC → player rolls → AI narrates predetermined outcome correctly) still needs confirmation.
+**Three-phase loop play-verified end-to-end** (S49): second live test confirmed the full flow on "Search the area" — classifier detected Investigation (DC 13), correctly picked Ivy over Thorn (her +4 beats his +1), roll bar appeared, Ivy rolled 18, SUCCESS was appended to the message, and the AI narrated the success faithfully (found the portal behind the tapestry) without contradicting the roll. Combat kickoff, `zone_add_enemy` mechanics, and duplicate-`combat_start` rejection also behaved correctly in the same session.
 
 ---
 
 ## Priorities (user-set, deadline July 11)
 
-1. **Finish play-verifying the three-phase loop** — confirm roll bar appears with correct skill/DC, roll submits, AI narrates the predetermined outcome without contradicting it
-2. **Expand classifier coverage** — combat attacks, saving throws, contested checks
-3. **AI DC determination** — Phase 1 AI call for context-aware DCs (currently uses standard tiers)
-4. **Scene transition gate** — hold scene changes for player confirmation (Gate 2 in enforcement spec)
-5. **Rest buttons** on CharSheet Vitals tab
+1. **Expand classifier coverage** — combat attacks, saving throws, contested checks
+2. **AI DC determination** — Phase 1 AI call for context-aware DCs (currently uses standard tiers)
+3. **Scene transition gate** — hold scene changes for player confirmation (Gate 2 in enforcement spec)
+4. **Rest buttons** on CharSheet Vitals tab
 
 ---
 
@@ -77,7 +76,6 @@ Key files: `src/ai/classifier.js`, `src/ai/engine.js` (sendNarrative, resumeAfte
 - Action economy: `actionsUsed` flags exist in combatState but aren't checked by any gate
 - Classifier DCs are standard tiers (10/13/15) — not context-aware yet
 - Classifier doesn't handle combat attacks or saving throws (those go through existing flow)
-- Full three-phase loop (roll bar → AI narration) still needs end-to-end play confirmation
 
 ---
 
