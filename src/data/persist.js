@@ -173,14 +173,14 @@ async function loadCloud(id) {
   } catch (_) { return null; }
 }
 
-function mergeCampaign(localC, cloudC) {
+export function mergeCampaign(localC, cloudC) {
   const merged = { ...localC, ...cloudC };
   merged.narrative = unionById(localC.narrative, cloudC.narrative);
   merged.ooc = unionById(localC.ooc, cloudC.ooc);
   return merged;
 }
 
-function unionById(a = [], b = []) {
+export function unionById(a = [], b = []) {
   const seen = new Map();
   for (const m of [...(a || []), ...(b || [])]) {
     if (!m) continue;

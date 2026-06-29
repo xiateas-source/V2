@@ -1,12 +1,19 @@
 import { createEffect, on } from 'solid-js';
-import { store } from '../state/index.js';
-import { dbWrite, getUid, isConnected } from './firebase.js';
+import { store, setStore } from '../state/index.js';
+import { dbWrite, dbRead, dbListen, getUid } from './firebase.js';
+import { mergeCampaign } from './persist.js';
+import { DEFAULT_CAMPAIGN } from '../state/campaign.js';
+import { saveLocalNow } from './persist.js';
 
 let syncTimer = null;
+let liveUnsub = null;
 const SYNC_DEBOUNCE = 3000;
 
+// The campaign always lives at the HOST's uid path. Guests write to the same
+// path they read from — the host's namespace — so both devices share one record.
 function getCampaignPath() {
-  const uid = getUid();
+  const mp = store.system.multiplay;
+  const uid = (mp?.role === 'guest' && mp?.hostUid) ? mp.hostUid : getUid();
   const id = store.campaign.id;
   if (!uid || !id) return null;
   return `campaigns/${uid}/${id}`;
@@ -51,9 +58,14 @@ function scheduleSync() {
     if (!path) return;
     const payload = getSyncPayload();
     dbWrite(path, payload);
-    // Active-campaign pointer so a fresh device knows which campaign to restore.
+    // Keep the active-campaign pointer so a fresh device knows what to restore.
+    // For guests, point to the host path so they can re-join on reload.
     const uid = getUid();
     if (uid) dbWrite(`players/${uid}/active`, { id: store.campaign.id, ts: Date.now() });
+    const mp = store.system.multiplay;
+    if (mp?.role === 'guest' && mp?.hostUid) {
+      dbWrite(`players/${uid}/joined`, { hostUid: mp.hostUid, campaignId: store.campaign.id, ts: Date.now() });
+    }
   }, SYNC_DEBOUNCE);
 }
 
@@ -74,19 +86,82 @@ export function initSync() {
   ));
 }
 
+// Wire a realtime listener so this device sees changes other players write.
+// Both host and guest call this — the host listens so they see guest actions.
+export function startLiveSync() {
+  stopLiveSync();
+  const path = getCampaignPath();
+  if (!path) return;
+  liveUnsub = dbListen(path, (data) => {
+    if (!data || !store.campaign.id) return;
+    const merged = mergeCampaign(store.campaign, data);
+    setStore('campaign', merged);
+  });
+}
+
+export function stopLiveSync() {
+  if (liveUnsub) { liveUnsub(); liveUnsub = null; }
+}
+
 export async function loadCampaignFromCloud(campaignId) {
   const uid = getUid();
   if (!uid || !campaignId) return null;
-  const { dbRead } = await import('./firebase.js');
   return dbRead(`campaigns/${uid}/${campaignId}`);
 }
 
 export async function forceSyncNow() {
-  if (syncTimer) {
-    clearTimeout(syncTimer);
-    syncTimer = null;
-  }
+  if (syncTimer) { clearTimeout(syncTimer); syncTimer = null; }
   const path = getCampaignPath();
   if (!path) return;
   await dbWrite(path, getSyncPayload());
+}
+
+// Build the shareable invite string for this campaign.
+export function buildShareId() {
+  const uid = getUid();
+  const id = store.campaign.id;
+  if (!uid || !id) return null;
+  return `${uid}~${id}`;
+}
+
+// Parse a share ID string. Returns { hostUid, campaignId } or null.
+export function parseShareId(raw) {
+  const str = (raw || '').trim();
+  const tilde = str.indexOf('~');
+  if (tilde < 1) return null;
+  const hostUid = str.slice(0, tilde);
+  const campaignId = str.slice(tilde + 1);
+  if (!hostUid || !campaignId) return null;
+  return { hostUid, campaignId };
+}
+
+// Load a campaign by share ID and switch this device into guest mode.
+export async function joinCampaign(shareIdRaw) {
+  const parsed = parseShareId(shareIdRaw);
+  if (!parsed) throw new Error('Invalid invite code — check and try again.');
+
+  const { hostUid, campaignId } = parsed;
+  const data = await dbRead(`campaigns/${hostUid}/${campaignId}`);
+  if (!data) throw new Error('Campaign not found. Make sure the host is online and the code is correct.');
+
+  setStore('campaign', { ...DEFAULT_CAMPAIGN, ...data, id: campaignId });
+  setStore('system', 'activeCampaignId', campaignId);
+  setStore('system', 'multiplay', { role: 'guest', hostUid });
+
+  await saveLocalNow();
+  startLiveSync();
+}
+
+// On boot: check if this device previously joined a campaign and reconnect.
+export async function restoreGuestSession() {
+  const uid = getUid();
+  if (!uid) return false;
+  try {
+    const joined = await dbRead(`players/${uid}/joined`);
+    if (!joined?.hostUid || !joined?.campaignId) return false;
+    setStore('system', 'multiplay', { role: 'guest', hostUid: joined.hostUid });
+    return true;
+  } catch {
+    return false;
+  }
 }

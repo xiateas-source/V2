@@ -1,4 +1,7 @@
 {
+  "database": {
+    "rules": "database.rules.json"
+  },
   "hosting": {
     "site": "pebble-v2",
     "public": "dist",

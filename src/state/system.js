@@ -5,6 +5,11 @@ export const DEFAULT_SYSTEM = {
     mode: 'single',
   },
 
+  multiplay: {
+    role: 'solo',   // 'solo' | 'guest'
+    hostUid: '',    // set when role === 'guest'
+  },
+
   settings: {
     theme: 'dark-0',
     ttsEnabled: false,

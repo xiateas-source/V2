@@ -6673,6 +6673,154 @@ body {
 }
 .onboard-demo-btn:active { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
 
+.onboard-join-btn {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--color-muted);
+  font-size: 13px;
+  padding: 8px 14px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ---------- JOIN GAME SCREEN ---------- */
+.join-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 16px;
+  height: 100%;
+}
+.join-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.join-back {
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  font-size: 14px;
+  padding: 0;
+  cursor: pointer;
+}
+.join-title {
+  font-family: var(--disp);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+.join-hint {
+  font-size: 13px;
+  color: var(--color-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+.join-input {
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  color: var(--color-text);
+  font-size: 13px;
+  font-family: monospace;
+  padding: 12px;
+  resize: none;
+  box-sizing: border-box;
+}
+.join-input:focus { outline: none; border-color: var(--color-accent); }
+.join-error {
+  font-size: 12px;
+  color: var(--color-danger, #e06060);
+  margin: 0;
+}
+.join-go-btn {
+  width: 100%;
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border: none;
+  border-radius: 12px;
+  font-family: var(--disp);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  padding: 14px;
+  cursor: pointer;
+}
+.join-go-btn:disabled { opacity: .45; cursor: default; }
+.join-key-note {
+  font-size: 11px;
+  color: var(--color-muted);
+  margin: 0;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* ---------- SETTINGS — multiplayer ---------- */
+.settings-guest-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+}
+.btn-invite {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
+  color: var(--color-accent);
+  border-radius: 10px;
+  font-size: 13px;
+  padding: 11px 14px;
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+.btn-invite:active { opacity: .75; }
+
+/* ---------- SETTINGS — player identity ---------- */
+.identity-pc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+.identity-pc-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--color-surface);
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  color: var(--color-text);
+  font-size: 14px;
+  padding: 11px 14px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+.identity-pc-chip.selected {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  color: var(--color-accent);
+}
+.identity-pc-sub {
+  margin-left: auto;
+  font-size: 11px;
+  opacity: .6;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
 /* ---------- REFERENCE SCREENS polish (Cargo / Journal / Settings) ---------- */
 .cargo-page, .journal-page, .settings-page, .treasury-page, .compendium-page {
   height: 100%;

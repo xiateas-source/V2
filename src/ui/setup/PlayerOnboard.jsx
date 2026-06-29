@@ -4,19 +4,43 @@ import KeyGate from './KeyGate.jsx';
 import CharCreate from './CharCreate.jsx';
 import CampaignConfig from './CampaignConfig.jsx';
 import { loadDemoCampaign } from '../../data/demo.js';
+import { joinCampaign } from '../../data/sync.js';
 
 export default function PlayerOnboard() {
   const [step, setStep] = createSignal(store.system.providers.geminiKey ? 1 : 0);
+  const [joiningMode, setJoiningMode] = createSignal(false);
+  const [joinCode, setJoinCode] = createSignal('');
+  const [joinError, setJoinError] = createSignal('');
+  const [joining, setJoining] = createSignal(false);
+
+  // Check for an invite link in the URL (e.g. ?join=uid~campaignId)
+  const urlCode = new URLSearchParams(window.location.search).get('join');
+  if (urlCode && !joiningMode()) {
+    setJoiningMode(true);
+    setJoinCode(urlCode);
+    // Clean the URL so a reload doesn't re-trigger
+    window.history.replaceState({}, '', window.location.pathname);
+  }
 
   const hasKey = () => !!store.system.providers.geminiKey || !!store.system.providers.openrouterKey;
   const hasChar = () => store.campaign.characters.length > 0;
 
-  function onKeyDone() {
-    setStep(1);
-  }
+  function onKeyDone() { setStep(1); }
+  function onCharDone() { setStep(2); }
 
-  function onCharDone() {
-    setStep(2);
+  async function handleJoin() {
+    const code = joinCode().trim();
+    if (!code) return;
+    setJoining(true);
+    setJoinError('');
+    try {
+      await joinCampaign(code);
+      // Campaign is now loaded — App will render Chat automatically
+    } catch (e) {
+      setJoinError(e.message || 'Could not join. Check the code and try again.');
+    } finally {
+      setJoining(false);
+    }
   }
 
   function startAdventure() {
@@ -40,40 +64,72 @@ export default function PlayerOnboard() {
 
   return (
     <div class="onboard-shell">
-      <div class="onboard-steps">
-        <span class={`onboard-dot ${step() >= 0 ? 'done' : ''} ${step() === 0 ? 'active' : ''}`} onClick={() => step() > 0 && setStep(0)} />
-        <span class={`onboard-dot ${step() >= 1 ? 'done' : ''} ${step() === 1 ? 'active' : ''}`} onClick={() => hasKey() && setStep(1)} />
-        <span class={`onboard-dot ${step() >= 2 ? 'done' : ''} ${step() === 2 ? 'active' : ''}`} onClick={() => hasKey() && hasChar() && setStep(2)} />
-      </div>
+      <Show when={!joiningMode()}>
+        <div class="onboard-steps">
+          <span class={`onboard-dot ${step() >= 0 ? 'done' : ''} ${step() === 0 ? 'active' : ''}`} onClick={() => step() > 0 && setStep(0)} />
+          <span class={`onboard-dot ${step() >= 1 ? 'done' : ''} ${step() === 1 ? 'active' : ''}`} onClick={() => hasKey() && setStep(1)} />
+          <span class={`onboard-dot ${step() >= 2 ? 'done' : ''} ${step() === 2 ? 'active' : ''}`} onClick={() => hasKey() && hasChar() && setStep(2)} />
+        </div>
 
-      <div class="onboard-content">
-        <Show when={step() === 0}>
-          <KeyGate onDone={onKeyDone} />
-        </Show>
-        <Show when={step() === 1}>
-          <CharCreate onDone={onCharDone} />
-        </Show>
-        <Show when={step() === 2}>
-          <CampaignConfig />
-        </Show>
-      </div>
+        <div class="onboard-content">
+          <Show when={step() === 0}><KeyGate onDone={onKeyDone} /></Show>
+          <Show when={step() === 1}><CharCreate onDone={onCharDone} /></Show>
+          <Show when={step() === 2}><CampaignConfig /></Show>
+        </div>
 
-      <div class="onboard-footer">
-        <Show when={step() === 0}>
-          <button class="onboard-demo-btn" onClick={loadDemoCampaign}>
-            Skip — load the demo party &amp; play
+        <div class="onboard-footer">
+          <Show when={step() === 0}>
+            <button class="onboard-demo-btn" onClick={loadDemoCampaign}>
+              Skip — load the demo party &amp; play
+            </button>
+            <button class="onboard-join-btn" onClick={() => setJoiningMode(true)}>
+              Join a friend's game →
+            </button>
+          </Show>
+          <Show when={step() === 1 && !hasChar()}>
+            <span class="onboard-hint">Create at least one character to continue</span>
+          </Show>
+          <Show when={step() === 1 && hasChar()}>
+            <button class="onboard-btn" onClick={onCharDone}>Next</button>
+          </Show>
+          <Show when={step() === 2}>
+            <button class="onboard-btn onboard-btn-go" onClick={startAdventure}>Start Adventure</button>
+          </Show>
+        </div>
+      </Show>
+
+      <Show when={joiningMode()}>
+        <div class="join-shell">
+          <div class="join-header">
+            <button class="join-back" onClick={() => { setJoiningMode(false); setJoinError(''); }}>
+              ← Back
+            </button>
+            <h2 class="join-title">Join a Game</h2>
+          </div>
+          <p class="join-hint">Paste the invite code your party host shared with you.</p>
+          <textarea
+            class="join-input"
+            placeholder="Paste invite code here…"
+            value={joinCode()}
+            onInput={(e) => setJoinCode(e.target.value)}
+            rows="3"
+            autofocus
+          />
+          <Show when={joinError()}>
+            <p class="join-error">{joinError()}</p>
+          </Show>
+          <button
+            class="join-go-btn"
+            onClick={handleJoin}
+            disabled={!joinCode().trim() || joining()}
+          >
+            {joining() ? 'Joining…' : 'Join Game'}
           </button>
-        </Show>
-        <Show when={step() === 1 && !hasChar()}>
-          <span class="onboard-hint">Create at least one character to continue</span>
-        </Show>
-        <Show when={step() === 1 && hasChar()}>
-          <button class="onboard-btn" onClick={onCharDone}>Next</button>
-        </Show>
-        <Show when={step() === 2}>
-          <button class="onboard-btn onboard-btn-go" onClick={startAdventure}>Start Adventure</button>
-        </Show>
-      </div>
+          <p class="join-key-note">
+            You'll still need your own Gemini API key to send messages. Set it in Settings after joining.
+          </p>
+        </div>
+      </Show>
     </div>
   );
 }

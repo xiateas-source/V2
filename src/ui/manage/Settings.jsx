@@ -1,7 +1,8 @@
-import { createSignal, Show } from 'solid-js';
+import { createSignal, Show, For } from 'solid-js';
 import { store, setStore, resetCampaign } from '../../state/index.js';
 import { saveKeys as persistKeys, saveProviderSettings } from '../../data/keys.js';
 import { clearActiveCampaign, exportSnapshot, saveLocalNow } from '../../data/persist.js';
+import { buildShareId, stopLiveSync } from '../../data/sync.js';
 import Contracts from './Contracts.jsx';
 
 const GEMINI_MODELS = [
@@ -18,6 +19,9 @@ export default function Settings() {
   const [model, setModel] = createSignal(store.system.providers.geminiModel || 'gemini-3.5-flash');
   const [saved, setSaved] = createSignal(false);
   const [subView, setSubView] = createSignal(null);
+  const [identityName, setIdentityName] = createSignal(store.system.playerIdentity?.name || '');
+  const [identitySaved, setIdentitySaved] = createSignal(false);
+  const [shareCopied, setShareCopied] = createSignal(false);
 
   function saveKeys() {
     const gk = gemKey().trim();
@@ -33,8 +37,41 @@ export default function Settings() {
 
   async function newCampaign() {
     if (store.campaign.id && !confirm('Start a new campaign? This clears the current game on this device.')) return;
+    stopLiveSync();
+    setStore('system', 'multiplay', { role: 'solo', hostUid: '' });
     await clearActiveCampaign();
     resetCampaign(setStore);
+  }
+
+  async function shareInvite() {
+    const shareId = buildShareId();
+    if (!shareId) return;
+    const url = `${window.location.origin}${window.location.pathname}?join=${shareId}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `Join ${store.campaign.name || 'my game'}`, text: 'Tap to join my Tinklepebble game', url });
+        return;
+      } catch { /* user cancelled */ }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2500);
+    } catch {
+      prompt('Copy this invite link:', url);
+    }
+  }
+
+  function saveIdentity() {
+    setStore('system', 'playerIdentity', 'name', identityName().trim());
+    setIdentitySaved(true);
+    setTimeout(() => setIdentitySaved(false), 2000);
+  }
+
+  function togglePC(name) {
+    const current = store.system.playerIdentity?.selectedPCs || [];
+    const next = current.includes(name) ? current.filter(n => n !== name) : [...current, name];
+    setStore('system', 'playerIdentity', 'selectedPCs', next);
   }
 
   function exportGame() {
@@ -141,16 +178,66 @@ export default function Settings() {
           <h3 class="settings-label">Campaign</h3>
           <Show when={store.campaign.id}>
             <div class="settings-campaign-name">{store.campaign.name || 'Untitled campaign'}</div>
+            <Show when={store.system.multiplay?.role === 'guest'}>
+              <div class="settings-guest-badge">
+                <i class="ph ph-users" /> Joined as guest
+              </div>
+            </Show>
             <button class="btn-contracts" onClick={() => setSubView('contracts')}>
               <i class="ph ph-scroll" />
               <span>DM Contracts</span>
             </button>
+            <Show when={store.system.multiplay?.role !== 'guest'}>
+              <button class="btn-invite" onClick={shareInvite}>
+                <i class="ph ph-link" />
+                <span>{shareCopied() ? 'Link copied!' : 'Invite Players — Share Campaign Link'}</span>
+              </button>
+            </Show>
           </Show>
           <button class="btn-new-campaign" onClick={newCampaign}>
             {store.campaign.id ? 'New Campaign (save & start fresh)' : 'Start a Campaign'}
           </button>
           <p class="settings-hint">Your game saves automatically and survives reloads. Starting a new campaign clears the current one on this device.</p>
         </section>
+
+        <Show when={store.campaign.id && store.campaign.characters?.length > 0}>
+          <section class="settings-section">
+            <h3 class="settings-label">Who Am I?</h3>
+            <p class="settings-hint">Your name appears on your messages so the party knows who sent what.</p>
+            <div class="field-group">
+              <label class="field-label">Your name</label>
+              <input
+                type="text"
+                class="field-input"
+                placeholder="e.g. Jessica"
+                value={identityName()}
+                onInput={(e) => setIdentityName(e.target.value)}
+              />
+            </div>
+            <div class="field-group">
+              <label class="field-label">Your character(s)</label>
+              <div class="identity-pc-list">
+                <For each={store.campaign.characters}>
+                  {(pc) => {
+                    const selected = () => (store.system.playerIdentity?.selectedPCs || []).includes(pc.name);
+                    return (
+                      <button
+                        class={`identity-pc-chip ${selected() ? 'selected' : ''}`}
+                        onClick={() => togglePC(pc.name)}
+                      >
+                        {pc.avatar || pc.name[0]} {pc.name}
+                        <span class="identity-pc-sub">{pc.class} {pc.level}</span>
+                      </button>
+                    );
+                  }}
+                </For>
+              </div>
+            </div>
+            <button class="btn-save" onClick={saveIdentity}>
+              {identitySaved() ? 'Saved' : 'Save Identity'}
+            </button>
+          </section>
+        </Show>
 
         <section class="settings-section">
           <h3 class="settings-label">Save / Load</h3>
@@ -187,6 +274,3 @@ export default function Settings() {
   );
 }
 
-function For(props) {
-  return props.each.map(props.children);
-}
