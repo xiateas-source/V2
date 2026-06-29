@@ -2868,6 +2868,98 @@ body {
 }
 .cs-spell-tag.cantrip { background: rgba(46, 204, 113, 0.15); color: var(--color-success); }
 
+/* Spell management */
+.cs-spell-remove {
+  display: block;
+  margin: 6px 0 2px auto;
+  padding: 3px 10px;
+  font-size: 10px;
+  color: var(--color-danger, #e74c3c);
+  background: transparent;
+  border: 1px solid var(--color-danger, #e74c3c);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.cs-spell-add-section { margin-top: 8px; }
+.cs-spell-add-btn {
+  width: 100%;
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.cs-spell-search-box {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.cs-spell-search-input {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 13px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text);
+  outline: none;
+}
+.cs-spell-search-input:focus { border-color: var(--color-primary); }
+.cs-spell-search-close {
+  width: 32px;
+  height: 32px;
+  font-size: 18px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cs-spell-search-results {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 4px;
+  border-radius: 6px;
+  background: var(--color-surface);
+}
+.cs-spell-result {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 12px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+}
+.cs-spell-result:last-child { border-bottom: none; }
+.cs-spell-result:active { background: var(--color-surface-alt); }
+.cs-spell-result-name { flex: 1; font-weight: 600; }
+.cs-spell-result-lvl { font-size: 10px; color: var(--color-primary); font-weight: 700; }
+.cs-spell-result-classes { font-size: 9px; color: var(--color-text-muted); max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs-spell-no-results { padding: 10px; font-size: 11px; color: var(--color-text-muted); text-align: center; }
+.cs-spell-manual-add {
+  display: block;
+  margin: 6px auto 0;
+  padding: 4px 12px;
+  font-size: 11px;
+  color: var(--color-primary);
+  background: transparent;
+  border: 1px solid var(--color-primary);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
 /* Features tab */
 .cs-features-list {
   background: var(--color-surface);
