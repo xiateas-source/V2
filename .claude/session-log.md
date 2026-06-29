@@ -1,24 +1,30 @@
 # Session Log — Handoff
 
-## Session 47 · 2026-06-25
+## Session 48 · 2026-06-29
 
-Branch `claude/character-sheet-familiar-tab-2u3wsw` @ `46b6e36` · merged to main. Build clean. Tests 33/33.
+Branch `claude/lore-bard-bonus-spells-q4sa51` @ `7bbb586` · pushed. Build clean.
 
-### Shipped
-- **DM Contracts Editor** (`Contracts.jsx`, 101 lines) — 7 accordion sections, reset-to-default, writes to `store.campaign.contracts` → system prompt. Accessible from Settings → "DM Contracts" button.
-- **Rules-vs-Code Enforcement Audit** — 16 hard-enforced rules, 14 soft-enforced rules identified.
-- **Workboard corrections** — 8+ items marked as stubs were actually built (MechPill, PreviouslyOn, Rewind, DiceRoller, Ask DM interception, term-glossary linking, spell citation linking, CampaignConfig paths).
+### What Shipped
+
+1. **Lore Bard Bonus Spells Fix** — `level-up-bard.json` now has `source: "any"` for Magical Secrets choices. LevelUp wizard loads all-class spell pool. CharSheet has "+ Add Spell" and "Remove" for fixing missed spells.
+
+2. **Three-Phase Action Resolution** — New architecture: player action → code classifies → roll bar (with DC) → player rolls → AI narrates predetermined outcome. Key files: `classifier.js` (pattern matching), `engine.js` (`sendNarrative` + `resumeAfterRolls`), `RollBar.jsx` (pre-send roll source + Skip button), `contracts.js` (PREDETERMINED ROLLS clause).
 
 ### Decisions
-- Gameplay mechanics (carrying capacity, resistance/vulnerability, critical hits, spell components, distance/time) are important — "they make it fun," not low-priority enrichment.
-- Contracts editor lives as a sub-view within Settings.
+
+- Three-phase flow over reactive gates for D20 enforcement
+- Code classifier with standard DC tiers over AI DC call (speed for July 11 deadline)
+- Classifier skips combat (existing flow handles it)
 
 ### Known Issues
-- Still not play-verified with a live AI session
-- Action economy: `actionsUsed` flags exist but aren't checked by any gate
+
+- Classifier DCs are fixed tiers, not context-aware
+- Not play-verified with live AI
+- `[ROLLS: ...]` renders as raw text in player messages
 
 ### Next Up
-1. Gameplay mechanics features (user-prioritized)
-2. Action economy enforcement (wire to Gate 2)
-3. Rest buttons on CharSheet Vitals
-4. SessionReview stub
+
+1. Play-verify three-phase loop with real AI
+2. Context-aware DCs via Phase 1 AI call
+3. Scene transition gate
+4. Deadline: July 11

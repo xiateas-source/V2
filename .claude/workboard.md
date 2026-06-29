@@ -1,6 +1,6 @@
 # Workboard
 
-*What to build next. Updated Session 47 · 2026-06-25.*
+*What to build next. Updated Session 48 · 2026-06-29.*
 
 ---
 
@@ -8,21 +8,37 @@
 
 The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → validate → apply) is tested. Persistence works. Combat has turn enforcement. Character creation works (3 paths + guided wizard). Level-up wizard handles all 12 classes. 33 unit tests passing.
 
+**Three-phase action resolution shipped** (S48): player actions are now classified before the AI responds. Code detects skill checks (Investigation, Stealth, Persuasion, etc.), shows the roll bar with DC, waits for the player's roll, then sends the predetermined outcome to the AI for narration. Skip button lets players bypass false classifications.
+
 **Not yet play-verified with a live AI session.** The loop hasn't been exercised end-to-end with an API key.
 
 ---
 
-## Priorities (user-set)
+## Priorities (user-set, deadline July 11)
 
-1. **Play-verify with a real AI session** — the gate. Exercise the full loop with an API key.
-2. **Gameplay mechanics** (user elevated S47 — "they make it fun"):
-   - Carrying capacity (STR × 15, tracked against inventory weight)
-   - Resistance/vulnerability tracking
-   - Critical hit enforcement (extra dice)
-   - Spell component requirements checking
-   - Distance/time tracking during travel
-3. **Action economy enforcement** — wire `actionsUsed` flags to Gate 2
-4. **Rest buttons** on CharSheet Vitals tab
+1. **Play-verify the three-phase loop** — test classifier + roll bar + predetermined narration with real AI
+2. **Expand classifier coverage** — combat attacks, saving throws, contested checks
+3. **AI DC determination** — Phase 1 AI call for context-aware DCs (currently uses standard tiers)
+4. **Scene transition gate** — hold scene changes for player confirmation (Gate 2 in enforcement spec)
+5. **Rest buttons** on CharSheet Vitals tab
+
+---
+
+## Three-Phase Architecture (S48)
+
+```
+Player declares action
+       ↓
+  classifier.js detects skill check
+       ↓
+  RollBar shows (skill + DC) — player rolls
+       ↓
+  Code determines SUCCESS/FAILURE
+       ↓
+  AI narrates the predetermined outcome
+```
+
+Key files: `src/ai/classifier.js`, `src/ai/engine.js` (sendNarrative, resumeAfterRolls), `src/ui/play/RollBar.jsx`
 
 ---
 
@@ -57,6 +73,8 @@ The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → va
 ## Known Issues
 
 - Action economy: `actionsUsed` flags exist in combatState but aren't checked by any gate
+- Classifier DCs are standard tiers (10/13/15) — not context-aware yet
+- Classifier doesn't handle combat attacks or saving throws (those go through existing flow)
 - Still not play-verified with a live AI session
 
 ---
