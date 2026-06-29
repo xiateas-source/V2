@@ -126,7 +126,7 @@ export default function PlayerOnboard() {
             {joining() ? 'Joining…' : 'Join Game'}
           </button>
           <p class="join-key-note">
-            You'll still need your own Gemini API key to send messages. Set it in Settings after joining.
+            The host's API key is shared automatically — no setup needed to start playing.
           </p>
         </div>
       </Show>

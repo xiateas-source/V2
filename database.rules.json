@@ -13,6 +13,10 @@
         ".read": "auth != null",
         ".write": "auth != null"
       }
+    },
+    "shared": {
+      ".read": "auth != null",
+      ".write": "auth != null"
     }
   }
 }
