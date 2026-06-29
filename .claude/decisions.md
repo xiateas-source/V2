@@ -85,6 +85,7 @@
 | AI cannot act for unmentioned PCs | Must ask, not decide |
 | Narrative DM = epic narrator + rules lawyer | Both vivid storytelling AND by-the-book structure |
 | Narration style field in Session Zero | Player-configurable, injected into contract |
+| IndexedDB reads fail soft in the AI pipeline | Mobile browsers can close IDB connections when backgrounded. `openDB()` checks liveness and reopens; `buildRulesBlock()` swallows errors. Losing rules context is acceptable — crashing the player's turn is not. |
 
 ## Combat
 
