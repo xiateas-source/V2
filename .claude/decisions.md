@@ -143,6 +143,18 @@
 | Build-time spell script, committed output | `scripts/build-spells.js` → `data/spells.json`. Runs once during dev. |
 | D&D 5e primary, not the only system | Architecture supports any game content |
 
+## Game Loop (S48)
+
+| Decision | Rationale |
+|----------|-----------|
+| Three-phase action resolution: classify → roll → narrate | Fixes "story game" feel. Code decides when rolls happen, not the AI. The AI narrates predetermined outcomes. |
+| Code-based classifier with pattern matching | Fast (no AI call), handles 80% of cases. Skip button for false positives. |
+| Standard DC tiers (easy=10, medium=13, hard=15) | Ships fast. AI DC call can be added later for context-aware difficulty. |
+| Classifier skips combat (existing flow handles it) | Combat already has initiative, turn order, action economy. Don't double-classify. |
+| Pre-send rolls as a new RollBar source | Same UI, same dice, different trigger. Player doesn't notice the architectural difference. |
+| PREDETERMINED ROLLS contract clause | AI receives outcome facts and narrates them. Can't contradict the dice. |
+| `sendNarrative()` extracted from `sendMsg()` | Both the normal flow and `resumeAfterRolls` share the same AI call + mechanics pipeline. |
+
 ## Open Questions
 
 - **Child-friendly view target age** — 7-16 is wide. What's the actual simplification scope?

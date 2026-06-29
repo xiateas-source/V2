@@ -37,6 +37,7 @@ export default function LevelUp(props) {
 
   // Data pools
   const [spellPool, setSpellPool] = createSignal([]);
+  const [allSpellPool, setAllSpellPool] = createSignal([]);
   const [cantripPool, setCantripPool] = createSignal([]);
   const [featPool, setFeatPool] = createSignal([]);
   const [featFilter, setFeatFilter] = createSignal('');
@@ -54,7 +55,9 @@ export default function LevelUp(props) {
     if (lvl.features && lvl.features.length > 0) {
       s.push({ type: 'features', label: 'New Features' });
     }
+    const charSubclass = pc()?.subclass || allChoices().find(c => c.subclass)?.subclass || '';
     for (const choice of (lvl.choices || [])) {
+      if (choice.subclass && choice.subclass !== charSubclass) continue;
       if (choice.type === 'subclass') {
         s.push({ type: 'subclass', label: 'Subclass', options: choice.options });
       }
@@ -62,7 +65,7 @@ export default function LevelUp(props) {
         s.push({ type: 'asi', label: 'Ability Score / Feat' });
       }
       if (choice.type === 'spell') {
-        s.push({ type: 'spell', label: 'New Spells', desc: choice.desc });
+        s.push({ type: 'spell', label: choice.source === 'any' ? 'Magical Secrets' : 'New Spells', desc: choice.desc, source: choice.source });
       }
     }
     const hasExpertise = (lvl.features || []).some(f =>
@@ -137,24 +140,36 @@ export default function LevelUp(props) {
     setLevelQueue(queue);
 
     // Load spells
+    const hasAnyClassChoice = queue.some(lvl => (lvl.choices || []).some(c => c.source === 'any'));
     try {
-      const allSpells = await getSpellsForClass(character.class);
-      if (allSpells.length > 0) {
-        setSpellPool(allSpells.filter(s => s.level > 0).sort((a, b) => a.level - b.level || a.name.localeCompare(b.name)));
-        setCantripPool(allSpells.filter(s => s.level === 0).sort((a, b) => a.name.localeCompare(b.name)));
+      const classSpells = await getSpellsForClass(character.class);
+      if (classSpells.length > 0) {
+        setSpellPool(classSpells.filter(s => s.level > 0).sort((a, b) => a.level - b.level || a.name.localeCompare(b.name)));
+        setCantripPool(classSpells.filter(s => s.level === 0).sort((a, b) => a.name.localeCompare(b.name)));
+      }
+      if (hasAnyClassChoice) {
+        const every = await getAll('spells');
+        if (every.length > 0) {
+          setAllSpellPool(every.filter(s => s.level > 0).sort((a, b) => a.level - b.level || a.name.localeCompare(b.name)));
+        }
       }
     } catch (_) {}
 
     // Fallback spells if DB empty
-    if (spellPool().length === 0 && ci) {
+    if ((spellPool().length === 0 || (hasAnyClassChoice && allSpellPool().length === 0)) && ci) {
       try {
-        const allSpells = await getAll('spells');
-        const classSpells = allSpells.filter(s =>
-          s.classes && Array.isArray(s.classes) && s.classes.some(c => c.toLowerCase() === character.class.toLowerCase())
-        );
-        if (classSpells.length > 0) {
-          setSpellPool(classSpells.filter(s => s.level > 0).sort((a, b) => a.level - b.level || a.name.localeCompare(b.name)));
-          setCantripPool(classSpells.filter(s => s.level === 0).sort((a, b) => a.name.localeCompare(b.name)));
+        const every = await getAll('spells');
+        if (spellPool().length === 0) {
+          const classSpells = every.filter(s =>
+            s.classes && Array.isArray(s.classes) && s.classes.some(c => c.toLowerCase() === character.class.toLowerCase())
+          );
+          if (classSpells.length > 0) {
+            setSpellPool(classSpells.filter(s => s.level > 0).sort((a, b) => a.level - b.level || a.name.localeCompare(b.name)));
+            setCantripPool(classSpells.filter(s => s.level === 0).sort((a, b) => a.name.localeCompare(b.name)));
+          }
+        }
+        if (hasAnyClassChoice && allSpellPool().length === 0 && every.length > 0) {
+          setAllSpellPool(every.filter(s => s.level > 0).sort((a, b) => a.level - b.level || a.name.localeCompare(b.name)));
         }
       } catch (_) {}
     }
@@ -276,7 +291,8 @@ export default function LevelUp(props) {
     const maxLvl = parseMaxSpellLevel(step?.desc);
     const known = knownSpellNames();
     const knownC = knownCantripNames();
-    const leveled = spellPool().filter(s =>
+    const pool = step?.source === 'any' ? allSpellPool() : spellPool();
+    const leveled = pool.filter(s =>
       s.level > 0 && s.level <= maxLvl && !known.has(s.name.toLowerCase())
     );
     if (!spellStepIncludesCantrips()) return leveled;
@@ -627,7 +643,7 @@ export default function LevelUp(props) {
               swapTo={swapTo} setSwapTo={setSwapTo}
               knownSpells={() => pc()?.knownSpells || []}
               allSwaps={() => allChoices().filter(c => c.swapFrom).map(c => c.swapFrom)}
-              spellPool={spellPool}
+              spellPool={() => currentStep()?.source === 'any' ? allSpellPool() : spellPool()}
               maxLevel={() => parseMaxSpellLevel(currentStep()?.desc)}
               setInfoText={setInfoText}
             />

@@ -1,7 +1,7 @@
 import { createSignal, createMemo, For, Show, onMount, onCleanup } from 'solid-js';
-import { store, setStore, playerSet } from '../../state/index.js';
+import { store, setStore, playerSet, systemSet } from '../../state/index.js';
 import { composePersonality } from '../../data/quickBuild.js';
-import { getByIndex } from '../../data/local.js';
+import { getByIndex, getAll } from '../../data/local.js';
 import { validateMechanics, applyMechanics } from '../../ai/mechanics.js';
 
 const TIBF_FIELDS = [
@@ -53,6 +53,66 @@ export default function CharSheet(props) {
   const [expandedFamiliar, setExpandedFamiliar] = createSignal(false);
   const [showOverride, setShowOverride] = createSignal(false);
   const [hpDelta, setHpDelta] = createSignal(null);
+  const [showAddSpell, setShowAddSpell] = createSignal(false);
+  const [spellSearch, setSpellSearch] = createSignal('');
+  const [spellSearchResults, setSpellSearchResults] = createSignal([]);
+  const [spellDbLoaded, setSpellDbLoaded] = createSignal(false);
+
+  let allSpellsCache = null;
+
+  async function loadSpellDb() {
+    if (spellDbLoaded()) return;
+    try {
+      allSpellsCache = await getAll('spells');
+    } catch (_) { allSpellsCache = []; }
+    if (!allSpellsCache || allSpellsCache.length === 0) {
+      try {
+        const resp = await fetch('/data/spells.json');
+        allSpellsCache = await resp.json();
+      } catch (_) { allSpellsCache = []; }
+    }
+    setSpellDbLoaded(true);
+  }
+
+  function searchSpells(query) {
+    if (!allSpellsCache || !query.trim()) { setSpellSearchResults([]); return; }
+    const q = query.toLowerCase();
+    const known = new Set((pc()?.knownSpells || []).map(s => s.toLowerCase()));
+    const knownCantrips = new Set((pc()?.cantrips || []).map(s => s.toLowerCase()));
+    const results = allSpellsCache
+      .filter(s => s.name.toLowerCase().includes(q) && !known.has(s.name.toLowerCase()) && !knownCantrips.has(s.name.toLowerCase()))
+      .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
+      .slice(0, 20);
+    setSpellSearchResults(results);
+  }
+
+  function addSpellToCharacter(spell) {
+    const idx = activePC();
+    const p = store.campaign.characters[idx];
+    if (!p) return;
+    if (spell.level === 0) {
+      const updated = [...(p.cantrips || []), spell.name];
+      systemSet(`characters.${idx}.cantrips`, updated);
+    } else {
+      const updated = [...(p.knownSpells || []), spell.name];
+      systemSet(`characters.${idx}.knownSpells`, updated);
+    }
+    setSpellSearch('');
+    setSpellSearchResults([]);
+    window.dispatchEvent(new CustomEvent('toast', { detail: { text: `Added ${spell.name}` } }));
+  }
+
+  function removeSpellFromCharacter(spellName, isCantrip) {
+    const idx = activePC();
+    const p = store.campaign.characters[idx];
+    if (!p) return;
+    if (isCantrip) {
+      systemSet(`characters.${idx}.cantrips`, (p.cantrips || []).filter(s => s !== spellName));
+    } else {
+      systemSet(`characters.${idx}.knownSpells`, (p.knownSpells || []).filter(s => s !== spellName));
+    }
+    window.dispatchEvent(new CustomEvent('toast', { detail: { text: `Removed ${spellName}` } }));
+  }
 
   const pc = () => store.campaign.characters[activePC()] || null;
   const pcCount = () => store.campaign.characters.length;
@@ -715,7 +775,10 @@ export default function CharSheet(props) {
                   <span class="cs-spell-tag cantrip">Cantrip</span>
                   <i class={`ph ph-caret-${expandedSpells().has(spell) ? 'down' : 'right'} cs-spell-caret`} />
                 </div>
-                <Show when={expandedSpells().has(spell)}>{SpellDetail({ name: spell, cantrip: true })}</Show>
+                <Show when={expandedSpells().has(spell)}>
+                  {SpellDetail({ name: spell, cantrip: true })}
+                  <button class="cs-spell-remove" onClick={(e) => { e.stopPropagation(); removeSpellFromCharacter(spell, true); }}>Remove</button>
+                </Show>
               </div>
             )}
           </For>
@@ -731,11 +794,57 @@ export default function CharSheet(props) {
                   <span class="cs-spell-name">{spell}</span>
                   <i class={`ph ph-caret-${expandedSpells().has(spell) ? 'down' : 'right'} cs-spell-caret`} />
                 </div>
-                <Show when={expandedSpells().has(spell)}>{SpellDetail({ name: spell })}</Show>
+                <Show when={expandedSpells().has(spell)}>
+                  {SpellDetail({ name: spell })}
+                  <button class="cs-spell-remove" onClick={(e) => { e.stopPropagation(); removeSpellFromCharacter(spell, false); }}>Remove</button>
+                </Show>
               </div>
             )}
           </For>
         </Show>
+
+        <div class="cs-spell-add-section">
+          <Show when={!showAddSpell()}>
+            <button class="cs-spell-add-btn" onClick={() => { setShowAddSpell(true); loadSpellDb(); }}>+ Add Spell</button>
+          </Show>
+          <Show when={showAddSpell()}>
+            <div class="cs-spell-search-box">
+              <input
+                type="text"
+                class="cs-spell-search-input"
+                placeholder="Search all spells..."
+                value={spellSearch()}
+                onInput={(e) => { setSpellSearch(e.target.value); searchSpells(e.target.value); }}
+                autofocus
+              />
+              <button class="cs-spell-search-close" onClick={() => { setShowAddSpell(false); setSpellSearch(''); setSpellSearchResults([]); }}>&times;</button>
+            </div>
+            <Show when={spellSearchResults().length > 0}>
+              <div class="cs-spell-search-results">
+                <For each={spellSearchResults()}>
+                  {(spell) => (
+                    <button class="cs-spell-result" onClick={() => addSpellToCharacter(spell)}>
+                      <span class="cs-spell-result-name">{spell.name}</span>
+                      <span class="cs-spell-result-lvl">{spell.level === 0 ? 'Cantrip' : `Lv${spell.level}`}</span>
+                      <Show when={spell.classes?.length > 0}>
+                        <span class="cs-spell-result-classes">{spell.classes.join(', ')}</span>
+                      </Show>
+                    </button>
+                  )}
+                </For>
+              </div>
+            </Show>
+            <Show when={spellSearch().length > 0 && spellSearchResults().length === 0 && spellDbLoaded()}>
+              <div class="cs-spell-no-results">
+                No matching spells found.
+                <button class="cs-spell-manual-add" onClick={() => {
+                  addSpellToCharacter({ name: spellSearch().trim(), level: 1 });
+                  setShowAddSpell(false);
+                }}>Add "{spellSearch().trim()}" manually</button>
+              </div>
+            </Show>
+          </Show>
+        </div>
       </div>
     );
   }
