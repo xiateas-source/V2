@@ -8,10 +8,15 @@ import { pruneIfNeeded } from './memory.js';
 import { detectDrift } from './drift.js';
 import { runGate1, runGate2, runGate3, runGate4, runGate5, runGate6, runGate7, runGate8, runGate9, advanceCombatToNextPC, isAwaitingInitiative } from './gates.js';
 import { createNarrativeMsg, createOOCMsg, msgToRole, isPlayMsg } from './messages.js';
+import { classifyAction } from './classifier.js';
 
 let activeController = null;
 let wasAborted = false;
 const [sending, setSending] = createSignal(false);
+const [preSendRolls, setPreSendRolls] = createSignal(null);
+
+export function getPreSendRolls() { return preSendRolls(); }
+export function clearPreSendRolls() { setPreSendRolls(null); }
 
 export function isSending() { return sending(); }
 
@@ -61,21 +66,101 @@ function combatViolation(mechanics, responseText) {
   return null;
 }
 
+export async function resumeAfterRolls(rollResultLines, onChunk) {
+  const pending = preSendRolls();
+  if (!pending) return;
+
+  const originalMessage = pending.originalMessage;
+  setPreSendRolls(null);
+  setSending(true);
+  wasAborted = false;
+
+  try {
+    const outcomeBlock = rollResultLines.map(r => {
+      const outcome = r.total >= r.dc ? 'SUCCESS' : 'FAILURE';
+      return `${r.pcName}: ${r.skill} check — rolled ${r.total} (d20: ${r.d20} ${r.mod >= 0 ? '+' : ''}${r.mod}) vs DC ${r.dc} → ${outcome}`;
+    }).join('\n');
+
+    const contextInject = `PREDETERMINED ROLL RESULTS (these outcomes are final — narrate accordingly, do not contradict or re-roll):\n${outcomeBlock}`;
+
+    const rollSuffix = rollResultLines.map(r =>
+      `${r.pcName} rolled ${r.total} for ${r.skill} (DC ${r.dc}) — ${r.total >= r.dc ? 'SUCCESS' : 'FAILURE'}`
+    ).join('; ');
+    const combinedText = `${originalMessage}\n\n[ROLLS: ${rollSuffix}]`;
+
+    // Update the existing player message (added when classifier intercepted)
+    // to include the roll results, instead of adding a duplicate
+    const lastPlayerIdx = store.campaign.narrative.length - 1;
+    const lastMsg = store.campaign.narrative[lastPlayerIdx];
+    if (lastMsg && (lastMsg.type === 'player' || lastMsg.role === 'user')) {
+      setStore('campaign', 'narrative', lastPlayerIdx, 'content', combinedText);
+    } else {
+      const userMsg = createNarrativeMsg('player', combinedText);
+      setStore('campaign', 'narrative', [...store.campaign.narrative, userMsg]);
+    }
+
+    return await sendNarrative(combinedText, { contextInject, onChunk });
+  } catch (e) {
+    const errMsg = createNarrativeMsg('system', `Error: ${e.message}`);
+    setStore('campaign', 'narrative', [...store.campaign.narrative, errMsg]);
+    throw e;
+  } finally {
+    setSending(false);
+    activeController = null;
+  }
+}
+
 export async function sendMsg(text, options = {}) {
   if (sending()) return;
   setSending(true);
   wasAborted = false;
 
-  const { tab = 'narrative', contextInject = '', onChunk, combatKickoff = false } = options;
+  const { tab = 'narrative', contextInject = '', onChunk, combatKickoff = false, skipClassifier = false } = options;
 
   try {
     if (tab === 'ooc') {
       return await sendOOC(text, onChunk);
     }
 
+    if (!skipClassifier && !combatKickoff && tab === 'narrative') {
+      const classification = classifyAction(text);
+      if (classification && classification.rolls.length > 0) {
+        const userMsg = createNarrativeMsg('player', text);
+        setStore('campaign', 'narrative', [...store.campaign.narrative, userMsg]);
+
+        setPreSendRolls({
+          rolls: classification.rolls,
+          originalMessage: text,
+        });
+        setSending(false);
+        return '__AWAITING_ROLLS__';
+      }
+    }
+
     const userMsg = createNarrativeMsg('player', text);
     setStore('campaign', 'narrative', [...store.campaign.narrative, userMsg]);
 
+    return await sendNarrative(text, { contextInject, onChunk, combatKickoff });
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      if (wasAborted) {
+        const idx = store.campaign.narrative.length - 1;
+        setStore('campaign', 'narrative', idx, 'partial', false);
+        window.dispatchEvent(new CustomEvent('toast', { detail: { text: 'Response stopped — mechanics skipped' } }));
+      }
+      wasAborted = false;
+      return;
+    }
+    const errMsg = createNarrativeMsg('system', `Error: ${e.message}`);
+    setStore('campaign', 'narrative', [...store.campaign.narrative, errMsg]);
+    throw e;
+  } finally {
+    setSending(false);
+    activeController = null;
+  }
+}
+
+async function sendNarrative(text, { contextInject = '', onChunk, combatKickoff = false } = {}) {
     const receipt = contextInject;
     const { prompt: systemPrompt } = await buildPrompt(receipt);
 
@@ -104,9 +189,6 @@ export async function sendMsg(text, options = {}) {
 
     let mechanics = extractMechanics(fullResponse);
 
-    // Combat: keep the AI to one PC's turn and stop it resolving rolls / ending
-    // combat before the dice are in. On a violation, discard and re-prompt once
-    // (the player never sees the bad take).
     if (store.campaign.combatState.active && !isAwaitingInitiative()) {
       const reason = combatKickoff ? kickoffViolation(mechanics) : combatViolation(mechanics, fullResponse);
       if (reason) {
@@ -129,7 +211,6 @@ export async function sendMsg(text, options = {}) {
           setStore('campaign', 'narrative', assistantIdx, 'partial', false);
           mechanics = extractMechanics(fullResponse);
         } catch (_) {
-          // If the retry fails, fall through with whatever we have.
           setStore('campaign', 'narrative', assistantIdx, 'partial', false);
         }
       }
@@ -187,33 +268,11 @@ export async function sendMsg(text, options = {}) {
       }
     }
 
-    // Combat turn engine: code owns the turn pointer. Once initiative is rolled,
-    // land the pointer on the next player character. On the kickoff the current
-    // actor may itself be the PC who acts first (or an enemy ahead of them), so
-    // the search is inclusive; otherwise the active PC just acted, so advance
-    // past them. Enemies between PCs are resolved by the AI in its narration.
     if (store.campaign.combatState.active && !isAwaitingInitiative()) {
       advanceCombatToNextPC({ inclusive: combatKickoff });
     }
 
     return fullResponse;
-  } catch (e) {
-    if (e.name === 'AbortError') {
-      if (wasAborted) {
-        const idx = store.campaign.narrative.length - 1;
-        setStore('campaign', 'narrative', idx, 'partial', false);
-        window.dispatchEvent(new CustomEvent('toast', { detail: { text: 'Response stopped — mechanics skipped' } }));
-      }
-      wasAborted = false;
-      return;
-    }
-    const errMsg = createNarrativeMsg('system', `Error: ${e.message}`);
-    setStore('campaign', 'narrative', [...store.campaign.narrative, errMsg]);
-    throw e;
-  } finally {
-    setSending(false);
-    activeController = null;
-  }
 }
 
 function interceptAskDm(text) {

@@ -1,6 +1,6 @@
 import { createSignal, createMemo, Show, For } from 'solid-js';
 import { store, setStore } from '../../state/index.js';
-import { sendMsg, isSending } from '../../ai/engine.js';
+import { sendMsg, isSending, resumeAfterRolls, getPreSendRolls, clearPreSendRolls } from '../../ai/engine.js';
 
 const SKILL_ABILITY = {
   acrobatics: 'dex', 'animal handling': 'wis', arcana: 'int',
@@ -94,6 +94,25 @@ export default function RollBar() {
     const init = initiativeRolls();
     if (init.length) return init;
 
+    // Pre-send rolls from the action classifier (Phase 1 of three-phase flow)
+    const preSend = getPreSendRolls();
+    if (preSend && preSend.rolls.length > 0) {
+      return preSend.rolls.map((r, idx) => {
+        const foundPC = findPC(r.pcName);
+        let advState = 'normal';
+        if (foundPC && foundPC.exhaustion >= 1) advState = 'disadvantage';
+        return {
+          id: `pre-${idx}`,
+          skill: r.skill,
+          dc: r.dc,
+          pcName: r.pcName,
+          isPC: true,
+          advState,
+          preSend: true,
+        };
+      });
+    }
+
     const msgs = store.campaign.narrative;
     if (!msgs.length) return [];
 
@@ -114,7 +133,6 @@ export default function RollBar() {
             let advState = 'normal';
             if (mod === 'advantage') advState = 'advantage';
             else if (mod === 'disadvantage') advState = 'disadvantage';
-            // Exhaustion 1+ imposes disadvantage on ability checks (not saves/attacks in 5e 2014)
             const foundPC = findPC(pcName);
             if (foundPC && foundPC.exhaustion >= 1 && advState === 'normal') {
               advState = 'disadvantage';
@@ -231,13 +249,14 @@ export default function RollBar() {
     const rolls = allPendingRolls();
     const results = rollResults();
 
-    // Initiative phase: write rolls straight into the tracker (no AI round-trip
-    // for a player's own roll into their own slot), then kick off the fight.
     if (store.campaign.combatState.active && rolls.some(r => r.skill.toLowerCase() === 'initiative')) {
       submitInitiative(rolls, results);
       return;
     }
 
+    const isPreSend = rolls.some(r => r.preSend);
+
+    const rollData = [];
     const lines = [];
 
     for (const roll of rolls) {
@@ -256,14 +275,28 @@ export default function RollBar() {
       if (roll.advState === 'advantage') advNote = ` [ADV: ${res.d1}, ${res.d2}]`;
       else if (roll.advState === 'disadvantage') advNote = ` [DIS: ${res.d1}, ${res.d2}]`;
       lines.push(`${roll.pcName} rolled ${t} for ${roll.skill} (d20: ${d20} ${ms})${dcPart}${advNote}`);
+
+      rollData.push({
+        pcName: roll.pcName,
+        skill: roll.skill,
+        dc: roll.dc || 13,
+        d20,
+        mod,
+        total: t,
+      });
     }
 
     if (lines.length === 0) return;
-    const msg = lines.join('\n');
 
     setRollResults({});
     setSubmitted(new Set());
-    sendMsg(msg, { tab: 'narrative' });
+
+    if (isPreSend) {
+      resumeAfterRolls(rollData);
+    } else {
+      const msg = lines.join('\n');
+      sendMsg(msg, { tab: 'narrative' });
+    }
   }
 
   function markSubmitted(rollId) {
@@ -282,6 +315,18 @@ export default function RollBar() {
     const done = rolls.filter(r => results[r.id] != null).length;
     return `${done}/${rolls.length}`;
   };
+
+  const isPreSendRoll = () => allPendingRolls().some(r => r.preSend);
+
+  function skipPreSendRoll() {
+    const pending = getPreSendRolls();
+    if (!pending) return;
+    const originalMessage = pending.originalMessage;
+    clearPreSendRolls();
+    setRollResults({});
+    setSubmitted(new Set());
+    sendMsg(originalMessage, { tab: 'narrative', skipClassifier: true });
+  }
 
   return (
     <Show when={pendingRolls().length > 0 || allRolled()}>
@@ -304,9 +349,14 @@ export default function RollBar() {
             </Show>
           </div>
           <Show when={!hasRolled()}>
-            <button class="btn-roll" onClick={doRoll}>
-              {currentRoll()?.advState !== 'normal' ? 'Roll 2d20' : 'Roll d20'}
-            </button>
+            <div class="roll-actions">
+              <button class="btn-roll" onClick={doRoll}>
+                {currentRoll()?.advState !== 'normal' ? 'Roll 2d20' : 'Roll d20'}
+              </button>
+              <Show when={isPreSendRoll()}>
+                <button class="btn-roll btn-roll-skip" onClick={skipPreSendRoll}>Skip</button>
+              </Show>
+            </div>
           </Show>
           <Show when={hasRolled()}>
             <div class="roll-result-display">
