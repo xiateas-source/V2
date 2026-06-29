@@ -304,6 +304,9 @@ export default function CharCreate(props) {
       </Show>
 
       <Show when={!mode()}>
+        <Show when={props.onBack}>
+          <button class="charcreate-back" onClick={props.onBack}>← Back to Settings</button>
+        </Show>
         <h2 class="charcreate-title">
           {store.campaign.characters.length === 0 ? 'Create Your Character' : 'Add Character'}
         </h2>

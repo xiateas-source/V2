@@ -4,6 +4,7 @@ import { saveKeys as persistKeys, saveProviderSettings } from '../../data/keys.j
 import { clearActiveCampaign, exportSnapshot, saveLocalNow } from '../../data/persist.js';
 import { buildShareId, stopLiveSync } from '../../data/sync.js';
 import Contracts from './Contracts.jsx';
+import CharCreate from '../setup/CharCreate.jsx';
 
 const GEMINI_MODELS = [
   { id: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash (free, newest)' },
@@ -131,7 +132,14 @@ export default function Settings() {
   }
 
   return (
-    <Show when={subView() !== 'contracts'} fallback={<Contracts onBack={() => setSubView(null)} />}>
+    <>
+    <Show when={subView() === 'contracts'}>
+      <Contracts onBack={() => setSubView(null)} />
+    </Show>
+    <Show when={subView() === 'charCreate'}>
+      <CharCreate onBack={() => setSubView(null)} />
+    </Show>
+    <Show when={!subView()}>
       <div class="settings-page">
         <h2 class="settings-heading">Settings</h2>
 
@@ -193,6 +201,10 @@ export default function Settings() {
                 <span>{shareCopied() ? 'Link copied!' : 'Invite Players — Share Campaign Link'}</span>
               </button>
             </Show>
+            <button class="btn-add-character" onClick={() => setSubView('charCreate')}>
+              <i class="ph ph-user-plus" />
+              <span>Add Character to Party</span>
+            </button>
           </Show>
           <button class="btn-new-campaign" onClick={newCampaign}>
             {store.campaign.id ? 'New Campaign (save & start fresh)' : 'Start a Campaign'}
@@ -271,6 +283,8 @@ export default function Settings() {
         </section>
       </div>
     </Show>
+    </>
   );
 }
+
 
