@@ -14,8 +14,18 @@ const STORES = {
   meta:          { keyPath: 'key', autoIncrement: false, indexes: [] },
 };
 
+function isConnectionAlive(db) {
+  try {
+    db.transaction('meta', 'readonly');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function openDB() {
-  if (dbInstance) return Promise.resolve(dbInstance);
+  if (dbInstance && isConnectionAlive(dbInstance)) return Promise.resolve(dbInstance);
+  dbInstance = null;
 
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -37,6 +47,7 @@ function openDB() {
 
     request.onsuccess = () => {
       dbInstance = request.result;
+      dbInstance.onclose = () => { dbInstance = null; };
       resolve(dbInstance);
     };
 

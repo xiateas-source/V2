@@ -75,21 +75,25 @@ export async function pullRules(contexts) {
 }
 
 export async function buildRulesBlock() {
-  const contexts = detectContext();
-  const rules = await pullRules(contexts);
+  try {
+    const contexts = detectContext();
+    const rules = await pullRules(contexts);
 
-  if (rules.length === 0) return '';
+    if (rules.length === 0) return '';
 
-  const lines = ['RULES REFERENCE (D&D 5e SRD):'];
-  let tokens = 0;
+    const lines = ['RULES REFERENCE (D&D 5e SRD):'];
+    let tokens = 0;
 
-  for (const r of rules) {
-    const line = `• ${r.name}: ${r.content}`;
-    const lineTokens = Math.ceil(line.length / 4);
-    if (tokens + lineTokens > MAX_RULES_TOKENS && !CORE_RULES.includes(r.name)) break;
-    lines.push(line);
-    tokens += lineTokens;
+    for (const r of rules) {
+      const line = `• ${r.name}: ${r.content}`;
+      const lineTokens = Math.ceil(line.length / 4);
+      if (tokens + lineTokens > MAX_RULES_TOKENS && !CORE_RULES.includes(r.name)) break;
+      lines.push(line);
+      tokens += lineTokens;
+    }
+
+    return lines.join('\n');
+  } catch {
+    return '';
   }
-
-  return lines.join('\n');
 }
