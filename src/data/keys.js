@@ -1,4 +1,4 @@
-import { setStore, store } from '../state/index.js';
+import { setStore, store, DEFAULT_SYSTEM } from '../state/index.js';
 import { getByKey } from './local.js';
 import { dbWrite, dbRead } from './firebase.js';
 
@@ -44,7 +44,15 @@ export function restoreQuickActions() {
     const raw = localStorage.getItem(QA_STORAGE);
     if (raw) {
       const config = JSON.parse(raw);
-      if (config) setStore('system', 'settings', 'quickActions', config);
+      const defaults = DEFAULT_SYSTEM.settings.quickActions;
+      if (config && typeof config === 'object') {
+        setStore('system', 'settings', 'quickActions', {
+          ...defaults,
+          ...config,
+          active: Array.isArray(config.active) ? config.active : defaults.active,
+          custom: Array.isArray(config.custom) ? config.custom : defaults.custom,
+        });
+      }
     }
   } catch {}
 }

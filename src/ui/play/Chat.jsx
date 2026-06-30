@@ -196,6 +196,9 @@ export default function Chat() {
               <Show when={msg.isSummary}>
                 <div class="msg-summary-badge">Prior context</div>
               </Show>
+              <Show when={msg.type === 'player' && msg.playerName && store.campaign.characters.length > 1}>
+                <div class="msg-player-name">{msg.playerName}</div>
+              </Show>
               <div class="msg-content" innerHTML={formatMsg(msg.content, npcNames())} />
               <Show when={msg.driftWarnings?.length > 0}>
                 <div class="drift-warnings">
