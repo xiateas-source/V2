@@ -9,6 +9,12 @@ import { unwrap } from 'solid-js/store';
 import { store, setStore } from '../state/index.js';
 import { DEFAULT_CAMPAIGN, DEFAULT_CHARACTER, DEFAULT_CONTRACTS } from '../state/campaign.js';
 
+// Superseded DEFAULT_CONTRACTS text from before the three-phase roll system (S48).
+// Used only to detect un-customized fields during the one-time migration below.
+const STALE_CONTRACTS = {
+  never: 'Never auto-resolve a roll — when an action is uncertain, emit a roll_request and wait for the player\'s submitted result. Never resolve actions for a PC the player did not mention. Never kill a PC without death saves. Never reveal DM secrets or undiscovered content. Never change HP, gold, items, quests, NPCs, or location in prose without emitting the matching mechanic.',
+};
+
 // Firebase omits/nullifies empty arrays and can return non-array for array fields.
 // This heals any array-typed field back to an array after merge/restore.
 function healArrays(obj) {
@@ -189,6 +195,16 @@ export async function restoreSession() {
         continuity: DEFAULT_CONTRACTS.continuity,
         multi: DEFAULT_CONTRACTS.multi,
       });
+    } else {
+      // One-time migration: a contract field still holding an old DEFAULT_CONTRACTS
+      // string verbatim (never customized by the player) gets refreshed to the
+      // current default, so engine updates (e.g. the three-phase roll flow) reach
+      // existing campaigns. Anything the player edited is left untouched.
+      for (const [key, staleText] of Object.entries(STALE_CONTRACTS)) {
+        if (con[key] === staleText) {
+          setStore('campaign', 'contracts', key, DEFAULT_CONTRACTS[key]);
+        }
+      }
     }
     if (snap.playerIdentity) setStore('system', 'playerIdentity', snap.playerIdentity);
     if (snap.theme) {
