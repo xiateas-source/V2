@@ -7,7 +7,7 @@
 import { createEffect, on } from 'solid-js';
 import { unwrap } from 'solid-js/store';
 import { store, setStore } from '../state/index.js';
-import { DEFAULT_CAMPAIGN, DEFAULT_CONTRACTS } from '../state/campaign.js';
+import { DEFAULT_CAMPAIGN, DEFAULT_CHARACTER, DEFAULT_CONTRACTS } from '../state/campaign.js';
 
 // Firebase omits/nullifies empty arrays and can return non-array for array fields.
 // This heals any array-typed field back to an array after merge/restore.
@@ -17,6 +17,18 @@ function healArrays(obj) {
     if (Array.isArray(defVal) && !Array.isArray(out[key])) {
       out[key] = [];
     }
+  }
+  // Heal each character: ensure every DEFAULT_CHARACTER array/object field exists.
+  if (Array.isArray(out.characters)) {
+    out.characters = out.characters.map(pc => {
+      const healed = { ...pc };
+      for (const [key, defVal] of Object.entries(DEFAULT_CHARACTER)) {
+        if (healed[key] === undefined || healed[key] === null) {
+          healed[key] = Array.isArray(defVal) ? [] : typeof defVal === 'object' && defVal !== null ? { ...defVal } : defVal;
+        }
+      }
+      return healed;
+    });
   }
   return out;
 }

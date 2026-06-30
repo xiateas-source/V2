@@ -76,7 +76,7 @@ export default function CharTiles() {
                 return pc.xp >= XP_THRESHOLDS[nextLevel];
               };
               const monogram = () => (pc.name || '?').trim().charAt(0).toUpperCase();
-              const hasDeathSaves = () => pc.hp === 0 && (pc.deathSaves.successes > 0 || pc.deathSaves.failures > 0);
+              const hasDeathSaves = () => pc.hp === 0 && ((pc.deathSaves?.successes || 0) > 0 || (pc.deathSaves?.failures || 0) > 0);
 
               return (
                 <div
@@ -98,8 +98,8 @@ export default function CharTiles() {
                         <Show when={pc.concentration}>
                           <i class="ph ph-target warn" title={`Concentrating: ${pc.concentration.spell || pc.concentration}`} />
                         </Show>
-                        <Show when={pc.conditions.length > 0}>
-                          <i class="ph ph-warning-circle" title={pc.conditions.map(c => c.name || c).join(', ')} />
+                        <Show when={(pc.conditions?.length || 0) > 0}>
+                          <i class="ph ph-warning-circle" title={(pc.conditions || []).map(c => c.name || c).join(', ')} />
                         </Show>
                         <Show when={pc.exhaustion > 0}>
                           <i class="ph ph-moon warn" title={`Exhaustion ${pc.exhaustion}`} />
