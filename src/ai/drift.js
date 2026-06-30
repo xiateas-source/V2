@@ -5,6 +5,10 @@ const GOLD_PATTERNS = /(\d+)\s*(gold|gp|silver|sp|copper|cp|platinum|pp)/i;
 const ITEM_GIVE_PATTERNS = /\b((hands?|gives?|tosses?|offers?|passes?)\s+(you|them|her|him|the party)\s+(a|an|the|some|\d+|two|three|four|five)\b|you\s+(find|receive|obtain|acquire|grab|loot|pick\s*up|are\s+given|are\s+handed)\s+(a|an|the|some|\d+|two|three|four|five)\b|(picks?\s+up|loots?|pockets?)\s+(a|an|the|some|\d+)\b)/i;
 const NPC_INTRO_PATTERNS = /\b(introduces?\s+(herself|himself|themselves)|"[^"]*,?\s*I'?m\s+[A-Z]|meet\s+[A-Z])/;
 const HP_NARRATION = /\b(takes?\s+\d+\s+(points?\s+of\s+)?damage|loses?\s+\d+\s+h(it\s*)?p(oints?)?|heals?\s+\d+)/i;
+// Defeat/incapacitation language that carries no explicit number, so HP_NARRATION
+// misses it (e.g. "life-support critically fails" instead of "takes 12 damage").
+// Scoped to named combatants so it doesn't fire on generic prose.
+const STATUS_VERBS = /\b(collapses?|crumples?|drops?(\s+to\s+the\s+ground|\s+dead)?|falls?(\s+silent|\s+still|\s+to\s+the\s+ground)?|goes?\s+(limp|still|silent)|stops?\s+(moving|breathing)|slumps?|dies?|died|killed|defeated|downed|incapacitat\w*|unconscious|knocked\s+out|life[- ]support\s+(fails?|failed|critical)|critical(ly)?\s+(fails?|wound\w*)|destroyed)\b/i;
 const ROLL_IN_PROSE = /\b(rolls?\s+(a\s+)?\d+|rolled\s+(a\s+)?\d+|rolls?\s+a\s+natural|nat(ural)?\s+(20|1)|the\s+d(ice|20)\s+(shows?|lands?|comes?\s+up))/i;
 
 import { store } from '../state/index.js';
@@ -65,6 +69,31 @@ export function detectDrift(narrative, mechanics, opts = {}) {
   if (HP_NARRATION.test(narrative)) {
     if (!mechanicKeys.has('hp')) {
       warnings.push({ type: 'hp', text: 'HP change narrated without hp mechanic' });
+    }
+  }
+
+  if (opts.combatState?.active) {
+    const hpTargets = new Set();
+    for (const m of (mechanics || [])) {
+      if (m.key !== 'hp') continue;
+      for (const entry of String(m.value || '').split(',')) {
+        const name = entry.split('=')[0]?.trim().toLowerCase();
+        if (name) hpTargets.add(name);
+      }
+    }
+    const combatants = [
+      ...(opts.characters || []),
+      ...(opts.combatState.initiative || []).filter(c => c.type !== 'pc'),
+    ];
+    const narrativeLower = narrative.toLowerCase();
+    for (const c of combatants) {
+      if (!c?.name || !(c.hp > 0) || hpTargets.has(c.name.toLowerCase())) continue;
+      const nameIdx = narrativeLower.indexOf(c.name.toLowerCase());
+      if (nameIdx === -1) continue;
+      const vicinity = narrative.slice(Math.max(0, nameIdx - 40), nameIdx + 120);
+      if (STATUS_VERBS.test(vicinity)) {
+        warnings.push({ type: 'combat_status', text: `${c.name}'s status narrated (defeat/incapacitation language) without a matching hp mechanic` });
+      }
     }
   }
 

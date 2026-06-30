@@ -232,7 +232,7 @@ async function sendNarrative(text, { contextInject = '', onChunk, combatKickoff 
         setStore('campaign', 'narrative', assistantIdx, 'mechanics', { applied, rejected });
       }
 
-      const driftOpts = { playerMessage: text, characters: store.campaign.characters };
+      const driftOpts = { playerMessage: text, characters: store.campaign.characters, combatState: store.campaign.combatState };
       const driftWarnings = detectDrift(fullResponse, applied, driftOpts);
       if (driftWarnings.length) {
         setStore('campaign', 'narrative', assistantIdx, 'driftWarnings', driftWarnings);
@@ -253,7 +253,7 @@ async function sendNarrative(text, { contextInject = '', onChunk, combatKickoff 
       }
 
     } else {
-      const driftOpts = { playerMessage: text, characters: store.campaign.characters };
+      const driftOpts = { playerMessage: text, characters: store.campaign.characters, combatState: store.campaign.combatState };
       const driftWarnings = detectDrift(fullResponse, [], driftOpts);
       if (driftWarnings.length) {
         setStore('campaign', 'narrative', assistantIdx, 'driftWarnings', driftWarnings);
