@@ -275,7 +275,7 @@ function exportResults() {
   };
   const text = JSON.stringify(out, null, 2);
   const done = () => {
-    alert('Copied to clipboard — chat cleared');
+    window.dispatchEvent(new CustomEvent('toast', { detail: { text: 'Copied to clipboard — chat cleared', type: 'success' } }));
     setStore('campaign', 'narrative', []);
     setStore('campaign', 'ooc', []);
   };
