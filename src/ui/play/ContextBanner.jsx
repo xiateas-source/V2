@@ -37,7 +37,7 @@ export default function ContextBanner() {
           </div>
         </div>
       </Show>
-      <Show when={loc() || time()}>
+      <Show when={loc() || time() || (!inCombat() && (isMulti() || othersHere().length > 0))}>
         <div class={`head ${inCombat() ? 'head-compact' : ''}`}>
           <div class="head-left">
             <Show when={loc()}><div class="loc">{loc()}</div></Show>

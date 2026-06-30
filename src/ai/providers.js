@@ -121,8 +121,11 @@ async function* streamGemini(messages, systemPrompt, signal, model) {
       if (data === '[DONE]') return;
       try {
         const parsed = JSON.parse(data);
-        const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text) yield text;
+        const parts = parsed.candidates?.[0]?.content?.parts || [];
+        for (const part of parts) {
+          // Skip Gemini 2.5 thinking tokens (thought: true) — yield only the response.
+          if (!part.thought && part.text) yield part.text;
+        }
       } catch {}
     }
   }
