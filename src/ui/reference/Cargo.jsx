@@ -92,12 +92,20 @@ export default function Cargo() {
 
   const totalWeight = createMemo(() => visible().reduce((s, i) => s + itemWeight(i), 0));
 
-  // For a PC owner view: carry capacity = STR × 15.
+  // For a PC owner view: carry capacity = STR × 15 (Encumbered at ×5, Heavily
+  // Encumbered at ×10 — matches the thresholds enforced on rolls in RollBar).
   const capacity = createMemo(() => {
     const pc = characters().find(p => p.id === owner());
     if (!pc) return null;
     const str = pc.abilityScores?.str || 10;
-    return { carried: totalWeight(), cap: str * 15, str };
+    const carried = totalWeight();
+    const cap = str * 15;
+    let level = 'ok';
+    let warning = '';
+    if (carried > cap) { level = 'over'; warning = 'Over capacity! Cannot move.'; }
+    else if (carried > str * 10) { level = 'heavy'; warning = 'Heavily encumbered: -20ft speed, disadvantage on STR/DEX/CON rolls.'; }
+    else if (carried > str * 5) { level = 'encumbered'; warning = 'Encumbered: -10ft speed.'; }
+    return { carried, cap, str, level, warning };
   });
 
   function selectOwner(id) { setOwner(id); setTypeFilter('all'); }
@@ -138,11 +146,12 @@ export default function Cargo() {
         <Show when={capacity()} fallback={
           <Show when={totalWeight() > 0}><div class="cargo-weight">{totalWeight()} lb total</div></Show>
         }>
-          <div class={`cargo-weight ${capacity().carried > capacity().cap ? 'over' : ''}`}>
+          <div class={`cargo-weight ${capacity().level}`}>
             <div class="cargo-weight-bar">
               <div class="cargo-weight-fill" style={{ width: `${Math.min(100, (capacity().carried / capacity().cap) * 100)}%` }} />
             </div>
             <span class="cargo-weight-text">{capacity().carried} / {capacity().cap} lb · STR {capacity().str}</span>
+            <Show when={capacity().warning}><span class="cargo-weight-warning">{capacity().warning}</span></Show>
           </div>
         </Show>
 

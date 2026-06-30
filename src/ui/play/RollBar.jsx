@@ -69,6 +69,35 @@ function isPlayerChar(name) {
   return findPC(name) !== null;
 }
 
+// Resolves the ability score a skill/save check is keyed on, so we can tell
+// whether it's a STR/DEX/CON roll (the trio that takes disadvantage while
+// Heavily Encumbered, per the carrying-capacity rules).
+function getRollAbility(skillName) {
+  const lower = (skillName || '').toLowerCase().replace(/\s+/g, '');
+  if (ABILITY_ABBREV[lower]) return ABILITY_ABBREV[lower];
+  return SKILL_ABILITY[lower] || SKILL_ABILITY[(skillName || '').toLowerCase()] || null;
+}
+
+function isHeavilyEncumbered(pc) {
+  if (!pc) return false;
+  const str = pc.abilityScores?.str || 10;
+  const items = store.campaign.inventory.carried[pc.id] || [];
+  const weight = items.reduce((s, i) => s + (Number(i.weight) || 0) * (Number(i.qty) || 1), 0);
+  return weight > str * 10;
+}
+
+// STR/DEX/CON checks, saves, and Initiative take disadvantage while Heavily
+// Encumbered; advantage and disadvantage cancel out (same rule exhaustion
+// already applies below).
+function applyEncumbrance(advState, foundPC, skill) {
+  const ability = getRollAbility(skill);
+  if (!foundPC || !['str', 'dex', 'con'].includes(ability) || !isHeavilyEncumbered(foundPC)) {
+    return advState;
+  }
+  if (advState === 'advantage') return 'normal';
+  return 'disadvantage';
+}
+
 export default function RollBar() {
   const [rollResults, setRollResults] = createSignal({});
   const [submitted, setSubmitted] = createSignal(new Set());
@@ -85,7 +114,8 @@ export default function RollBar() {
       .map(c => {
         const foundPC = findPC(c.name);
         // Exhaustion 1+ gives disadvantage on Dexterity (initiative) checks (2014 rules).
-        const advState = foundPC && foundPC.exhaustion >= 1 ? 'disadvantage' : 'normal';
+        let advState = foundPC && foundPC.exhaustion >= 1 ? 'disadvantage' : 'normal';
+        advState = applyEncumbrance(advState, foundPC, 'Initiative');
         return { id: `init-${c.name}`, skill: 'Initiative', dc: null, pcName: c.name, isPC: true, advState };
       });
   });
@@ -101,6 +131,7 @@ export default function RollBar() {
         const foundPC = findPC(r.pcName);
         let advState = 'normal';
         if (foundPC && foundPC.exhaustion >= 1) advState = 'disadvantage';
+        advState = applyEncumbrance(advState, foundPC, r.skill);
         return {
           id: `pre-${idx}`,
           skill: r.skill,
@@ -139,6 +170,7 @@ export default function RollBar() {
             } else if (foundPC && foundPC.exhaustion >= 1 && advState === 'advantage') {
               advState = 'normal';
             }
+            advState = applyEncumbrance(advState, foundPC, skill);
             return {
               id: `${i}-${idx}`,
               skill,
