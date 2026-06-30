@@ -12,6 +12,8 @@ import Combat from './Combat.jsx';
 import TurnPrompt from './TurnPrompt.jsx';
 import Rewind from './Rewind.jsx';
 import TTS from './TTS.jsx';
+import CharDrawer from './CharDrawer.jsx';
+import ActionsDrawer from './ActionsDrawer.jsx';
 import { autoRead, speak } from '../../audio/browserTTS.js';
 import MechPill from '../shared/MechPill.jsx';
 import { navigateTo } from '../shared/sourceBus.js';
@@ -24,10 +26,24 @@ const [tooltip, setTooltip] = createSignal(null);
 export default function Chat() {
   const [tab, setTab] = createSignal('narrative');
   const [newMsgCount, setNewMsgCount] = createSignal(0);
+  const [leftOpen, setLeftOpen] = createSignal(false);
+  const [rightOpen, setRightOpen] = createSignal(false);
   let chatEnd;
   let messagesDiv;
   let isAtBottom = true;
   let lastMsgCount = 0;
+
+  // Handle badges
+  const hasConditions = createMemo(() =>
+    store.campaign.characters.some(c => c.conditions?.length > 0 || c.concentration)
+  );
+  const hasSlots = createMemo(() =>
+    store.campaign.characters.some(c =>
+      Object.values(c.currentSlots || {}).some(n => n > 0) ||
+      c.resources?.some(r => r.current > 0)
+    )
+  );
+  const hasChars = () => store.campaign.characters.length > 0;
 
   function showSpellTooltip(name) {
     const sp = spellList().find(s => (s.name || '').toLowerCase() === name.toLowerCase());
@@ -149,6 +165,34 @@ export default function Chat() {
   });
 
   return (
+    <>
+    <Show when={hasChars()}>
+      <button
+        class="drawer-handle left"
+        classList={{ 'has-badge': hasConditions() }}
+        onClick={() => { setRightOpen(false); setLeftOpen(o => !o); }}
+        title="Character vitals"
+      >
+        <i class="ph ph-shield-chevron" />
+        <Show when={hasConditions()}><span class="drawer-handle-dot" /></Show>
+      </button>
+      <button
+        class="drawer-handle right"
+        classList={{ 'has-badge': hasSlots() }}
+        onClick={() => { setLeftOpen(false); setRightOpen(o => !o); }}
+        title="Spells & actions"
+      >
+        <i class="ph ph-sparkle" />
+        <Show when={hasSlots()}><span class="drawer-handle-dot active" /></Show>
+      </button>
+    </Show>
+
+    <Show when={leftOpen() || rightOpen()}>
+      <div class="drawer-backdrop" onClick={() => { setLeftOpen(false); setRightOpen(false); }} />
+    </Show>
+    <Show when={leftOpen()}><CharDrawer onClose={() => setLeftOpen(false)} /></Show>
+    <Show when={rightOpen()}><ActionsDrawer onClose={() => setRightOpen(false)} /></Show>
+
     <div class="chat-container">
       <PreviouslyOn />
       <ContextBanner />
@@ -245,6 +289,7 @@ export default function Chat() {
         <InputBar tab={tab()} />
       </div>
     </div>
+    </>
   );
 }
 
