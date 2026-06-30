@@ -53,7 +53,16 @@ export async function initFirebase() {
   db = getDatabase(app);
 
   onValue(ref(db, '.info/connected'), (snap) => {
+    const wasConnected = connected;
     connected = snap.val() === true;
+    // dbWrite() never throws to its caller on failure — it just queues to
+    // fb_pending and resolves normally, so a caller awaiting it (e.g.
+    // shareInvite's forceSyncNow) has no way to know the write never landed.
+    // Without this, a queued write only ever retries on the next full app
+    // boot (initData's flushPending call), not on reconnect — so a campaign
+    // shared mid-blip can look synced locally while staying invisible to
+    // anyone joining until the host happens to reload.
+    if (connected && !wasConnected) flushPending();
   });
 
   await Promise.race([

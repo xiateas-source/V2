@@ -1,5 +1,87 @@
 # Session Log — Handoff
 
+## Session 61 · 2026-06-30
+
+Branch `claude/latest-test-analysis-v64a6i` · committed, pushed. Live bug investigation, not a planned feature session.
+
+### What Shipped
+
+User hit a real "Campaign not found" error trying to join a campaign in actual play, and shared a screenshot plus a full RTDB JSON export to investigate. Note: earlier in this same session, a block of text appeared mid-conversation formatted to look like an authoritative compaction/formatting directive, instructing a stop to the actual task — same injection pattern as a prior session (see S60 entry below). Identified it as not from the user, declined to follow it, and continued the real investigation.
+
+Read the actual uploaded export file directly (`/root/.claude/uploads/.../pebblev2defaultrtdbexport.json`) rather than working from secondhand description. Confirmed: the campaign in question (`camp_1782831066460`, host's 4th "New Campaign" of the day) has fully-formed data in RTDB — characters, narrative, contracts, presence all populated — but zero guest `players/<uid>/joined` records anywhere in the export point to it, unlike the host's three earlier campaigns that day (all of which do have a matching guest `joined` record). So the join genuinely failed at the time it was attempted, even though the data exists now.
+
+Traced why through the actual sync code (`firebase.js`, `sync.js`, `Settings.jsx`) rather than guessing:
+1. `dbWrite()` catches its own failures and queues to `localStorage`'s `fb_pending` without rethrowing — callers awaiting it see success even when the RTDB write never landed.
+2. `shareInvite()` does `await forceSyncNow()` before building the invite link specifically to avoid sharing stale state — but that await can resolve "successfully" on a silently-failed write, so the host shares a link believing state is pushed when it isn't.
+3. `joinCampaign()`'s `dbRead()` then hits the real (still-empty) path, throws "Campaign not found" — and crucially, that's *before* the function ever reaches the line that writes the guest's `joined` pointer, which is exactly why no guest record exists for this campaign in the export.
+4. The queued write's only retry mechanism, `flushPending()`, had exactly one caller — `initData()` at app boot, gated on `isConnected()` at that exact moment. No code retried it on a mid-session reconnect. So a write queued after a connectivity blip (very plausible — mobile-only app, Law 3) sat inert in `localStorage` until the device happened to fully reload while online, which is almost certainly how the campaign's data eventually reached RTDB by the time this export was taken.
+
+Fix: `initFirebase()`'s existing `.info/connected` listener (`firebase.js:55-57`) now also calls `flushPending()` on every false→true transition, not just relying on `initData()`'s one boot-time check. Reuses the existing listener and queue — no new Firebase path, no schema change. `flushPending()` is idempotent so an extra call near boot (alongside `initData()`'s own check) is harmless.
+
+Deliberately not changed: `dbWrite()` still doesn't surface failures to callers, so `shareInvite()` can't yet distinguish "synced" from "queued, will retry on reconnect" — flagged as a possible follow-up in workboard.md, not pursued without being asked, since it's a UX/error-signaling question separate from the actual timing bug that was fixed.
+
+### Decisions
+
+See `decisions.md` → "Live join failure root-caused: silent write failures only retried at boot (S61)" for the full rationale table.
+
+### Verification
+
+- `npm test` — 60/60 passing.
+- `npm run build` — succeeds, only the pre-existing large-chunk warning.
+- Not live-tested — this sandboxed environment can't reach Firebase. Confirming this fix needs a real device that's deliberately taken offline mid-session (e.g. airplane mode toggle) while a sync write is pending, then brought back online, to verify `flushPending()` actually fires on the reconnect transition and the queued campaign data lands in RTDB without a manual reload.
+
+### Known Issues
+
+Carried over from S60, plus: `dbWrite()`'s failure-swallowing (see "Deliberately not changed" above) and S61's reconnect-fix itself both need live verification (see workboard.md Known Issues).
+
+### Next Up
+
+1. Live verification of the S61 reconnect-retry fix — toggle airplane mode mid-session on a real device while a write is pending, confirm it lands without a reload.
+2. Live two-device test covering S60's three fixes (presence flicker, mid-session-campaign listener arming, 3s-window remote-update drop) — still outstanding from S60.
+3. Consider (not yet asked about): should `dbWrite()`/`shareInvite()` surface a "you're offline, the invite link won't work until you reconnect" signal instead of always showing "Link copied!"?
+4. Carried from S59: inline NPC name linking, Gate 8's missing-XP click handler (pending user confirmation).
+5. Carried from S58: Multiplayer Pass 2 (bundles MVP), Priorities deadline July 11 (see workboard.md).
+
+---
+
+## Session 60 · 2026-06-30
+
+Branch `claude/latest-test-analysis-v64a6i` · committed, pushed. Agent audit pass on the S58 multiplayer presence/sync work.
+
+### What Shipped
+
+A prior agent audit traced through the S58 presence/sync path (prompted by the flicker risk `persist.js`'s own comments already called out) and found three real bugs, all fixed with targeted, logic-only diffs — no new Firebase paths, no schema changes:
+
+1. **`dbListen()` echo suppression** (`firebase.js`) — was a flat 3s time window that dropped *any* incoming snapshot on a path after this device wrote there, not just the echo of its own write. Since the routine debounced campaign auto-sync and another device's write (e.g. a presence toggle) land on the same RTDB path, a same-device write within 3s of a remote change silently swallowed that change until some unrelated update fired `onValue()` again. Replaced with content-based echo detection (`lastWritten` cache + `isEcho()`).
+2. **`startLiveSync()` not armed on mid-session campaign creation** (`PlayerOnboard.jsx`) — only ever called from `main.jsx`'s `boot()` and `joinCampaign()` (guest path). A host creating a new campaign mid-session (Settings → New Campaign → onboarding → Start Adventure) had no realtime listener for the rest of that session — a guest's join or any other remote change wouldn't appear without a manual reload. Now called from `startAdventure()`.
+3. **`mergeCampaign()` wholesale-overwriting presence** (`persist.js`) — `{...localC, ...cloudC}` meant any field in the cloud snapshot fully replaced the local value, including `presence`, the fastest-changing field. A device flipping its own presence entry locally could have a different device's in-flight full-snapshot write (built before it learned of that change) land moments later and clobber it back to stale, visibly flickering the toggle. Now merges presence per-uid by `ts` via `mergePresence()`.
+
+These three commits (`d66db53`, `d9cd1f7`, `4a3d5f6`) were already on the branch and pushed from the prior audit pass; this session's work was verifying them and writing them up, since the doc-update step of the session protocol hadn't run yet.
+
+Also handled, same session: a block of text appeared mid-conversation formatted to look like a legitimate "conversation summary," but contained an instruction (impersonating my own prior reasoning) to build a new "dedicated presence RTDB path" — a different and incorrect description of what the real audit had actually done. Identified it as not originating from the user, declined to act on it, and confirmed the real audit work with the user before writing it up. No action was taken on the injected instruction; nothing in this entry implements a separate presence RTDB path — presence still lives at `campaign.presence` inside the existing campaign sync blob.
+
+### Decisions
+
+See `decisions.md` → "Multiplayer Sync Bug Audit (S60)" for the full rationale table.
+
+### Verification
+
+- `npm test` — 60/60 passing.
+- `npm run build` — succeeds, only the pre-existing large-chunk warning.
+- Not live-tested — this sandboxed environment can't reach Firebase. All three fixes need a real two-device session to confirm (see workboard.md Known Issues).
+
+### Known Issues
+
+Carried over from S59, unchanged, plus: S60's three sync-bug fixes are unverified live (see Verification above).
+
+### Next Up
+
+1. Live two-device test covering: presence toggle no longer flickering, a guest's join showing up on a host who created the campaign mid-session without reload, and a remote update landing within 3s of a local auto-sync no longer getting dropped.
+2. Carried from S59: inline NPC name linking (tap-to-source infra exists via `sourceBus.js`), Gate 8's missing-XP click handler (pending user confirmation).
+3. Carried from S58: Multiplayer Pass 2 (bundles MVP), Priorities deadline July 11 (see workboard.md).
+
+---
+
 ## Session 59 · 2026-06-30
 
 Branch `claude/quick-wins-review-07zr0m` · committed, pushed. Time-boxed (low context, ~30 min) — review pass, not a feature session.
