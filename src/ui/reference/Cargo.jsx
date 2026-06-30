@@ -1,5 +1,5 @@
 import { createSignal, createMemo, lazy, For, Show } from 'solid-js';
-import { store } from '../../state/index.js';
+import { store, setStore } from '../../state/index.js';
 import { validateMechanics, applyMechanics } from '../../ai/mechanics.js';
 
 const Treasury = lazy(() => import('./Treasury.jsx'));
@@ -14,7 +14,9 @@ const TYPE_LABEL = {
   consumable: 'Consumables', currency: 'Currency', herb: 'Herbs', misc: 'Misc',
 };
 function typeLabel(t) { return TYPE_LABEL[(t || 'misc').toLowerCase()] || (t ? t.charAt(0).toUpperCase() + t.slice(1) : 'Misc'); }
-function itemWeight(i) { return (Number(i.weight) || 0) * (Number(i.qty) || 1); }
+function rawWeight(i) { return (Number(i.weight) || 0) * (Number(i.qty) || 1); }
+function itemWeight(i) { return i.inContainer ? 0 : rawWeight(i); }
+function isContainerType(i) { return (i.type || '').toLowerCase() === 'container'; }
 
 export default function Cargo() {
   const [showTreasury, setShowTreasury] = createSignal(false);
@@ -24,10 +26,19 @@ export default function Cargo() {
   const [adding, setAdding] = createSignal(false);
   const [openItem, setOpenItem] = createSignal(null);
 
-  function itemKey(i) { return `${i.name}::${i._owner}`; }
-  function toggleNote(i) {
+  function itemKey(i) { return `${i.name}::${i._owner}::${i._idx}`; }
+  function toggleNote(i, e) {
+    e.stopPropagation();
     const k = itemKey(i);
     setOpenItem(prev => prev === k ? null : k);
+  }
+
+  function toggleInContainer(i, e) {
+    e.stopPropagation();
+    const pcId = i._owner;
+    const arr = [...(store.campaign.inventory.carried[pcId] || [])];
+    arr[i._idx] = { ...arr[i._idx], inContainer: !arr[i._idx].inContainer };
+    setStore('campaign', 'inventory', 'carried', pcId, arr);
   }
 
   const gold = () => store.campaign.gold;
@@ -42,13 +53,15 @@ export default function Cargo() {
       .filter(Boolean).join(' · ');
   };
 
-  // Every item tagged with its owner, so "All" reads as one list.
+  // Every item tagged with its owner and original index (for in-place updates).
   const allItems = createMemo(() => {
     const out = [];
-    for (const it of wagon()) out.push({ ...it, _owner: 'wagon', _ownerLabel: 'Wagon' });
-    for (const it of hoard()) out.push({ ...it, _owner: 'hoard', _ownerLabel: 'Hoard' });
+    for (const [idx, it] of wagon().entries()) out.push({ ...it, _owner: 'wagon', _ownerLabel: 'Wagon', _idx: idx });
+    for (const [idx, it] of hoard().entries()) out.push({ ...it, _owner: 'hoard', _ownerLabel: 'Hoard', _idx: idx });
     for (const pc of characters()) {
-      for (const it of (carried()[pc.id] || [])) out.push({ ...it, _owner: pc.id, _ownerLabel: pc.name });
+      for (const [idx, it] of (carried()[pc.id] || []).entries()) {
+        out.push({ ...it, _owner: pc.id, _ownerLabel: pc.name, _idx: idx });
+      }
     }
     return out;
   });
@@ -68,6 +81,22 @@ export default function Cargo() {
     const o = owner();
     if (o === 'all') return allItems();
     return allItems().filter(i => i._owner === o);
+  });
+
+  // Whether the current PC owner has a container item — enables the "in bag" toggle.
+  const hasContainer = createMemo(() => {
+    const o = owner();
+    if (o === 'all' || o === 'wagon' || o === 'hoard') return false;
+    return (store.campaign.inventory.carried[o] || []).some(isContainerType);
+  });
+
+  // Weight of items stored inside the container (excluded from carry weight).
+  const bagWeight = createMemo(() => {
+    const o = owner();
+    if (o === 'all' || o === 'wagon' || o === 'hoard') return 0;
+    return (store.campaign.inventory.carried[o] || [])
+      .filter(i => i.inContainer)
+      .reduce((s, i) => s + rawWeight(i), 0);
   });
 
   const typeChips = createMemo(() => {
@@ -158,6 +187,11 @@ export default function Cargo() {
             <span class="cargo-weight-text">{capacity().carried} / {capacity().cap} lb · STR {capacity().str}</span>
             <Show when={capacity().warning}><span class="cargo-weight-warning">{capacity().warning}</span></Show>
           </div>
+          <Show when={bagWeight() > 0}>
+            <div class="cargo-bag-weight">
+              <i class="ph ph-handbag" /> {bagWeight()} lb inside Bag of Holding · not counted
+            </div>
+          </Show>
         </Show>
 
         {/* search */}
@@ -193,11 +227,13 @@ export default function Cargo() {
                       const key = itemKey(i);
                       const isOpen = () => openItem() === key;
                       const hasNote = !!i.note;
+                      const isContainer = isContainerType(i);
+                      const showBagToggle = () => hasContainer() && !isContainer;
                       return (
                         <div
                           class="cargo-item"
-                          classList={{ 'has-note': hasNote }}
-                          onClick={() => hasNote && toggleNote(i)}
+                          classList={{ 'has-note': hasNote, 'in-bag': !!i.inContainer }}
+                          onClick={(e) => hasNote && toggleNote(i, e)}
                         >
                           <span class="cargo-item-name">{i.name}</span>
                           <Show when={owner() === 'all' && i._ownerLabel}>
@@ -205,7 +241,16 @@ export default function Cargo() {
                           </Show>
                           <span class="cargo-item-meta">
                             {i.qty > 1 ? <span class="cargo-qty">×{i.qty}</span> : ''}
-                            {itemWeight(i) ? <span class="cargo-wt">{itemWeight(i)}lb</span> : ''}
+                            {rawWeight(i) ? <span class="cargo-wt">{i.inContainer ? <s>{rawWeight(i)}lb</s> : `${rawWeight(i)}lb`}</span> : ''}
+                            <Show when={showBagToggle()}>
+                              <button
+                                class={`cargo-bag-btn ${i.inContainer ? 'active' : ''}`}
+                                onClick={(e) => toggleInContainer(i, e)}
+                                title={i.inContainer ? 'Remove from Bag of Holding' : 'Put in Bag of Holding'}
+                              >
+                                <i class="ph ph-handbag" />
+                              </button>
+                            </Show>
                             <Show when={hasNote}>
                               <i class={`ph ${isOpen() ? 'ph-caret-up' : 'ph-caret-down'} cargo-note-caret`} />
                             </Show>
