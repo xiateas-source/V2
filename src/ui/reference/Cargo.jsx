@@ -16,7 +16,10 @@ const TYPE_LABEL = {
 function typeLabel(t) { return TYPE_LABEL[(t || 'misc').toLowerCase()] || (t ? t.charAt(0).toUpperCase() + t.slice(1) : 'Misc'); }
 function rawWeight(i) { return (Number(i.weight) || 0) * (Number(i.qty) || 1); }
 function itemWeight(i) { return i.inContainer ? 0 : rawWeight(i); }
-function isContainerType(i) { return (i.type || '').toLowerCase() === 'container'; }
+const CONTAINER_NAMES = /bag of holding|handy haversack|portable hole|bag of devouring/i;
+function isContainerType(i) {
+  return (i.type || '').toLowerCase() === 'container' || CONTAINER_NAMES.test(i.name || '');
+}
 
 export default function Cargo() {
   const [showTreasury, setShowTreasury] = createSignal(false);
