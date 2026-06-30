@@ -214,7 +214,7 @@ function checkRejection(mech) {
     }
   }
   if (mech.key === 'slot_use') {
-    const [name, levelStr] = mech.value.split('=').map(s => s.trim());
+    const [name, levelStr] = mech.value.split(/[=|]/).map(s => s.trim());
     const idx = findPCIndex(name);
     if (idx >= 0) {
       const current = store.campaign.characters[idx].currentSlots[levelStr] || 0;
@@ -547,7 +547,8 @@ const DISPATCH = {
   },
 
   npc_add(value) {
-    const parts = value.split(',').map(s => s.trim());
+    const sep = value.includes('|') && !value.includes(',') ? '|' : ',';
+    const parts = value.split(sep).map(s => s.trim());
     const name = parts[0] || '';
     const disposition = parts[1] || 'Unknown';
     const details = parts.slice(2).join(', ') || '';
@@ -769,7 +770,7 @@ const DISPATCH = {
   },
 
   slot_use(value) {
-    const [name, levelStr] = value.split('=').map(s => s.trim());
+    const [name, levelStr] = value.split(/[=|]/).map(s => s.trim());
     const idx = findPCIndex(name);
     if (idx === -1) return;
     const current = store.campaign.characters[idx].currentSlots[levelStr];
@@ -779,7 +780,7 @@ const DISPATCH = {
   },
 
   slot_restore(value) {
-    const [name, levelStr] = value.split('=').map(s => s.trim());
+    const [name, levelStr] = value.split(/[=|]/).map(s => s.trim());
     const idx = findPCIndex(name);
     if (idx === -1) return;
     if (levelStr.toLowerCase() === 'all') {

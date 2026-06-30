@@ -52,6 +52,7 @@ export default function ActionsDrawer({ onClose }) {
     const p = pc();
     if (!p) return [];
     return Object.entries(p.spellSlots || {})
+      .filter(([, max]) => max)
       .map(([lvl, max]) => ({ lvl, max, current: p.currentSlots?.[lvl] ?? max }))
       .sort((a, b) => Number(a.lvl) - Number(b.lvl));
   });
@@ -119,18 +120,20 @@ export default function ActionsDrawer({ onClose }) {
               {(r) => (
                 <div class="drawer-resource-row">
                   <span class="drawer-resource-name">{r.name}</span>
-                  <div class="drawer-resource-pips">
-                    <For each={Array.from({ length: r.max })}>
-                      {(_, i) => (
-                        <button
-                          class={`drawer-res-pip ${i() < r.current ? 'available' : 'used'}`}
-                          onClick={() => i() < r.current && useResource(r)}
-                          title={i() < r.current ? `Use 1 ${r.name}` : 'Expended'}
-                        />
-                      )}
-                    </For>
-                  </div>
-                  <span class="drawer-resource-count">{r.current}/{r.max}</span>
+                  <Show when={r.max > 0} fallback={<span class="drawer-resource-passive">passive</span>}>
+                    <div class="drawer-resource-pips">
+                      <For each={Array.from({ length: r.max })}>
+                        {(_, i) => (
+                          <button
+                            class={`drawer-res-pip ${i() < r.current ? 'available' : 'used'}`}
+                            onClick={() => i() < r.current && useResource(r)}
+                            title={i() < r.current ? `Use 1 ${r.name}` : 'Expended'}
+                          />
+                        )}
+                      </For>
+                    </div>
+                    <span class="drawer-resource-count">{r.current}/{r.max}</span>
+                  </Show>
                 </div>
               )}
             </For>

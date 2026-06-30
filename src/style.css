@@ -3371,6 +3371,7 @@ body {
 .drawer-res-pip.available { background: var(--color-accent); border-color: var(--color-accent); }
 .drawer-res-pip.used { opacity: 0.3; cursor: default; }
 .drawer-resource-count { font-size: 11px; color: var(--faint); white-space: nowrap; }
+.drawer-resource-passive { font-size: 10px; color: var(--faint); font-style: italic; }
 
 /* Spell slots */
 .drawer-spell-meta { font-size: 9px; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--color-text-muted); }
