@@ -12,7 +12,7 @@ export function getPendingConcentrationInfo() {
 }
 
 const KNOWN_KEYS = new Set([
-  'hp', 'hp_max', 'conditions', 'concentration', 'location', 'time', 'weather',
+  'hp', 'damage', 'hp_max', 'conditions', 'concentration', 'location', 'time', 'weather',
   'travel_note', 'loc_desc', 'gp', 'sp', 'cp', 'ep', 'pp', 'item_add', 'item_remove',
   'slot_use', 'slot_restore', 'resource_use', 'resource_restore', 'shell_defense',
   'wagon_add', 'wagon_cell_add', 'wagon_cell_update', 'wagon_cell_remove',
@@ -118,9 +118,9 @@ export function validateMechanics(mechanics) {
   const valid = [];
   const rejected = [];
 
-  // Batch-level rule: if combat_start is in this batch, reject any hp changes
-  // for PCs. The AI must set the scene and wait — no resolving attacks before
-  // initiative is rolled.
+  // Batch-level rule: if combat_start is in this batch, reject any hp/damage
+  // changes for PCs. The AI must set the scene and wait — no resolving attacks
+  // before initiative is rolled.
   const hasCombatStart = mechanics.some(m => m.key === 'combat_start');
 
   for (const mech of mechanics) {
@@ -129,6 +129,12 @@ export function validateMechanics(mechanics) {
       const entries = mech.value.split(',').map(e => e.split('=')[0].trim());
       if (entries.some(n => findPC(n))) {
         reason = 'PC HP change rejected — combat just started, resolve attacks after initiative';
+      }
+    }
+    if (!reason && hasCombatStart && mech.key === 'damage') {
+      const name = mech.value.split(',')[0]?.trim();
+      if (findPC(name)) {
+        reason = 'PC damage rejected — combat just started, resolve attacks after initiative';
       }
     }
     if (reason) {
@@ -275,6 +281,51 @@ function parseHpEntries(value) {
   }).filter(e => !isNaN(e.value));
 }
 
+// Resistance = half damage, vulnerability = double, immunity = zero (SRD).
+// Applied in that order, so a creature with both nets back to 1x — matches RAW.
+function damageMultiplier(pc, type) {
+  const t = (type || '').toLowerCase().trim();
+  const has = (arr) => (arr || []).some(x => x.toLowerCase() === t);
+  if (has(pc.immunities)) return 0;
+  let mult = 1;
+  if (has(pc.resistances)) mult *= 0.5;
+  if (has(pc.vulnerabilities)) mult *= 2;
+  return mult;
+}
+
+function applyDamage(idx, rawDamage) {
+  const pc = store.campaign.characters[idx];
+
+  if (rawDamage > 0 && pc.hpTemp > 0) {
+    const tempAbsorb = Math.min(pc.hpTemp, rawDamage);
+    const remainingDamage = rawDamage - tempAbsorb;
+    aiSet(`characters.${idx}.hpTemp`, pc.hpTemp - tempAbsorb);
+    const newHp = Math.max(0, pc.hp - remainingDamage);
+    aiSet(`characters.${idx}.hp`, newHp);
+    if (remainingDamage > 0 && pc.concentration) {
+      const dc = Math.max(10, Math.floor(rawDamage / 2));
+      pendingConcentrationSaves.push({ pc: pc.name, spell: pc.concentration.spell, dc });
+    }
+  } else {
+    const clamped = Math.max(0, Math.min(pc.hp - rawDamage, pc.hpMax));
+    aiSet(`characters.${idx}.hp`, clamped);
+    if (rawDamage > 0 && pc.concentration) {
+      const dc = Math.max(10, Math.floor(rawDamage / 2));
+      pendingConcentrationSaves.push({ pc: pc.name, spell: pc.concentration.spell, dc });
+    }
+  }
+
+  const finalHp = store.campaign.characters[idx].hp;
+  if (store.campaign.combatState.active) {
+    const initIdx = store.campaign.combatState.initiative.findIndex(
+      c => c.name.toLowerCase() === pc.name.toLowerCase()
+    );
+    if (initIdx >= 0) {
+      aiSet(`combatState.initiative.${initIdx}.hp`, finalHp);
+    }
+  }
+}
+
 const DISPATCH = {
   hp(value) {
     for (const { name, value: hp } of parseHpEntries(value)) {
@@ -293,37 +344,25 @@ const DISPATCH = {
         continue;
       }
       const pc = store.campaign.characters[idx];
-      const rawDamage = pc.hp - hp;
-
-      if (rawDamage > 0 && pc.hpTemp > 0) {
-        const tempAbsorb = Math.min(pc.hpTemp, rawDamage);
-        const remainingDamage = rawDamage - tempAbsorb;
-        aiSet(`characters.${idx}.hpTemp`, pc.hpTemp - tempAbsorb);
-        const newHp = Math.max(0, pc.hp - remainingDamage);
-        aiSet(`characters.${idx}.hp`, newHp);
-        if (remainingDamage > 0 && pc.concentration) {
-          const dc = Math.max(10, Math.floor(rawDamage / 2));
-          pendingConcentrationSaves.push({ pc: pc.name, spell: pc.concentration.spell, dc });
-        }
-      } else {
-        const clamped = Math.max(0, Math.min(hp, pc.hpMax));
-        aiSet(`characters.${idx}.hp`, clamped);
-        if (rawDamage > 0 && pc.concentration) {
-          const dc = Math.max(10, Math.floor(rawDamage / 2));
-          pendingConcentrationSaves.push({ pc: pc.name, spell: pc.concentration.spell, dc });
-        }
-      }
-
-      const finalHp = store.campaign.characters[idx].hp;
-      if (store.campaign.combatState.active) {
-        const initIdx = store.campaign.combatState.initiative.findIndex(
-          c => c.name.toLowerCase() === pc.name.toLowerCase()
-        );
-        if (initIdx >= 0) {
-          aiSet(`combatState.initiative.${initIdx}.hp`, finalHp);
-        }
-      }
+      applyDamage(idx, pc.hp - hp);
     }
+  },
+
+  // Damage with a known type, for PCs only. Code looks up resistances /
+  // vulnerabilities / immunities and applies the multiplier itself, instead
+  // of trusting the AI to have done that math before reporting a new hp
+  // total (the old hp-only path had no way to enforce this at all).
+  damage(value) {
+    const parts = value.split(',').map(s => s.trim());
+    if (parts.length < 3) return;
+    const [name, amountStr, type] = parts;
+    const idx = findPCIndex(name);
+    if (idx === -1) return;
+    const amount = parseInt(amountStr, 10);
+    if (isNaN(amount) || amount <= 0) return;
+    const pc = store.campaign.characters[idx];
+    const finalAmount = Math.floor(amount * damageMultiplier(pc, type));
+    applyDamage(idx, finalAmount);
   },
 
   hp_max() {},

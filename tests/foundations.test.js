@@ -179,6 +179,42 @@ describe('Mechanics Pipeline', () => {
     applyMechanics(mechanics);
     expect(store.campaign.pendingLocation.value).toBe('New Town');
   });
+
+  it('damage mechanic applies raw damage with no resistance tags', () => {
+    applyMechanics([{ key: 'damage', value: 'Ivy,10,slashing', target: '', applied: false }]);
+    expect(store.campaign.characters[0].hp).toBe(21);
+  });
+
+  it('damage mechanic halves damage for a resisted type', () => {
+    setStore('campaign', 'characters', 0, 'resistances', ['fire']);
+    applyMechanics([{ key: 'damage', value: 'Ivy,10,fire', target: '', applied: false }]);
+    expect(store.campaign.characters[0].hp).toBe(26);
+  });
+
+  it('damage mechanic doubles damage for a vulnerable type', () => {
+    setStore('campaign', 'characters', 0, 'vulnerabilities', ['cold']);
+    applyMechanics([{ key: 'damage', value: 'Ivy,10,cold', target: '', applied: false }]);
+    expect(store.campaign.characters[0].hp).toBe(11);
+  });
+
+  it('damage mechanic zeroes damage for an immune type', () => {
+    setStore('campaign', 'characters', 0, 'immunities', ['poison']);
+    applyMechanics([{ key: 'damage', value: 'Ivy,10,poison', target: '', applied: false }]);
+    expect(store.campaign.characters[0].hp).toBe(31);
+  });
+
+  it('damage mechanic is case-insensitive on damage type', () => {
+    setStore('campaign', 'characters', 0, 'resistances', ['Fire']);
+    applyMechanics([{ key: 'damage', value: 'Ivy,10,FIRE', target: '', applied: false }]);
+    expect(store.campaign.characters[0].hp).toBe(26);
+  });
+
+  it('damage mechanic absorbs into temp hp before real hp', () => {
+    setStore('campaign', 'characters', 0, 'hpTemp', 5);
+    applyMechanics([{ key: 'damage', value: 'Ivy,8,bludgeoning', target: '', applied: false }]);
+    expect(store.campaign.characters[0].hpTemp).toBe(0);
+    expect(store.campaign.characters[0].hp).toBe(28);
+  });
 });
 
 describe('Gate Firing', () => {

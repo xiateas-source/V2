@@ -69,33 +69,11 @@ function isPlayerChar(name) {
   return findPC(name) !== null;
 }
 
-// Resolves the ability score a skill/save check is keyed on, so we can tell
-// whether it's a STR/DEX/CON roll (the trio that takes disadvantage while
-// Heavily Encumbered, per the carrying-capacity rules).
+// Resolves the ability score a skill/save check is keyed on.
 function getRollAbility(skillName) {
   const lower = (skillName || '').toLowerCase().replace(/\s+/g, '');
   if (ABILITY_ABBREV[lower]) return ABILITY_ABBREV[lower];
   return SKILL_ABILITY[lower] || SKILL_ABILITY[(skillName || '').toLowerCase()] || null;
-}
-
-function isHeavilyEncumbered(pc) {
-  if (!pc) return false;
-  const str = pc.abilityScores?.str || 10;
-  const items = store.campaign.inventory.carried[pc.id] || [];
-  const weight = items.reduce((s, i) => s + (Number(i.weight) || 0) * (Number(i.qty) || 1), 0);
-  return weight > str * 10;
-}
-
-// STR/DEX/CON checks, saves, and Initiative take disadvantage while Heavily
-// Encumbered; advantage and disadvantage cancel out (same rule exhaustion
-// already applies below).
-function applyEncumbrance(advState, foundPC, skill) {
-  const ability = getRollAbility(skill);
-  if (!foundPC || !['str', 'dex', 'con'].includes(ability) || !isHeavilyEncumbered(foundPC)) {
-    return advState;
-  }
-  if (advState === 'advantage') return 'normal';
-  return 'disadvantage';
 }
 
 function isAttackRoll(skill) {
@@ -103,24 +81,68 @@ function isAttackRoll(skill) {
   return lower === 'attackroll' || lower === 'attack';
 }
 
-// SRD condition effects that touch a PC's own roll. Paralyzed/Stunned/
-// Unconscious/Petrified force automatic failure on Str/Dex saves rather than
-// disadvantage — not modeled here, since those conditions also make the PC
-// Incapacitated (can't take actions), so they rarely reach a roll in practice.
+// roll_request only ever carries a skill/ability name, never an explicit
+// check-vs-save flag. By convention (how the AI is prompted and how the
+// classifier emits checks), a bare ability name (e.g. "Dexterity") is a
+// saving throw, while a named skill (e.g. "Acrobatics") or "Initiative" is
+// an ability check. Used to keep condition effects from applying to the
+// wrong roll type per SRD wording (e.g. Poisoned excludes saves).
+function isSavingThrow(skill) {
+  const lower = (skill || '').toLowerCase().replace(/\s+/g, '');
+  if (isAttackRoll(skill) || lower === 'initiative') return false;
+  return !!ABILITY_ABBREV[lower];
+}
+
+// Exhaustion (SRD 2024): every D20 Test takes a flat penalty of -2 per
+// Exhaustion level — not disadvantage, and not tiered like the 2014 rules.
+function exhaustionPenalty(pc) {
+  const lvl = pc?.exhaustion || 0;
+  return lvl > 0 ? -2 * lvl : 0;
+}
+
+const INCAPACITATING_CONDITIONS = ['paralyzed', 'stunned', 'unconscious', 'petrified'];
+
+// Paralyzed/Stunned/Unconscious/Petrified force automatic failure on
+// Strength and Dexterity saving throws (SRD). These conditions also impose
+// Incapacitated, so the PC rarely gets to roll at all — but a forced save
+// (e.g. against an AoE while paralyzed) still needs to fail outright rather
+// than roll.
+function autoFailInfo(foundPC, skill) {
+  if (!foundPC?.conditions?.length || !isSavingThrow(skill)) return null;
+  const ability = getRollAbility(skill);
+  if (!['str', 'dex'].includes(ability)) return null;
+  const names = new Set(foundPC.conditions.map(c => (typeof c === 'string' ? c : c.name || '').toLowerCase()));
+  const cond = INCAPACITATING_CONDITIONS.find(c => names.has(c));
+  return cond ? cond.charAt(0).toUpperCase() + cond.slice(1) : null;
+}
+
+// SRD condition effects that touch a PC's own d20 roll. Carrying capacity
+// has no disadvantage tiers in the 2024 rules — just a hard cap (see Cargo)
+// — so it isn't a roll modifier here.
 function applyConditions(advState, foundPC, skill) {
   if (!foundPC?.conditions?.length) return advState;
   const names = new Set(foundPC.conditions.map(c => (typeof c === 'string' ? c : c.name || '').toLowerCase()));
 
   const isAttack = isAttackRoll(skill);
   const ability = getRollAbility(skill);
+  const isSave = isSavingThrow(skill);
 
-  let disadvantaged = names.has('poisoned') || names.has('frightened');
-  if (names.has('restrained') && (isAttack || ability === 'dex')) disadvantaged = true;
-  if (names.has('prone') && isAttack) disadvantaged = true;
+  // Poisoned/Frightened: disadvantage on ability checks and attack rolls — not saves.
+  let disadvantaged = (names.has('poisoned') || names.has('frightened')) && !isSave;
+  // Restrained: disadvantage on attack rolls; disadvantage on Dexterity saving throws.
+  if (names.has('restrained') && (isAttack || (ability === 'dex' && isSave))) disadvantaged = true;
+  // Prone/Blinded: disadvantage on the PC's own attack rolls.
+  if ((names.has('prone') || names.has('blinded')) && isAttack) disadvantaged = true;
+  // Incapacitated (or any condition that imposes it): disadvantage on Initiative.
+  const incapacitated = ['incapacitated', ...INCAPACITATING_CONDITIONS].some(c => names.has(c));
+  if (incapacitated && skill?.toLowerCase() === 'initiative') disadvantaged = true;
 
-  if (!disadvantaged) return advState;
-  if (advState === 'advantage') return 'normal';
-  return 'disadvantage';
+  // Invisible: advantage on the PC's own attack rolls.
+  const advantaged = names.has('invisible') && isAttack;
+
+  if (disadvantaged === advantaged) return advState;
+  if (disadvantaged) return advState === 'advantage' ? 'normal' : 'disadvantage';
+  return advState === 'disadvantage' ? 'normal' : 'advantage';
 }
 
 export default function RollBar() {
@@ -138,11 +160,11 @@ export default function RollBar() {
       .filter(c => c.type === 'pc' && c.rollPending)
       .map(c => {
         const foundPC = findPC(c.name);
-        // Exhaustion 1+ gives disadvantage on Dexterity (initiative) checks (2014 rules).
-        let advState = foundPC && foundPC.exhaustion >= 1 ? 'disadvantage' : 'normal';
-        advState = applyEncumbrance(advState, foundPC, 'Initiative');
-        advState = applyConditions(advState, foundPC, 'Initiative');
-        return { id: `init-${c.name}`, skill: 'Initiative', dc: null, pcName: c.name, isPC: true, advState };
+        const advState = applyConditions('normal', foundPC, 'Initiative');
+        return {
+          id: `init-${c.name}`, skill: 'Initiative', dc: null, pcName: c.name, isPC: true, advState,
+          excPenalty: exhaustionPenalty(foundPC),
+        };
       });
   });
 
@@ -155,10 +177,8 @@ export default function RollBar() {
     if (preSend && preSend.rolls.length > 0) {
       return preSend.rolls.map((r, idx) => {
         const foundPC = findPC(r.pcName);
-        let advState = 'normal';
-        if (foundPC && foundPC.exhaustion >= 1) advState = 'disadvantage';
-        advState = applyEncumbrance(advState, foundPC, r.skill);
-        advState = applyConditions(advState, foundPC, r.skill);
+        const advState = applyConditions('normal', foundPC, r.skill);
+        const autoFailReason = autoFailInfo(foundPC, r.skill);
         return {
           id: `pre-${idx}`,
           skill: r.skill,
@@ -166,6 +186,9 @@ export default function RollBar() {
           pcName: r.pcName,
           isPC: true,
           advState,
+          excPenalty: exhaustionPenalty(foundPC),
+          autoFail: !!autoFailReason,
+          autoFailReason,
           preSend: true,
         };
       });
@@ -192,13 +215,8 @@ export default function RollBar() {
             if (mod === 'advantage') advState = 'advantage';
             else if (mod === 'disadvantage') advState = 'disadvantage';
             const foundPC = findPC(pcName);
-            if (foundPC && foundPC.exhaustion >= 1 && advState === 'normal') {
-              advState = 'disadvantage';
-            } else if (foundPC && foundPC.exhaustion >= 1 && advState === 'advantage') {
-              advState = 'normal';
-            }
-            advState = applyEncumbrance(advState, foundPC, skill);
             advState = applyConditions(advState, foundPC, skill);
+            const autoFailReason = autoFailInfo(foundPC, skill);
             return {
               id: `${i}-${idx}`,
               skill,
@@ -206,6 +224,9 @@ export default function RollBar() {
               pcName,
               isPC: isPlayerChar(pcName),
               advState,
+              excPenalty: exhaustionPenalty(foundPC),
+              autoFail: !!autoFailReason,
+              autoFailReason,
             };
           }) || [];
         if (rolls.length > 0) return rolls;
@@ -231,7 +252,7 @@ export default function RollBar() {
     const p = pc();
     const roll = currentRoll();
     if (!p || !roll) return 0;
-    return getSkillBonus(p, roll.skill);
+    return getSkillBonus(p, roll.skill) + (roll.excPenalty || 0);
   };
 
   const currentResult = () => {
@@ -253,6 +274,8 @@ export default function RollBar() {
   };
 
   const total = () => {
+    const roll = currentRoll();
+    if (roll?.autoFail) return -1;
     const d = effectiveD20();
     return d !== null ? d + bonus() : null;
   };
@@ -262,6 +285,10 @@ export default function RollBar() {
   function doRoll() {
     const roll = currentRoll();
     if (!roll) return;
+    if (roll.autoFail) {
+      setRollResults(prev => ({ ...prev, [roll.id]: { d1: 0, d2: 0 } }));
+      return;
+    }
     const d1 = Math.floor(Math.random() * 20) + 1;
     const d2 = Math.floor(Math.random() * 20) + 1;
     setRollResults(prev => ({ ...prev, [roll.id]: { d1, d2 } }));
@@ -276,7 +303,7 @@ export default function RollBar() {
       const res = results[roll.id];
       if (!res) continue;
       const p = findPC(roll.pcName);
-      const mod = p ? getSkillBonus(p, roll.skill) : 0;
+      const mod = (p ? getSkillBonus(p, roll.skill) : 0) + (roll.excPenalty || 0);
       let d20;
       if (roll.advState === 'advantage') d20 = Math.max(res.d1, res.d2);
       else if (roll.advState === 'disadvantage') d20 = Math.min(res.d1, res.d2);
@@ -322,8 +349,15 @@ export default function RollBar() {
     for (const roll of rolls) {
       const res = results[roll.id];
       if (!res) continue;
+
+      if (roll.autoFail) {
+        lines.push(`${roll.pcName} automatically fails ${roll.skill} (${roll.autoFailReason} — no roll possible)`);
+        rollData.push({ pcName: roll.pcName, skill: roll.skill, dc: roll.dc || 13, d20: 0, mod: 0, total: -1, autoFailReason: roll.autoFailReason });
+        continue;
+      }
+
       const p = findPC(roll.pcName);
-      const mod = p ? getSkillBonus(p, roll.skill) : 0;
+      const mod = (p ? getSkillBonus(p, roll.skill) : 0) + (roll.excPenalty || 0);
       let d20;
       if (roll.advState === 'advantage') d20 = Math.max(res.d1, res.d2);
       else if (roll.advState === 'disadvantage') d20 = Math.min(res.d1, res.d2);
@@ -398,10 +432,13 @@ export default function RollBar() {
             <Show when={currentRoll()?.dc}>
               <span class="roll-dc">DC {currentRoll()?.dc}</span>
             </Show>
-            <Show when={currentRoll()?.advState === 'advantage'}>
+            <Show when={currentRoll()?.autoFail}>
+              <span class="roll-dis" title={currentRoll()?.autoFailReason}>AUTO-FAIL</span>
+            </Show>
+            <Show when={!currentRoll()?.autoFail && currentRoll()?.advState === 'advantage'}>
               <span class="roll-adv">ADV</span>
             </Show>
-            <Show when={currentRoll()?.advState === 'disadvantage'}>
+            <Show when={!currentRoll()?.autoFail && currentRoll()?.advState === 'disadvantage'}>
               <span class="roll-dis">DIS</span>
             </Show>
             <Show when={allPendingRolls().length > 1}>
@@ -411,7 +448,7 @@ export default function RollBar() {
           <Show when={!hasRolled()}>
             <div class="roll-actions">
               <button class="btn-roll" onClick={doRoll}>
-                {currentRoll()?.advState !== 'normal' ? 'Roll 2d20' : 'Roll d20'}
+                {currentRoll()?.autoFail ? 'Acknowledge' : currentRoll()?.advState !== 'normal' ? 'Roll 2d20' : 'Roll d20'}
               </button>
               <Show when={isPreSendRoll()}>
                 <button class="btn-roll btn-roll-skip" onClick={skipPreSendRoll}>Skip</button>
@@ -420,21 +457,27 @@ export default function RollBar() {
           </Show>
           <Show when={hasRolled()}>
             <div class="roll-result-display">
-              <Show when={currentRoll()?.advState !== 'normal'}>
-                <span class="roll-both-dice">
-                  <span class={effectiveD20() === currentResult()?.d1 ? 'die-used' : 'die-dropped'}>{currentResult()?.d1}</span>
-                  <span class={effectiveD20() === currentResult()?.d2 ? 'die-used' : 'die-dropped'}>{currentResult()?.d2}</span>
-                </span>
-                <span class="roll-eq">&rarr;</span>
+              <Show when={currentRoll()?.autoFail} fallback={
+                <>
+                  <Show when={currentRoll()?.advState !== 'normal'}>
+                    <span class="roll-both-dice">
+                      <span class={effectiveD20() === currentResult()?.d1 ? 'die-used' : 'die-dropped'}>{currentResult()?.d1}</span>
+                      <span class={effectiveD20() === currentResult()?.d2 ? 'die-used' : 'die-dropped'}>{currentResult()?.d2}</span>
+                    </span>
+                    <span class="roll-eq">&rarr;</span>
+                  </Show>
+                  <span class={`roll-d20 ${effectiveD20() === 20 ? 'nat-20' : ''} ${effectiveD20() === 1 ? 'nat-1' : ''}`}>
+                    {effectiveD20()}
+                  </span>
+                  <span class="roll-mod">{modStr()}</span>
+                  <span class="roll-eq">=</span>
+                  <span class={`roll-total ${currentRoll()?.dc && total() >= currentRoll()?.dc ? 'roll-pass' : ''} ${currentRoll()?.dc && total() < currentRoll()?.dc ? 'roll-fail' : ''}`}>
+                    {total()}
+                  </span>
+                </>
+              }>
+                <span class="roll-total roll-fail">Automatic failure — {currentRoll()?.autoFailReason}</span>
               </Show>
-              <span class={`roll-d20 ${effectiveD20() === 20 ? 'nat-20' : ''} ${effectiveD20() === 1 ? 'nat-1' : ''}`}>
-                {effectiveD20()}
-              </span>
-              <span class="roll-mod">{modStr()}</span>
-              <span class="roll-eq">=</span>
-              <span class={`roll-total ${currentRoll()?.dc && total() >= currentRoll()?.dc ? 'roll-pass' : ''} ${currentRoll()?.dc && total() < currentRoll()?.dc ? 'roll-fail' : ''}`}>
-                {total()}
-              </span>
             </div>
             <button class="btn-roll" onClick={() => markSubmitted(currentRoll()?.id)}>Next</button>
           </Show>
@@ -446,7 +489,7 @@ export default function RollBar() {
               {(roll) => {
                 const res = () => rollResults()[roll.id];
                 const p = () => findPC(roll.pcName);
-                const mod = () => p() ? getSkillBonus(p(), roll.skill) : 0;
+                const mod = () => (p() ? getSkillBonus(p(), roll.skill) : 0) + (roll.excPenalty || 0);
                 const d20 = () => {
                   const r = res();
                   if (!r) return 0;
@@ -454,12 +497,15 @@ export default function RollBar() {
                   if (roll.advState === 'disadvantage') return Math.min(r.d1, r.d2);
                   return r.d1;
                 };
-                const t = () => d20() + mod();
+                const t = () => roll.autoFail ? -1 : d20() + mod();
                 return (
                   <div class="roll-summary-line">
                     <span class="roll-summary-name">{roll.pcName}</span>
                     <span class="roll-summary-skill">{roll.skill}</span>
-                    <Show when={roll.advState !== 'normal'}>
+                    <Show when={roll.autoFail}>
+                      <span class="roll-dis-sm" title={roll.autoFailReason}>AUTO-FAIL</span>
+                    </Show>
+                    <Show when={!roll.autoFail && roll.advState !== 'normal'}>
                       <span class={roll.advState === 'advantage' ? 'roll-adv-sm' : 'roll-dis-sm'}>
                         {roll.advState === 'advantage' ? 'A' : 'D'}
                       </span>

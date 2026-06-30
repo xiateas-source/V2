@@ -92,8 +92,8 @@ export default function Cargo() {
 
   const totalWeight = createMemo(() => visible().reduce((s, i) => s + itemWeight(i), 0));
 
-  // For a PC owner view: carry capacity = STR × 15 (Encumbered at ×5, Heavily
-  // Encumbered at ×10 — matches the thresholds enforced on rolls in RollBar).
+  // Carry capacity = STR × 15, a single hard cap (2024 SRD — no Encumbered /
+  // Heavily Encumbered tiers).
   const capacity = createMemo(() => {
     const pc = characters().find(p => p.id === owner());
     if (!pc) return null;
@@ -102,9 +102,7 @@ export default function Cargo() {
     const cap = str * 15;
     let level = 'ok';
     let warning = '';
-    if (carried > cap) { level = 'over'; warning = 'Over capacity! Cannot move.'; }
-    else if (carried > str * 10) { level = 'heavy'; warning = 'Heavily encumbered: -20ft speed, disadvantage on STR/DEX/CON rolls.'; }
-    else if (carried > str * 5) { level = 'encumbered'; warning = 'Encumbered: -10ft speed.'; }
+    if (carried > cap) { level = 'over'; warning = 'Over capacity! Cannot pick up or carry more.'; }
     return { carried, cap, str, level, warning };
   });
 

@@ -77,6 +77,7 @@ export async function resumeAfterRolls(rollResultLines, onChunk) {
 
   try {
     const outcomeBlock = rollResultLines.map(r => {
+      if (r.autoFailReason) return `${r.pcName}: ${r.skill} — automatic failure (${r.autoFailReason}, no roll possible) → FAILURE`;
       const outcome = r.total >= r.dc ? 'SUCCESS' : 'FAILURE';
       return `${r.pcName}: ${r.skill} check — rolled ${r.total} (d20: ${r.d20} ${r.mod >= 0 ? '+' : ''}${r.mod}) vs DC ${r.dc} → ${outcome}`;
     }).join('\n');
@@ -84,7 +85,9 @@ export async function resumeAfterRolls(rollResultLines, onChunk) {
     const contextInject = `PREDETERMINED ROLL RESULTS (these outcomes are final — narrate accordingly, do not contradict or re-roll):\n${outcomeBlock}`;
 
     const rollSuffix = rollResultLines.map(r =>
-      `${r.pcName} rolled ${r.total} for ${r.skill} (DC ${r.dc}) — ${r.total >= r.dc ? 'SUCCESS' : 'FAILURE'}`
+      r.autoFailReason
+        ? `${r.pcName} automatically fails ${r.skill} (${r.autoFailReason}) — FAILURE`
+        : `${r.pcName} rolled ${r.total} for ${r.skill} (DC ${r.dc}) — ${r.total >= r.dc ? 'SUCCESS' : 'FAILURE'}`
     ).join('; ');
     const combinedText = `${originalMessage}\n\n[ROLLS: ${rollSuffix}]`;
 

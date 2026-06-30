@@ -75,10 +75,7 @@ export function genLedger(mode = 'compact') {
         const str = pc.abilityScores?.str || 10;
         const cap = str * 15;
         const wtTag = totalWt > 0 ? ` [${totalWt}/${cap}lb]` : '';
-        let encTag = '';
-        if (totalWt > cap) encTag = ' OVER CAPACITY';
-        else if (totalWt > str * 10) encTag = ' HEAVILY ENCUMBERED (-20ft, disadv STR/DEX/CON)';
-        else if (totalWt > str * 5) encTag = ' ENCUMBERED (-10ft)';
+        const encTag = totalWt > cap ? ' OVER CAPACITY' : '';
         lines.push(`  Carrying${wtTag}: ${brief}${encTag}`);
       }
     }
