@@ -1,5 +1,38 @@
 # Session Log — Handoff
 
+## Session 56 · 2026-06-30
+
+Branch `claude/latest-test-analysis-v64a6i` · committed, pushed.
+
+### What Shipped
+
+User uploaded a fresh gameplay test transcript (`princesoftheapocalypsech1riseofelementalevil20260630_2.json`) and asked for analysis against a standard 4-question incident rubric (what went wrong / root cause category / did an existing fix already cover this and why didn't it / what change prevents recurrence). Found 3 incidents:
+
+1. **An early crash matching the exact S55 bug** — timing-confirmed (via commit timestamps vs. event timestamps) to have occurred *before* the S55 fix landed in the same continuous test session. User confirmed they never reloaded the browser between the fix deploying and continuing to test, so the session spans both pre- and post-fix states. No action needed — already fixed.
+2. **A stuck `partial:true` empty DM message recurring ~40 minutes *after* the S55 follow-up's `finalizeStuckPartial()` fix landed.** Root cause: `finalizeStuckPartial()` only runs inside a JS `catch` block during live execution (`sendMsg()`/`resumeAfterRolls()` in `engine.js`) — a reload or backgrounded tab that interrupts a stream mid-flight throws no JS exception at all, so neither the success path nor the catch path ever fires, leaving the placeholder `partial:true` in the saved snapshot permanently. **Fixed** — user explicitly authorized this one. Added `healPartialMessages()` to `persist.js`, wired into the existing `healArrays()` choke point already shared by `restoreSession()`, `mergeCampaign()`, and `joinCampaign()` (`sync.js`), so it heals on solo restore, cloud merge, and multiplayer join alike — directly relevant to the user's stated main concern (multiplayer experience) without a separate investigation. Only the trailing array entry is ever checked, since exactly one stream runs at a time. 4 new tests pin the contract (57 total, up from 53).
+3. **XP not awarded after combat + player got generic textbook answers when asking why** — Gate 8 (`missing_xp`) correctly flags the omission, but the flag is purely informational (`Chat.jsx` renders it as static text with no action), and `interceptAskDm()` doesn't consult open gate flags when answering an OOC question about it. `enforcement-spec.md`'s "Gate 7: XP Audit" design specced a player-facing "Request XP calculation?" prompt that was never built — only the detection half shipped. **Not implemented** — user did not explicitly confirm this one; logged to workboard Known Issues for a future session.
+
+### Decisions
+
+See `decisions.md` → "Restore-time partial-message healing (post-S55, found via test transcript analysis)".
+
+### Verification
+
+- `npm test` — 57/57 passing (`npm install` was needed first; `node_modules` wasn't present in this sandboxed session).
+- `npm run build` — succeeds, no new warnings beyond the pre-existing large-chunk warning.
+- No live two-device verification yet — same sandbox limitation noted in S53-S55 logs (no Firebase reachability here). Code-traced to the exact mechanism (`finalizeStuckPartial()`'s catch-block-only scope vs. a no-exception interruption path), but not live-confirmed.
+
+### Known Issues
+
+- Gate 8/XP player-facing prompt (Incident 3 above) still not implemented — needs explicit user confirmation before starting, see workboard.md Known Issues.
+- Carried over from S52-S55: Critical Hits told-not-enforced, Action Economy heuristic-only, Cover missing, Short Rest Hit Dice surfacing, Concentration's 30 DC cap, CharSheet's manual HP override bypassing the mechanics pipeline, the `players/{uid}/joined` debounce race noted in S55.
+
+### Next Up
+
+1. Live-test this fix (and the still-unverified S55 follow-up round) on two real devices — reload/background a tab mid-stream and confirm no stuck partial message survives a restore.
+2. If the user confirms, build the Gate 8/XP player-facing prompt (Incident 3) — the missing half of `enforcement-spec.md`'s "Gate 7: XP Audit" design.
+3. Carried-over priorities from S50-S55 — still open, deadline July 11 (see Priorities in workboard.md).
+
 ## Session 55 · 2026-06-30
 
 Branch `claude/workboard-priorities-1ykzmb` · committed, pushed.
