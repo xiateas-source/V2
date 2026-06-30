@@ -60,6 +60,12 @@ export const DEFAULT_CAMPAIGN = {
 
   pendingLocation: null,
 
+  // Per-device presence roster, keyed by uid. Written only when a player
+  // explicitly toggles "I'm here"/"I've left" (Settings → Who Am I?) — no
+  // automatic onDisconnect()/heartbeat detection, since backgrounded mobile
+  // tabs make that unreliable. See decisions.md "Manual presence toggle".
+  presence: {},
+
   narrative: [],
   ooc: [],
 

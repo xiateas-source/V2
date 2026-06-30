@@ -1,9 +1,24 @@
 import { createSignal, For, Show } from 'solid-js';
+import { produce } from 'solid-js/store';
 import { sendMsg, isSending } from '../../ai/engine.js';
 import { validateMechanics, applyMechanics } from '../../ai/mechanics.js';
 import { store, setStore } from '../../state/index.js';
 import { loadDemoCampaign } from '../../data/demo.js';
 import { buildCharacter, STARTING_EQUIPMENT, getStartingGold } from '../../data/quickBuild.js';
+
+// Not a true second-device simulator (one auth identity / one store per tab —
+// see decisions.md "Manual presence toggle"). This just writes fake presence
+// entries directly into store.campaign.presence so the Settings.jsx roster UI
+// can be eyeballed with 2+ "players" without needing a second phone.
+const SIM_GUEST_UID = '_sim_guest';
+
+function simulateGuestPresence(active) {
+  setStore('campaign', 'presence', SIM_GUEST_UID, { name: 'Simulated Guest', active, ts: Date.now() });
+}
+
+function clearSimulatedPresence() {
+  setStore('campaign', 'presence', produce(p => { delete p[SIM_GUEST_UID]; }));
+}
 
 const SCENARIOS = [
   {
@@ -309,6 +324,10 @@ export default function DevTools(props) {
             class={`test-mode-tab ${testMode() === 'direct' ? 'active' : ''}`}
             onClick={() => setTestMode('direct')}
           >Direct</button>
+          <button
+            class={`test-mode-tab ${testMode() === 'multiplayer' ? 'active' : ''}`}
+            onClick={() => setTestMode('multiplayer')}
+          >Multiplayer</button>
         </div>
         <button class="test-panel-close" onClick={() => props.onClose?.()}>✕</button>
       </div>
@@ -344,6 +363,19 @@ export default function DevTools(props) {
             <button class="btn-test" onClick={() => runTestBatch(b)}>{b.label}</button>
           ))}
           <button class="btn-test btn-test-all" onClick={runAllDirect}>All</button>
+        </div>
+      )}
+
+      {testMode() === 'multiplayer' && (
+        <div class="test-buttons">
+          <p class="settings-hint">
+            Fakes a second player's presence entry locally (no real Firebase device).
+            Use Settings → Who Am I? on this same screen to see the roster update.
+          </p>
+          <button class="btn-test" onClick={() => simulateGuestPresence(true)}>Simulate Guest Join</button>
+          <button class="btn-test" onClick={() => simulateGuestPresence(false)}>Simulate Guest Leave</button>
+          <button class="btn-test" onClick={clearSimulatedPresence}>Clear Simulated Guest</button>
+          <pre class="test-presence-dump">{JSON.stringify(store.campaign.presence || {}, null, 2)}</pre>
         </div>
       )}
 

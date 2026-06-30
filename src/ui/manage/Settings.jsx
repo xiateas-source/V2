@@ -2,7 +2,8 @@ import { createSignal, Show, For } from 'solid-js';
 import { store, setStore, resetCampaign } from '../../state/index.js';
 import { saveKeys as persistKeys, saveProviderSettings } from '../../data/keys.js';
 import { clearActiveCampaign, exportSnapshot, saveLocalNow, healArrays } from '../../data/persist.js';
-import { buildShareId, stopLiveSync, forceSyncNow } from '../../data/sync.js';
+import { buildShareId, stopLiveSync, forceSyncNow, setPresence } from '../../data/sync.js';
+import { getUid } from '../../data/firebase.js';
 import Contracts from './Contracts.jsx';
 import CharCreate from '../setup/CharCreate.jsx';
 
@@ -81,6 +82,15 @@ export default function Settings() {
     const current = store.system.playerIdentity?.selectedPCs || [];
     const next = current.includes(name) ? current.filter(n => n !== name) : [...current, name];
     setStore('system', 'playerIdentity', 'selectedPCs', next);
+  }
+
+  function amIHere() {
+    const uid = getUid();
+    return !!(uid && store.campaign.presence?.[uid]?.active);
+  }
+
+  function togglePresence() {
+    setPresence(!amIHere());
   }
 
   function exportGame() {
@@ -256,6 +266,25 @@ export default function Settings() {
             <button class="btn-save" onClick={saveIdentity}>
               {identitySaved() ? 'Saved' : 'Save Identity'}
             </button>
+
+            <div class="field-group presence-group">
+              <label class="field-label">Presence</label>
+              <button class={`btn-presence ${amIHere() ? 'leave' : 'here'}`} onClick={togglePresence}>
+                <i class={`ph ${amIHere() ? 'ph-sign-out' : 'ph-sign-in'}`} />
+                <span>{amIHere() ? "I've left" : "I'm here"}</span>
+              </button>
+              <Show when={Object.values(store.campaign.presence || {}).some(p => p.active)}>
+                <ul class="presence-list">
+                  <For each={Object.values(store.campaign.presence || {}).filter(p => p.active)}>
+                    {(p) => (
+                      <li class="presence-entry">
+                        <span class="presence-dot" /> {p.name || 'Player'}
+                      </li>
+                    )}
+                  </For>
+                </ul>
+              </Show>
+            </div>
           </section>
         </Show>
 
