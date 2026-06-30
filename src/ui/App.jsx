@@ -1,6 +1,7 @@
 import { createSignal, createMemo, Show, onMount, onCleanup } from 'solid-js';
-import { store } from '../state/index.js';
+import { store, setStore } from '../state/index.js';
 import PlayerOnboard from './setup/PlayerOnboard.jsx';
+import GuestCharPick from './setup/GuestCharPick.jsx';
 import Chat from './play/Chat.jsx';
 import Cargo from './reference/Cargo.jsx';
 import Journal from './reference/Journal.jsx';
@@ -16,6 +17,29 @@ export default function App() {
   });
 
   const hasCampaign = () => store.campaign.id !== '';
+
+  // Show character picker to guests who haven't claimed a character yet.
+  // Session-only dismiss (signal, not store) — showing the picker again on
+  // reload is fine; it disappears the moment they pick or selectedPCs is set.
+  const [guestPickDismissed, setGuestPickDismissed] = createSignal(false);
+  const needsGuestPick = () =>
+    !guestPickDismissed() &&
+    hasCampaign() &&
+    store.system.multiplay?.role === 'guest' &&
+    store.campaign.characters.length > 0 &&
+    !(store.system.playerIdentity?.selectedPCs?.length);
+
+  function handleGuestPickDone(action) {
+    if (action === 'add') {
+      setGuestPickDismissed(true);
+      setMode('manage');
+      setTimeout(() => window.dispatchEvent(new CustomEvent('toast', {
+        detail: { text: 'Tap "Add Character to Party" to create your character.' }
+      })), 100);
+    } else {
+      setGuestPickDismissed(true);
+    }
+  }
 
   // Tap-to-source: pills/links elsewhere can request a mode switch.
   function onNavigate(e) {
@@ -65,10 +89,16 @@ export default function App() {
     <div class="app-shell">
       <main class="app-content">
         <Show when={hasCampaign()} fallback={<PlayerOnboard />}>
-          <Show when={mode() === 'play'}><Chat /></Show>
-          <Show when={mode() === 'cargo'}><Cargo /></Show>
-          <Show when={mode() === 'journal'}><Journal /></Show>
-          <Show when={mode() === 'manage'}><Settings /></Show>
+          <Show when={needsGuestPick()} fallback={
+            <>
+              <Show when={mode() === 'play'}><Chat /></Show>
+              <Show when={mode() === 'cargo'}><Cargo /></Show>
+              <Show when={mode() === 'journal'}><Journal /></Show>
+              <Show when={mode() === 'manage'}><Settings /></Show>
+            </>
+          }>
+            <GuestCharPick onDone={handleGuestPickDone} />
+          </Show>
         </Show>
       </main>
       <Show when={hasCampaign()}>
