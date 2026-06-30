@@ -591,6 +591,18 @@ function QuickPick(props) {
               </For>
             </div>
           </Show>
+
+          <Show when={getDefaultEquipment(char().class).length > 0}>
+            <div class="preview-detail">
+              <span class="preview-detail-label">Starting Gear</span>
+              <div class="qp-card-equipment">
+                <For each={getDefaultEquipment(char().class)}>
+                  {(item) => <span class="qp-equip-tag">{item.qty > 1 ? `${item.qty}x ` : ''}{item.name}</span>}
+                </For>
+                <span class="qp-equip-tag qp-equip-gold">{getStartingGold(char().level || 1)} GP</span>
+              </div>
+            </div>
+          </Show>
         </div>
 
         <div class="qp-actions">

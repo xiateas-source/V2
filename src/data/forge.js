@@ -102,9 +102,12 @@ export async function forgeCharacter(intent) {
   const hpMax = Math.max(1, hitDieMax + conMod + (hitDieAvg + conMod) * (level - 1));
 
   // --- Armor Class ---
+  // Each supported class's default starting kit (CLASS_DATA.startingAC) already
+  // accounts for its actual starting armor — use it directly instead of
+  // re-deriving AC from dex, which only happens to be correct for light-armor
+  // classes and is wrong for heavy/medium-armor or unarmored-defense classes.
   let ac;
-  if (className === 'Fighter') ac = 16;           // chain mail
-  else if (supported) ac = 11 + dexMod;           // light armor (Rogue/Bard)
+  if (supported) ac = classInfo.startingAC;
   else ac = (intent.ac && intent.ac > 0) ? intent.ac : 10 + dexMod;
 
   // --- Attacks ---

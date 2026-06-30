@@ -333,6 +333,261 @@ export const STARTING_EQUIPMENT = {
       },
     ],
   },
+  Barbarian: {
+    goldOption: 50,
+    always: [
+      { name: 'Javelin', qty: 4, type: 'weapon', weight: 2 },
+      { name: "Explorer's Pack", qty: 1, type: 'gear', weight: 0, note: 'Backpack, bedroll, mess kit, tinderbox, 10 torches, 10 rations, waterskin, 50 ft rope' },
+    ],
+    choices: [
+      {
+        label: 'Weapon',
+        options: [
+          { label: 'Greataxe', items: [{ name: 'Greataxe', qty: 1, type: 'weapon', weight: 7 }] },
+          { label: 'Longsword', items: [{ name: 'Longsword', qty: 1, type: 'weapon', weight: 3 }] },
+        ],
+      },
+      {
+        label: 'Secondary',
+        options: [
+          { label: '2 Handaxes', items: [{ name: 'Handaxe', qty: 2, type: 'weapon', weight: 2 }] },
+          { label: 'Spear', items: [{ name: 'Spear', qty: 1, type: 'weapon', weight: 3 }] },
+        ],
+      },
+    ],
+  },
+  Cleric: {
+    goldOption: 125,
+    always: [
+      { name: 'Shield', qty: 1, type: 'armor', weight: 6 },
+      { name: 'Holy Symbol', qty: 1, type: 'component', weight: 1 },
+    ],
+    choices: [
+      {
+        label: 'Weapon',
+        options: [
+          { label: 'Mace', items: [{ name: 'Mace', qty: 1, type: 'weapon', weight: 4 }] },
+          { label: 'Warhammer', items: [{ name: 'Warhammer', qty: 1, type: 'weapon', weight: 2 }] },
+        ],
+      },
+      {
+        label: 'Armor',
+        options: [
+          { label: 'Scale Mail', items: [{ name: 'Scale Mail', qty: 1, type: 'armor', weight: 45 }] },
+          { label: 'Leather Armor', items: [{ name: 'Leather Armor', qty: 1, type: 'armor', weight: 10 }] },
+          { label: 'Chain Mail', items: [{ name: 'Chain Mail', qty: 1, type: 'armor', weight: 55 }] },
+        ],
+      },
+      {
+        label: 'Ranged',
+        options: [
+          { label: 'Light Crossbow + Bolts', items: [{ name: 'Light Crossbow', qty: 1, type: 'weapon', weight: 5 }, { name: 'Bolts', qty: 20, type: 'ammo', weight: 1.5 }] },
+          { label: 'Spear', items: [{ name: 'Spear', qty: 1, type: 'weapon', weight: 3 }] },
+        ],
+      },
+      {
+        label: 'Pack',
+        options: [
+          { label: "Priest's Pack", items: [{ name: "Priest's Pack", qty: 1, type: 'gear', weight: 0, note: 'Backpack, blanket, 10 candles, tinderbox, alms box, 2 blocks incense, censer, vestments, 2 rations, waterskin' }] },
+          { label: "Explorer's Pack", items: [{ name: "Explorer's Pack", qty: 1, type: 'gear', weight: 0, note: 'Backpack, bedroll, mess kit, tinderbox, 10 torches, 10 rations, waterskin, 50 ft rope' }] },
+        ],
+      },
+    ],
+  },
+  Druid: {
+    goldOption: 50,
+    always: [
+      { name: 'Leather Armor', qty: 1, type: 'armor', weight: 10 },
+      { name: "Explorer's Pack", qty: 1, type: 'gear', weight: 0, note: 'Backpack, bedroll, mess kit, tinderbox, 10 torches, 10 rations, waterskin, 50 ft rope' },
+      { name: 'Druidic Focus', qty: 1, type: 'component', weight: 0, note: 'Sprig of mistletoe' },
+    ],
+    choices: [
+      {
+        label: 'Off-Hand',
+        options: [
+          { label: 'Wooden Shield', items: [{ name: 'Wooden Shield', qty: 1, type: 'armor', weight: 6 }] },
+          { label: 'Dagger', items: [{ name: 'Dagger', qty: 1, type: 'weapon', weight: 1 }] },
+        ],
+      },
+      {
+        label: 'Weapon',
+        options: [
+          { label: 'Scimitar', items: [{ name: 'Scimitar', qty: 1, type: 'weapon', weight: 3 }] },
+          { label: 'Quarterstaff', items: [{ name: 'Quarterstaff', qty: 1, type: 'weapon', weight: 4 }] },
+        ],
+      },
+    ],
+  },
+  Monk: {
+    goldOption: 13,
+    always: [
+      { name: 'Darts', qty: 10, type: 'weapon', weight: 0.25 },
+    ],
+    choices: [
+      {
+        label: 'Weapon',
+        options: [
+          { label: 'Shortsword', items: [{ name: 'Shortsword', qty: 1, type: 'weapon', weight: 2 }] },
+          { label: 'Quarterstaff', items: [{ name: 'Quarterstaff', qty: 1, type: 'weapon', weight: 4 }] },
+        ],
+      },
+      {
+        label: 'Pack',
+        options: [
+          { label: "Dungeoneer's Pack", items: [{ name: "Dungeoneer's Pack", qty: 1, type: 'gear', weight: 0, note: 'Backpack, crowbar, hammer, 10 pitons, 10 torches, tinderbox, 10 rations, waterskin, 50 ft rope' }] },
+          { label: "Explorer's Pack", items: [{ name: "Explorer's Pack", qty: 1, type: 'gear', weight: 0, note: 'Backpack, bedroll, mess kit, tinderbox, 10 torches, 10 rations, waterskin, 50 ft rope' }] },
+        ],
+      },
+    ],
+  },
+  Paladin: {
+    goldOption: 125,
+    always: [
+      { name: 'Chain Mail', qty: 1, type: 'armor', weight: 55 },
+      { name: 'Holy Symbol', qty: 1, type: 'component', weight: 1 },
+    ],
+    choices: [
+      {
+        label: 'Weapon',
+        options: [
+          { label: 'Longsword + Shield', items: [{ name: 'Longsword', qty: 1, type: 'weapon', weight: 3 }, { name: 'Shield', qty: 1, type: 'armor', weight: 6 }] },
+          { label: '2 Longswords', items: [{ name: 'Longsword', qty: 2, type: 'weapon', weight: 3 }] },
+        ],
+      },
+      {
+        label: 'Secondary',
+        options: [
+          { label: '5 Javelins', items: [{ name: 'Javelin', qty: 5, type: 'weapon', weight: 2 }] },
+          { label: 'Mace', items: [{ name: 'Mace', qty: 1, type: 'weapon', weight: 4 }] },
+        ],
+      },
+      {
+        label: 'Pack',
+        options: [
+          { label: "Priest's Pack", items: [{ name: "Priest's Pack", qty: 1, type: 'gear', weight: 0, note: 'Backpack, blanket, 10 candles, tinderbox, alms box, 2 blocks incense, censer, vestments, 2 rations, waterskin' }] },
+          { label: "Explorer's Pack", items: [{ name: "Explorer's Pack", qty: 1, type: 'gear', weight: 0, note: 'Backpack, bedroll, mess kit, tinderbox, 10 torches, 10 rations, waterskin, 50 ft rope' }] },
+        ],
+      },
+    ],
+  },
+  Ranger: {
+    goldOption: 125,
+    always: [
+      { name: 'Longbow', qty: 1, type: 'weapon', weight: 2 },
+      { name: 'Arrows', qty: 20, type: 'ammo', weight: 1 },
+    ],
+    choices: [
+      {
+        label: 'Armor',
+        options: [
+          { label: 'Scale Mail', items: [{ name: 'Scale Mail', qty: 1, type: 'armor', weight: 45 }] },
+          { label: 'Leather Armor', items: [{ name: 'Leather Armor', qty: 1, type: 'armor', weight: 10 }] },
+        ],
+      },
+      {
+        label: 'Weapon',
+        options: [
+          { label: '2 Shortswords', items: [{ name: 'Shortsword', qty: 2, type: 'weapon', weight: 2 }] },
+          { label: '2 Handaxes', items: [{ name: 'Handaxe', qty: 2, type: 'weapon', weight: 2 }] },
+        ],
+      },
+      {
+        label: 'Pack',
+        options: [
+          { label: "Dungeoneer's Pack", items: [{ name: "Dungeoneer's Pack", qty: 1, type: 'gear', weight: 0, note: 'Backpack, crowbar, hammer, 10 pitons, 10 torches, tinderbox, 10 rations, waterskin, 50 ft rope' }] },
+          { label: "Explorer's Pack", items: [{ name: "Explorer's Pack", qty: 1, type: 'gear', weight: 0, note: 'Backpack, bedroll, mess kit, tinderbox, 10 torches, 10 rations, waterskin, 50 ft rope' }] },
+        ],
+      },
+    ],
+  },
+  Sorcerer: {
+    goldOption: 75,
+    always: [
+      { name: 'Dagger', qty: 2, type: 'weapon', weight: 1 },
+    ],
+    choices: [
+      {
+        label: 'Weapon',
+        options: [
+          { label: 'Light Crossbow + Bolts', items: [{ name: 'Light Crossbow', qty: 1, type: 'weapon', weight: 5 }, { name: 'Bolts', qty: 20, type: 'ammo', weight: 1.5 }] },
+          { label: 'Quarterstaff', items: [{ name: 'Quarterstaff', qty: 1, type: 'weapon', weight: 4 }] },
+        ],
+      },
+      {
+        label: 'Focus',
+        options: [
+          { label: 'Component Pouch', items: [{ name: 'Component Pouch', qty: 1, type: 'component', weight: 2 }] },
+          { label: 'Arcane Focus', items: [{ name: 'Arcane Focus (Crystal)', qty: 1, type: 'component', weight: 1 }] },
+        ],
+      },
+      {
+        label: 'Pack',
+        options: [
+          { label: "Dungeoneer's Pack", items: [{ name: "Dungeoneer's Pack", qty: 1, type: 'gear', weight: 0, note: 'Backpack, crowbar, hammer, 10 pitons, 10 torches, tinderbox, 10 rations, waterskin, 50 ft rope' }] },
+          { label: "Explorer's Pack", items: [{ name: "Explorer's Pack", qty: 1, type: 'gear', weight: 0, note: 'Backpack, bedroll, mess kit, tinderbox, 10 torches, 10 rations, waterskin, 50 ft rope' }] },
+        ],
+      },
+    ],
+  },
+  Warlock: {
+    goldOption: 100,
+    always: [
+      { name: 'Leather Armor', qty: 1, type: 'armor', weight: 10 },
+      { name: 'Dagger', qty: 2, type: 'weapon', weight: 1 },
+    ],
+    choices: [
+      {
+        label: 'Weapon',
+        options: [
+          { label: 'Light Crossbow + Bolts', items: [{ name: 'Light Crossbow', qty: 1, type: 'weapon', weight: 5 }, { name: 'Bolts', qty: 20, type: 'ammo', weight: 1.5 }] },
+          { label: 'Sickle', items: [{ name: 'Sickle', qty: 1, type: 'weapon', weight: 2 }] },
+        ],
+      },
+      {
+        label: 'Focus',
+        options: [
+          { label: 'Component Pouch', items: [{ name: 'Component Pouch', qty: 1, type: 'component', weight: 2 }] },
+          { label: 'Arcane Focus', items: [{ name: 'Arcane Focus (Wand)', qty: 1, type: 'component', weight: 1 }] },
+        ],
+      },
+      {
+        label: 'Pack',
+        options: [
+          { label: "Scholar's Pack", items: [{ name: "Scholar's Pack", qty: 1, type: 'gear', weight: 0, note: 'Backpack, book of lore, ink, ink pen, 10 parchment, bag of sand, small knife' }] },
+          { label: "Dungeoneer's Pack", items: [{ name: "Dungeoneer's Pack", qty: 1, type: 'gear', weight: 0, note: 'Backpack, crowbar, hammer, 10 pitons, 10 torches, tinderbox, 10 rations, waterskin, 50 ft rope' }] },
+        ],
+      },
+    ],
+  },
+  Wizard: {
+    goldOption: 100,
+    always: [
+      { name: 'Spellbook', qty: 1, type: 'component', weight: 3 },
+    ],
+    choices: [
+      {
+        label: 'Weapon',
+        options: [
+          { label: 'Quarterstaff', items: [{ name: 'Quarterstaff', qty: 1, type: 'weapon', weight: 4 }] },
+          { label: 'Dagger', items: [{ name: 'Dagger', qty: 1, type: 'weapon', weight: 1 }] },
+        ],
+      },
+      {
+        label: 'Focus',
+        options: [
+          { label: 'Component Pouch', items: [{ name: 'Component Pouch', qty: 1, type: 'component', weight: 2 }] },
+          { label: 'Arcane Focus', items: [{ name: 'Arcane Focus (Crystal)', qty: 1, type: 'component', weight: 1 }] },
+        ],
+      },
+      {
+        label: 'Pack',
+        options: [
+          { label: "Scholar's Pack", items: [{ name: "Scholar's Pack", qty: 1, type: 'gear', weight: 0, note: 'Backpack, book of lore, ink, ink pen, 10 parchment, bag of sand, small knife' }] },
+          { label: "Explorer's Pack", items: [{ name: "Explorer's Pack", qty: 1, type: 'gear', weight: 0, note: 'Backpack, bedroll, mess kit, tinderbox, 10 torches, 10 rations, waterskin, 50 ft rope' }] },
+        ],
+      },
+    ],
+  },
 };
 
 export function getStartingGold(level) {
