@@ -1,12 +1,14 @@
 # Workboard
 
-*What to build next. Updated Session 58 · 2026-06-30.*
+*What to build next. Updated Session 59 · 2026-06-30.*
 
 ---
 
 ## Current State
 
 The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → validate → apply) is tested. Persistence works. Combat has turn enforcement. Character creation works (3 paths + guided wizard, plus mid-campaign via Settings). Level-up wizard handles all 12 classes. Multiplayer (invite links, live Firebase sync, shared identity) shipped S50, **live two-device retested and confirmed working S57**, plus a manual presence toggle shipped S58. Three-phase skill-check resolution (classify → roll bar → narrate) shipped S48, live-verified S49. 60 unit tests passing.
+
+**Latest (S59)** — Time-boxed quick-wins review (no new features). Static review of `src/` for low-risk cleanup: no hover-only CSS (mobile Law 3 intact), no stray `console.log`/`debugger`, `Modal.jsx` confirmed a genuinely dead stub (zero imports). Found and fixed one real quick win: the 4 native `alert()` calls in `Settings.jsx`/`DevTools.jsx` (invite-link-not-ready, invalid-save, load-failed, devtools-copy) now dispatch the existing `toast` CustomEvent instead, matching the pattern already used elsewhere (CharSheet, LevelUp, Chat, engine.js). The 2 `confirm()` calls (new campaign, load save — both destructive) were deliberately left native, since a real yes/no modal needs `Modal.jsx` actually built out, which is a bigger lift than this pass's scope. 60/60 tests passing, build clean. Flagged but not started: inline NPC name linking (player-requests-v2.md — tap-to-source infra already exists via `sourceBus.js`, worth a real look next pass) and Gate 8's missing-XP click handler (already noted below as pending user confirmation).
 
 **Latest (S58)** — Pass 1 of a multiplayer-improvement push: CI now deploys `database.rules.json` automatically (Priority #7, closed — `deploy.yml` gained a `firebase deploy --only database` step, so rules can't drift from the Console silently again). Added a manual presence toggle ("I'm here"/"I've left" in Settings → Who Am I?) instead of automatic `onDisconnect()` detection — deliberately, per a V1 lesson (automatic AFK handling solved a problem players already solve socially) and because mobile backgrounding makes connection-based presence unreliable. New `campaign.presence` field, synced like any other campaign field. Also added the first Firebase-mocking test precedent (`tests/sync.test.js`, simulates two devices against an in-memory fake RTDB through the real `joinCampaign()`/`setPresence()`/`mergeCampaign()` code paths) and a DevTools "Multiplayer" tab for eyeballing the presence roster with a fake guest entry, without needing a second phone. Bundles (publish/import/delete/replace/edit) intentionally deferred to a later pass — not started this session. See decisions.md "Multiplayer Presence + CI Database Deploy (S58)".
 

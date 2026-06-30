@@ -48,7 +48,7 @@ export default function Settings() {
   async function shareInvite() {
     const shareId = buildShareId();
     if (!shareId) {
-      alert('Can\'t generate an invite link yet — still connecting to the server. Try again in a moment.');
+      window.dispatchEvent(new CustomEvent('toast', { detail: { text: "Can't generate an invite link yet — still connecting to the server. Try again in a moment.", type: 'error' } }));
       return;
     }
     // Push current state immediately so a guest who joins right after sharing
@@ -119,7 +119,7 @@ export default function Settings() {
       const text = await file.text();
       const data = JSON.parse(text);
       if (!data.campaign?.id || !data.campaign?.characters) {
-        alert('Invalid save file: missing campaign data.');
+        window.dispatchEvent(new CustomEvent('toast', { detail: { text: 'Invalid save file: missing campaign data.', type: 'error' } }));
         return;
       }
       if (!confirm(`Load save "${data.campaign.name || 'Untitled'}"? This replaces the current game.`)) return;
@@ -127,7 +127,7 @@ export default function Settings() {
       await saveLocalNow();
       window.dispatchEvent(new CustomEvent('toast', { detail: { text: `Game loaded: ${data.campaign.name || 'Untitled'}` } }));
     } catch (err) {
-      alert('Failed to load save file: ' + (err.message || 'Unknown error'));
+      window.dispatchEvent(new CustomEvent('toast', { detail: { text: 'Failed to load save file: ' + (err.message || 'Unknown error'), type: 'error' } }));
     }
     e.target.value = '';
   }
