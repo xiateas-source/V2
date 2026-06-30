@@ -151,6 +151,12 @@ export async function joinCampaign(shareIdRaw) {
   setStore('system', 'activeCampaignId', campaignId);
   setStore('system', 'multiplay', { role: 'guest', hostUid });
 
+  // Write the join pointer synchronously instead of waiting on the 3s-debounced
+  // scheduleSync() — a reload within that window would otherwise have nothing
+  // in the cloud to restore the guest role from.
+  const uid = getUid();
+  if (uid) await dbWrite(`players/${uid}/joined`, { hostUid, campaignId, ts: Date.now() });
+
   await saveLocalNow();
   startLiveSync();
 }

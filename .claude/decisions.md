@@ -232,6 +232,18 @@ A later test transcript showed the *same* stuck-`partial:true` symptom recurring
 | Only the trailing array entry is ever checked/healed | Exactly one stream runs at a time, so a `partial:true` message can only ever be the last one in the array; checking deeper would mask a real bug rather than fix one. |
 | Targeted audit run immediately after, scoped to "external-data-ingestion points that should call `healArrays()` but might not" | This bug shape (healed at one restore boundary, not another) has now recurred 3 times in two sessions — worth one scoped pass rather than waiting for a 4th live bug report. Found and fixed one real instance: `Settings.jsx`'s "Load save" file import wrote `data.campaign` straight into the store, with zero healing — the one external-data boundary that had been missed by both S55 rounds. Fixed with the same one-line pattern as `joinCampaign()`. The other three ingestion points (`restoreSession()`, `mergeCampaign()`/live-sync listener, `joinCampaign()`) were already confirmed healed. |
 
+## Known Issues triage (S56, same session as restore-time healing)
+
+User asked to "eliminate known issues to clear space on context files" — agreed scope: fix what's quickly fixable in code, leave feature-sized gaps tracked, compress the docs either way.
+
+| Decision | Rationale |
+|----------|-----------|
+| Concentration save DC capped with `Math.min(30, ...)` in both `applyDamage()` branches | 2024 SRD caps concentration DC at 30; `Math.max(10, Math.floor(rawDamage/2))` had no upper bound, so a single huge hit could demand an unbeatable save. Low-risk, 2-line fix in code that already computes the DC. |
+| `joinCampaign()` now writes `players/{uid}/joined` synchronously, in addition to the existing 3s-debounced `scheduleSync()` write | A guest who reloaded within ~3s of joining had no cloud pointer yet, relying entirely on the local-snapshot fallback to recover guest role. Mirrors the synchronous-write pattern already used elsewhere; closes the race without touching the debounce used for steady-state syncs. |
+| CharSheet's manual HP override (`adjustHP()` buttons and `ManualOverride()`'s hp field) now dispatches an `hp` mechanic through `validateMechanics`/`applyMechanics` instead of writing `setStore(...'hp'...)` directly | Per the documented "hp is AI-owned via mechanics, with a player override allowed" model — the override was allowed but was bypassing the *mechanics*, not just the AI. Routing it through the same `hp` mechanic the AI uses means a player's manual edit also gets `applyDamage()`'s temp-HP absorption, concentration-save trigger, and Death Saves/massive-damage enforcement, instead of being a raw number write that skips all of it. This does not reintroduce "trusting AI math" — `applyDamage()` is pure code, not AI-computed; the player still types the same number, it just now flows through the rules engine. Same pattern already used by `castSpell()`'s `slot_use` mechanic. |
+| Action Economy, Classifier DC/coverage expansion, Critical Hits, Cover, and Charmed/Deafened/Grappled left untouched, still tracked in Priorities/Known Issues | All are feature-sized (new mechanics, new data models, or multi-file classifier work), not quick fixes — per the user-approved triage scope. |
+| Gate 8/XP player-facing prompt (S56 transcript finding) still not implemented | User has not yet confirmed authorizing this change; stays a documented, unconfirmed item. |
+
 - **Child-friendly view target age** — 7-16 is wide. What's the actual simplification scope?
 - **Episode/module tracking system** — How does the AI know where the party is in the story? Needs spec.
 - **Quick Actions redesign** — What actions? How presented?

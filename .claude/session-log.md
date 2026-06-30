@@ -14,29 +14,41 @@ User uploaded a fresh gameplay test transcript (`princesoftheapocalypsech1riseof
 
 After fixing #2, ran a quick scoped audit (user-approved) on the standing hypothesis that this bug shape — state healed at one restore boundary but not another — might have a fourth, undiscovered instance, since it had already recurred 3 times across S55 and this session. It did: **`Settings.jsx`'s "Load save" file import (`handleImportFile()`) wrote an uploaded JSON export's `data.campaign` straight into the store with zero healing** — no `healArrays()` call at all, unlike `restoreSession()`, `mergeCampaign()`, and `joinCampaign()`. Since this is the same export file format users upload for bug-report analysis (this very session started with one), loading an old or hand-edited export was exposed to the same missing-array crash and stuck-partial-message bug fixed earlier. Fixed with the same one-line `healArrays()` wrap `joinCampaign()` uses. No dedicated test added — no UI-component test infra exists in this repo, and the fix routes through the already-pinned `healArrays()` contract, so the existing 57 tests cover the underlying behavior.
 
-**Both this session's commits were merged to `main` and pushed (`c891cc2`)** per the user's confirmed "merge to main every session end" workflow — verified `npm test`/`npm run build` clean on `main` before pushing. The audit-fix commit above landed after that merge and is still only on the feature branch; needs a second merge before session end (see Next Up).
+**Both this session's commits were merged to `main` and pushed (`c891cc2`, `6a6c7e0`)** per the user's confirmed "merge to main every session end" workflow — verified `npm test`/`npm run build` clean on `main` before each push.
+
+### Known Issues triage (same session, continued)
+
+User asked to "eliminate known issues to clear space on our context files" — confirmed scope via two questions: fix what's quickly fixable in code and document the rest, and compress workboard.md's Current State section. Triaged all 9 Known Issues items; shipped 3 quick fixes, left the rest tracked (feature-sized or already-flagged-unconfirmed):
+
+1. **Concentration save DC capped at 30** — `applyDamage()` in `mechanics.js` computed `Math.max(10, Math.floor(rawDamage/2))` with no upper bound in two branches (temp-HP and no-temp-HP); 2024 SRD caps it at 30. Wrapped both in `Math.min(30, ...)`.
+2. **`joinCampaign()` writes the `players/{uid}/joined` pointer synchronously** — previously only written via the 3s-debounced `scheduleSync()`, so a guest reloading within that window had no cloud pointer to recover their guest role from (relied solely on the S55 local-snapshot fallback). Added a synchronous `dbWrite()` call right after the store is set, alongside the existing debounced write.
+3. **CharSheet's manual HP override now routes through the mechanics pipeline** — `adjustHP()` (the +/-1/+/-5/custom buttons) and `ManualOverride()`'s hp field both used to write `setStore(...'hp'...)` directly, bypassing `applyDamage()`'s temp-HP absorption, concentration-save trigger, and Death Saves/massive-damage enforcement entirely. Both now build an `hp: Name=value` mechanic and dispatch it through `validateMechanics`/`applyMechanics` — same pattern `castSpell()` already uses for `slot_use`. This isn't "trusting AI math" (a point the user pushed back on and which is now documented in decisions.md): `applyDamage()` is pure code, not AI-computed; the player still types the target HP, it just now flows through the same rules engine the AI's `damage:`/`hp:` mechanics already use.
+
+Left tracked, not implemented (feature-sized or needs further confirmation): Action Economy enforcement, classifier DC context-awareness, classifier combat/save coverage, Critical Hits (needs a new attack-roll mechanic), Cover (missing entirely), Charmed/Deafened/Grappled (blocked on missing data model), Gate 8/XP player-facing prompt (still not user-confirmed).
+
+Also compressed workboard.md's "Current State" section from ~10 paragraph-long per-session writeups (S48-S56) down to a short summary + this session's highlights, and trimmed/reworded the Known Issues list to drop the 3 now-fixed items and consolidate the "verified via tests only, not live" caveat into one line covering all unverified rounds (S55 onward).
 
 ### Decisions
 
-See `decisions.md` → "Restore-time partial-message healing (post-S55, found via test transcript analysis)" (includes the audit-fix entry).
+See `decisions.md` → "Restore-time partial-message healing (post-S55, found via test transcript analysis)" and "Known Issues triage (S56, same session as restore-time healing)".
 
 ### Verification
 
-- `npm test` — 57/57 passing on both the feature branch and `main` post-merge (`npm install` was needed first; `node_modules` wasn't present in this sandboxed session).
-- `npm run build` — succeeds on both, no new warnings beyond the pre-existing large-chunk warning.
-- No live two-device verification yet — same sandbox limitation noted in S53-S55 logs (no Firebase reachability here). Code-traced to the exact mechanism (`finalizeStuckPartial()`'s catch-block-only scope vs. a no-exception interruption path), but not live-confirmed.
+- `npm test` — 57/57 passing (no new tests added for this round — all three fixes reuse the already-tested `applyDamage()`/`healArrays()`/mechanics-dispatch contracts rather than adding new surface area).
+- `npm run build` — succeeds, no new warnings beyond the pre-existing large-chunk warning.
+- No live verification yet — same sandbox limitation as the rest of this session (no Firebase reachability, and CharSheet's HP buttons need a live UI to click). Code-traced to the exact mechanism in each case, not live-confirmed.
 
 ### Known Issues
 
-- Gate 8/XP player-facing prompt (Incident 3 above) still not implemented — needs explicit user confirmation before starting, see workboard.md Known Issues.
-- Carried over from S52-S55: Critical Hits told-not-enforced, Action Economy heuristic-only, Cover missing, Short Rest Hit Dice surfacing, Concentration's 30 DC cap, CharSheet's manual HP override bypassing the mechanics pipeline, the `players/{uid}/joined` debounce race noted in S55.
+- Gate 8/XP player-facing prompt (Incident 3 from earlier this session) still not implemented — needs explicit user confirmation before starting, see workboard.md Known Issues.
+- Action Economy, classifier DC/coverage expansion, Critical Hits, Cover, and Charmed/Deafened/Grappled — feature-sized SRD gaps, tracked in workboard.md Priorities #1 and Known Issues, not started.
+- No live two-device or live-UI re-test yet of any S55-onward fix (multiplayer join, partial-message healing, save-import healing, or this round's DC cap/join-pointer/CharSheet-override fixes) — same standing sandbox limitation, consolidated into one workboard.md line this session.
 
 ### Next Up
 
-1. Merge the save-file-import audit fix to `main` (currently only on the feature branch) and push.
-2. Live-test this fix (and the still-unverified S55 follow-up round) on two real devices — reload/background a tab mid-stream and confirm no stuck partial message survives a restore; also try exporting then re-importing a save mid-session.
-3. If the user confirms, build the Gate 8/XP player-facing prompt (Incident 3) — the missing half of `enforcement-spec.md`'s "Gate 7: XP Audit" design.
-4. Carried-over priorities from S50-S55 — still open, deadline July 11 (see Priorities in workboard.md).
+1. Live-test this session's fixes on a real device/two devices: reload/background mid-stream (partial-message healing), join via invite link and reload within 3s (join-pointer fix), take damage with temp HP/concentration active via CharSheet's manual HP buttons (mechanics-pipeline routing), and a hit that would exceed DC 30 on a concentration save.
+2. If the user confirms, build the Gate 8/XP player-facing prompt — the missing half of `enforcement-spec.md`'s "Gate 7: XP Audit" design.
+3. Carried-over priorities from S50-S56 — still open, deadline July 11 (see Priorities in workboard.md).
 
 ## Session 55 · 2026-06-30
 
