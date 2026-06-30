@@ -62,6 +62,9 @@
 | Compendium → IndexedDB, AI-generated → Firebase | Sourcebook = reference (local). Play-created = game state (synced). |
 | Campaign map images → IndexedDB | Too large for Firebase. Pins sync via Firebase. |
 | API keys local-only | Never synced to Firebase |
+| Shared API key fallback via `shared/providerKeys` | Guests join with zero setup — host's key is read automatically on boot |
+| All Firebase/IDB restores pass through `healArrays()` (persist.js) | RTDB silently nullifies/omits empty arrays on write, at any nesting depth (top-level campaign fields, per-character fields, and nested object fields like `combatState.initiative`). Heal against `DEFAULT_CAMPAIGN`/`DEFAULT_CHARACTER` at the load boundary rather than scattering optional-chaining guards through components (S50, after 3 separate boot crashes traced to this). |
+| Deploy pipeline ships hosting only | `database.rules.json` is never auto-deployed; rules changes must be applied manually in Firebase Console until CI gets a `firebase deploy --only database` step |
 
 ## State & Ownership
 

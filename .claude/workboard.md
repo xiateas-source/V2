@@ -1,12 +1,12 @@
 # Workboard
 
-*What to build next. Updated Session 49 · 2026-06-29.*
+*What to build next. Updated Session 50 · 2026-06-30.*
 
 ---
 
 ## Current State
 
-The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → validate → apply) is tested. Persistence works. Combat has turn enforcement. Character creation works (3 paths + guided wizard). Level-up wizard handles all 12 classes. 33 unit tests passing.
+The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → validate → apply) is tested. Persistence works. Combat has turn enforcement. Character creation works (3 paths + guided wizard, plus mid-campaign via Settings). Level-up wizard handles all 12 classes. 33 unit tests passing.
 
 **Three-phase action resolution shipped** (S48): player actions are now classified before the AI responds. Code detects skill checks (Investigation, Stealth, Persuasion, etc.), shows the roll bar with DC, waits for the player's roll, then sends the predetermined outcome to the AI for narration. Skip button lets players bypass false classifications.
 
@@ -14,14 +14,20 @@ The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → va
 
 **Three-phase loop play-verified end-to-end** (S49): second live test confirmed the full flow on "Search the area" — classifier detected Investigation (DC 13), correctly picked Ivy over Thorn (her +4 beats his +1), roll bar appeared, Ivy rolled 18, SUCCESS was appended to the message, and the AI narrated the success faithfully (found the portal behind the tapestry) without contradicting the roll. Combat kickoff, `zone_add_enemy` mechanics, and duplicate-`combat_start` rejection also behaved correctly in the same session.
 
+**Multiplayer shipped** (S50): invite links, live Firebase sync between host/guest devices, shared player identity ("Who Am I?"), shared API key so guests don't need their own. Mid-campaign character creation added to Settings.
+
+**Boot crash cascade fixed** (S50): three "Something went wrong" live crash reports, all traced to the same root cause at increasing depth — Firebase RTDB nullifies/omits empty arrays on write, and `DEFAULT_CAMPAIGN`/`DEFAULT_CHARACTER` defaults were getting silently overwritten with `null`/`undefined` on restore. Fixed top-level campaign arrays, then per-character fields (`conditions`, `deathSaves`), then nested object fields (`combatState.initiative`/`actionsUsed`/`zones`). Also added a generic error-UI fallback in `main.jsx` so a boot-time throw never again produces a blank screen. See session-log.md S50 for full root-cause chain.
+
 ---
 
 ## Priorities (user-set, deadline July 11)
 
-1. **Expand classifier coverage** — combat attacks, saving throws, contested checks
-2. **AI DC determination** — Phase 1 AI call for context-aware DCs (currently uses standard tiers)
-3. **Scene transition gate** — hold scene changes for player confirmation (Gate 2 in enforcement spec)
-4. **Rest buttons** on CharSheet Vitals tab
+1. **Audit for more unguarded nested-field accesses** — the conditions/deathSaves/initiative crash pattern may recur elsewhere; sweep render paths before next live test
+2. **Expand classifier coverage** — combat attacks, saving throws, contested checks
+3. **AI DC determination** — Phase 1 AI call for context-aware DCs (currently uses standard tiers)
+4. **Scene transition gate** — hold scene changes for player confirmation (Gate 2 in enforcement spec)
+5. **Rest buttons** on CharSheet Vitals tab
+6. **CI: deploy database rules** — `database.rules.json` is never auto-deployed; add `firebase deploy --only database` to the pipeline so it stops drifting from the manually-managed Console rules
 
 ---
 
