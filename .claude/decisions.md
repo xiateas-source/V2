@@ -159,6 +159,15 @@
 | PREDETERMINED ROLLS contract clause | AI receives outcome facts and narrates them. Can't contradict the dice. |
 | `sendNarrative()` extracted from `sendMsg()` | Both the normal flow and `resumeAfterRolls` share the same AI call + mechanics pipeline. |
 
+## Rules Enforcement (S51)
+
+| Decision | Rationale |
+|----------|-----------|
+| Combat status drift check uses bounded name lookup, not generic prose regex | Mirrors the existing `unmentioned_pc` pattern: scan vicinity of a known PC/enemy name for defeat language, rather than matching defeat phrases anywhere in prose. Avoids false positives on flavor text. |
+| Rule penalties (encumbrance, conditions) enforced via `advState` in RollBar, not the AI | Law 2: the AI was told the rule in the contract/ledger but had no obligation to apply it. Mechanical penalties that resolve to "disadvantage on a roll" piggyback on the exhaustion disadvantage path already in `RollBar.jsx`, applied at roll-resolution time using live `pc.conditions`/inventory weight. |
+| Auto-fail (vs. disadvantage) deferred for Paralyzed/Stunned/Unconscious/Petrified | Needs a forced-failure path through roll resolution (`effectiveD20`/`total`/`submitAll`/`submitInitiative`), not just an `advState` flip — bigger surface area than the disadvantage-only fixes, left for a follow-up session. |
+| Ability-check vs. saving-throw not distinguished in roll data | `roll_request`'s `skill` field is reused for both (e.g. bare "Strength" could be either). Condition effects that differ by check-vs-save (e.g. Poisoned excludes saves under strict RAW) are applied blanket instead of guessing the type. |
+
 ## Open Questions
 
 - **Child-friendly view target age** — 7-16 is wide. What's the actual simplification scope?

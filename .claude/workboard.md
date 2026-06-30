@@ -1,12 +1,14 @@
 # Workboard
 
-*What to build next. Updated Session 50 · 2026-06-30.*
+*What to build next. Updated Session 51 · 2026-06-30.*
 
 ---
 
 ## Current State
 
 The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → validate → apply) is tested. Persistence works. Combat has turn enforcement. Character creation works (3 paths + guided wizard, plus mid-campaign via Settings). Level-up wizard handles all 12 classes. 33 unit tests passing.
+
+**Stale DM contract fixed + rules enforcement gaps closed (S51)**: `DEFAULT_CONTRACTS.never` still told the AI to use the pre-S48 roll-and-wait flow for everything; fixed, plus a one-time migration in `persist.js` heals existing campaigns whose `contracts.never` still holds the old text verbatim. Drift detector extended to catch narrated enemy/PC defeat language (collapses, dies, knocked out, etc.) with no matching `hp` mechanic — found via a real bug transcript (Vesper's Adventure). Encumbrance and conditions (Poisoned, Frightened, Restrained, Prone) were tracked in state and shown to the AI in the ledger, but nothing enforced them — extended the existing exhaustion-disadvantage path in `RollBar.jsx` so Heavily Encumbered PCs and these conditions now actually apply disadvantage on rolls. See decisions.md "Rules Enforcement (S51)" and session-log.md for detail.
 
 **Three-phase action resolution shipped** (S48): player actions are now classified before the AI responds. Code detects skill checks (Investigation, Stealth, Persuasion, etc.), shows the roll bar with DC, waits for the player's roll, then sends the predetermined outcome to the AI for narration. Skip button lets players bypass false classifications.
 
@@ -22,12 +24,13 @@ The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → va
 
 ## Priorities (user-set, deadline July 11)
 
-1. **Audit for more unguarded nested-field accesses** — the conditions/deathSaves/initiative crash pattern may recur elsewhere; sweep render paths before next live test
-2. **Expand classifier coverage** — combat attacks, saving throws, contested checks
-3. **AI DC determination** — Phase 1 AI call for context-aware DCs (currently uses standard tiers)
-4. **Scene transition gate** — hold scene changes for player confirmation (Gate 2 in enforcement spec)
-5. **Rest buttons** on CharSheet Vitals tab
-6. **CI: deploy database rules** — `database.rules.json` is never auto-deployed; add `firebase deploy --only database` to the pipeline so it stops drifting from the manually-managed Console rules
+1. **Continue Rules Glossary implementation** (S51 follow-up, user starting a fresh session for this) — uploaded SRD Rules Glossary (`rulesglossary.md`, ~150 entries) is the reference. Next concrete item: auto-fail Str/Dex saves for Paralyzed/Stunned/Unconscious/Petrified (needs a forced-failure path through `RollBar.jsx` roll resolution — bigger than the disadvantage-only fixes already shipped). Beyond that, no full gap-analysis has been done yet against the glossary's other ~145 entries (damage types, rests, death saves, AoE shapes, object AC/HP, etc.) — worth doing before picking the next batch.
+2. **Audit for more unguarded nested-field accesses** — the conditions/deathSaves/initiative crash pattern may recur elsewhere; sweep render paths before next live test
+3. **Expand classifier coverage** — combat attacks, saving throws, contested checks
+4. **AI DC determination** — Phase 1 AI call for context-aware DCs (currently uses standard tiers)
+5. **Scene transition gate** — hold scene changes for player confirmation (Gate 2 in enforcement spec)
+6. **Rest buttons** on CharSheet Vitals tab
+7. **CI: deploy database rules** — `database.rules.json` is never auto-deployed; add `firebase deploy --only database` to the pipeline so it stops drifting from the manually-managed Console rules
 
 ---
 
@@ -82,6 +85,8 @@ Key files: `src/ai/classifier.js`, `src/ai/engine.js` (sendNarrative, resumeAfte
 - Action economy: `actionsUsed` flags exist in combatState but aren't checked by any gate
 - Classifier DCs are standard tiers (10/13/15) — not context-aware yet
 - Classifier doesn't handle combat attacks or saving throws (those go through existing flow)
+- Paralyzed/Stunned/Unconscious/Petrified don't yet force auto-fail on Str/Dex saves (disadvantage-only conditions are enforced as of S51; auto-fail needs a forced-failure roll path — see Priorities #1)
+- `roll_request`'s `skill` field doesn't distinguish ability check vs. saving throw, so condition effects that differ between the two (e.g. Poisoned RAW excludes saves) are applied blanket instead
 
 ---
 

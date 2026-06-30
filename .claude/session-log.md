@@ -1,37 +1,37 @@
 # Session Log — Handoff
 
-## Session 50 · 2026-06-30
+## Session 51 · 2026-06-30
 
-Branch `main` @ `faedbfe` · pushed, auto-deploying.
+Branch `main` @ `1936091` · pushed, auto-deploying.
 
 ### What Shipped
 
-1. **Multiplayer: invite links, live sync, player identity** — guests can join a campaign via a share link (`?join=ownerUid~campaignId`), live Firebase sync keeps host/guest devices in sync, players can set "Who Am I?" identity so messages are attributed correctly.
-2. **Fixed "campaign not found" on guest join** — host campaign only synced to Firebase on field changes, so a guest joining a fresh host session found nothing. `startLiveSync()` now force-syncs the host's campaign to Firebase on every boot, so it's always there for a guest to read.
-3. **Fixed Firebase rules / corrected guest messaging** — `shared/providerKeys` path was missing from rules (manually patched in Firebase Console — the deploy pipeline only deploys hosting, never `database.rules.json`). Also fixed an incorrect note on the join screen that told guests they needed their own Gemini API key; corrected to "The host's API key is shared automatically."
-4. **Add Character to Party from Settings** — guests and hosts can now create a new character mid-campaign from Settings, not just at initial setup. Reused `CharCreate.jsx` with a new `onBack` prop.
-5. **Boot crash cascade — three separate "Something went wrong" reports, three root causes, all fixed**:
-   - **Blank screen on crash**: any throw before `render()` left a blank screen with no feedback. `main.jsx` boot is now wrapped in `async function boot()` with a `.catch()` that shows an error UI (Reload / Clear cache & reload buttons) instead of a blank page.
-   - **"reading 'length'" #1**: Firebase nullifies/omits empty arrays on write. Restoring a campaign after sync silently replaced `DEFAULT_CAMPAIGN`'s `[]` fields with `null`/`undefined`. Added `healArrays()` in `persist.js`, applied on every `restoreSession()` and `mergeCampaign()`.
-   - **"reading 'length'" #2**: same root cause, one level deeper — `pc.conditions` and `pc.deathSaves` on individual character objects weren't healed (only top-level campaign arrays were). Extended `healArrays()` to also heal each character against `DEFAULT_CHARACTER`, and added optional chaining in `CharTiles.jsx`.
-   - **"reading '0'"**: same root cause, one level deeper still — `combatState.initiative` is a nested array *inside* an object field, so it wasn't covered by the top-level or per-character healing. `Combat.jsx` indexed it directly (`initiative[currentTurn]`), and an undefined array threw on `[0]`. Fixed with `|| []` guards in `Combat.jsx` (3 call sites) and extended `healArrays()` to heal `combatState.initiative` / `actionsUsed` / `zones`. Also preemptively fixed an identical unguarded `pc.conditions.length` access in `PreviouslyOn.jsx` that hadn't crashed yet but would have once a campaign's narrative passed 3 messages.
+1. **Fixed stale DM contract** — `DEFAULT_CONTRACTS.never` in `src/state/campaign.js` still told the AI to "auto-resolve a roll" generically and wait, predating the S48 three-phase classifier system (skill checks now arrive pre-resolved as a `[ROLLS: ...]` block; only combat still uses the old roll-and-wait flow). Rewrote it to describe both flows correctly. Added a one-time migration in `persist.js` (`STALE_CONTRACTS`) that refreshes any existing campaign's `contracts.never` if it still holds the old text verbatim, without touching player-customized text. Confirmed via 3 separate exported saves (including the user's own and Christian Birdsong's) that all had the identical stale text — this was a shared-default bug, not a per-campaign drift.
+2. **Drift detector: enemy/PC defeat narrated without an `hp` mechanic** — found via a real bug transcript (Vesper's Adventure test campaign): the AI narrated an enemy's defeat ("collapses," "falls still," etc.) with no matching `hp` mechanic, and the existing `HP_NARRATION` regex only catches numeric damage phrasing ("takes 12 damage"), so it missed it. Added a new check to `src/ai/drift.js` using the same bounded-name-lookup pattern as the existing `unmentioned_pc` check (scan the vicinity of a known PC/enemy name above 0 HP for defeat language) rather than a generic prose regex — verified against the real transcript and two negative cases (matching hp mechanic present; already-dead combatant re-mentioned in flavor text) before committing.
+3. **Encumbrance and condition rules are now actually enforced, not just narrated** — user reported "the encumbered status not being enforced" on Christian Birdsong's save. Investigation: `genLedger()` in `prompt.js` already computed and injected per-PC carry weight + encumbrance tier into the AI's prompt every turn, and `contracts.js` already told the AI the thresholds — but nothing besides the AI's own narration ever applied the penalty. Birdsong (STR 8, 46.7 lb carried) crosses the Encumbered threshold (40 lb) with zero in-app effect. Same gap existed for tracked conditions (`pc.conditions` — Poisoned, Frightened, Restrained, Prone, etc.) — written by mechanics, never read back by roll resolution. Fixed both by extending the existing exhaustion-disadvantage path in `RollBar.jsx` (same `advState` mechanism, advantage/disadvantage cancel the same way):
+   - Heavily Encumbered → disadvantage on STR/DEX/CON checks, saves, and Initiative
+   - Poisoned/Frightened → disadvantage on all the PC's own d20 rolls
+   - Restrained → disadvantage on attacks and Dex-keyed rolls
+   - Prone → disadvantage on the PC's own attack rolls
+   Also brought Cargo's weight bar (the actual bottom-nav tab players see) up to the same 3-tier encumbrance display CharSheet's Equipment tab already had.
+4. **Branch hygiene** — merged the S48-era `claude/lore-bard-bonus-spells-q4sa51` branch into main twice this session (it kept accumulating new fixes); identified 6 merged-but-undeleted branches for the user to clean up manually in the GitHub UI (no branch-deletion tool available via the GitHub MCP server or git push — got HTTP 403). Recommended enabling "Automatically delete head branches" in repo settings.
 
 ### Decisions
 
-- Firebase RTDB's array-nullification behavior is systemic, not a one-off — any field restored from Firebase or IndexedDB needs defensive healing against its `DEFAULT_CAMPAIGN`/`DEFAULT_CHARACTER` shape, **including nested object fields, not just top-level arrays**. `healArrays()` is the single defensive layer; extend it in place rather than scattering optional-chaining patches across components (we still added a couple as belt-and-suspenders, but the real fix is at the load boundary).
-- The deploy pipeline (`FirebaseExtended/action-hosting-deploy@v0`) deploys hosting only — `database.rules.json` changes never reach live Firebase automatically. Rules changes must be applied manually in the Firebase Console until a `firebase deploy --only database` step is added to CI.
+See `decisions.md` → "Rules Enforcement (S51)" for the four decisions made this session (bounded-name drift checks, where rule penalties get enforced, why auto-fail is deferred, why check-vs-save isn't distinguished).
 
 ### Known Issues
 
-- `database.rules.json` in the repo can drift from live Firebase Console rules — no automated deploy step for rules yet.
-- Other user's pre-update game ("Christian Birdsong's Adventure," level 7 Bard, week-long local-only campaign) — user supplied an exported JSON backup confirming the save is intact and complete (full characters, 50+ quests, inventory, consequences log). Not yet confirmed whether that player has resumed play post-fixes or whether their device needs to reconcile against the new Firebase sync behavior.
-- Classifier DCs still fixed tiers, not context-aware (carried over from S49).
-- Classifier still skips combat (existing flow handles it).
+- Paralyzed/Stunned/Unconscious/Petrified don't auto-fail Str/Dex saves yet — that needs a forced-failure path through roll resolution (`effectiveD20`/`total`/`submitAll`/`submitInitiative`), bigger than the disadvantage-only fixes shipped this session. Those conditions also make the PC Incapacitated (can't act), so they rarely reach a roll in practice, but it's a real gap.
+- `roll_request`'s `skill` field doesn't distinguish ability check vs. saving throw — condition effects that RAW differ between the two are applied blanket.
+- No full gap-analysis has been done yet against the uploaded SRD Rules Glossary (`rulesglossary.md`, ~150 entries: damage types, rests, death saves, AoE shapes, object AC/HP, etc.) beyond the encumbrance/conditions slice fixed this session.
+- 6 merged branches still undeleted on GitHub (`claude/app-styling-tabs-c1khdr`, `claude/character-creation-phase-4-r94wpq`, `claude/character-sheet-familiar-tab-2u3wsw`, `claude/documentation-refactor-n5z5h2`, `claude/multiplayer`, `claude/new-session-yp5z21`) — user needs to delete manually, no tool access to do it from here.
+- Carried over from S50: `database.rules.json` can drift from live Firebase Console rules (no automated deploy step yet); classifier DCs still fixed tiers; classifier still skips combat.
 
 ### Next Up
 
-1. Confirm with the second player that their device boots cleanly post-fix and their week-long local game is still there (it should be — local-first persistence never touched it, only the boot/crash layer changed).
-2. Add `firebase deploy --only database` to the CI pipeline so `database.rules.json` stops drifting from the Console.
-3. Broader audit pass: search for other unguarded nested-field accesses (the `conditions`/`deathSaves`/`initiative` pattern) before they surface as new crash reports.
-4. Resume classifier coverage expansion (combat attacks, saving throws, contested checks) — paused for the multiplayer + crash-fix work this session.
-5. Deadline: July 11 (three-phase loop expansion, from S49).
+User is starting a fresh session specifically to continue implementing rules from the uploaded Rules Glossary. Suggested entry points, in order of how directly they extend this session's work:
+
+1. **Auto-fail Str/Dex saves** for Paralyzed/Stunned/Unconscious/Petrified — the natural next step in `RollBar.jsx`, same file just touched.
+2. **Full gap analysis against the glossary** — read `rulesglossary.md` against `mechanics.js`/`gates.js`/`drift.js` to produce a prioritized list of what's missing before picking the next implementation batch, rather than guessing at scope again.
+3. Carried-over priorities from S50 (audit unguarded nested-field accesses, classifier coverage expansion, AI DC determination, scene transition gate) — still open, deadline July 11.
