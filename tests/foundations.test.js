@@ -455,3 +455,56 @@ describe('healArrays (multiplayer join data healing)', () => {
     expect(healed.combatState.active).toBe(true);
   });
 });
+
+describe('healArrays (stuck partial-message healing)', () => {
+  // A reload/backgrounded-tab interruption mid-stream leaves a message
+  // permanently partial:true — no JS exception fires in that case, so
+  // finalizeStuckPartial() (engine.js) never gets a chance to run. Restore
+  // time (healArrays, shared by restoreSession/mergeCampaign/joinCampaign)
+  // is the only place left to heal it.
+  it('finalizes a trailing partial:true narrative message on restore', async () => {
+    const { healArrays } = await import('../src/data/persist.js');
+    const raw = {
+      characters: [],
+      narrative: [{ id: 'm1', content: 'The cultist\'s eyes widen', partial: true }],
+    };
+    const healed = healArrays(raw);
+    expect(healed.narrative[0].partial).toBe(false);
+  });
+
+  it('finalizes a trailing partial:true ooc message on restore', async () => {
+    const { healArrays } = await import('../src/data/persist.js');
+    const raw = {
+      characters: [],
+      ooc: [{ id: 'm1', content: '', partial: true }],
+    };
+    const healed = healArrays(raw);
+    expect(healed.ooc[0].partial).toBe(false);
+  });
+
+  it('leaves a non-trailing partial message untouched (only one stream runs at a time)', async () => {
+    const { healArrays } = await import('../src/data/persist.js');
+    const raw = {
+      characters: [],
+      narrative: [
+        { id: 'm1', content: 'stale partial', partial: true },
+        { id: 'm2', content: 'final reply', partial: false },
+      ],
+    };
+    const healed = healArrays(raw);
+    expect(healed.narrative[0].partial).toBe(true);
+    expect(healed.narrative[1].partial).toBe(false);
+  });
+
+  it('leaves already-finalized messages and empty arrays untouched', async () => {
+    const { healArrays } = await import('../src/data/persist.js');
+    const raw = {
+      characters: [],
+      narrative: [{ id: 'm1', content: 'done', partial: false }],
+      ooc: [],
+    };
+    const healed = healArrays(raw);
+    expect(healed.narrative[0].partial).toBe(false);
+    expect(healed.ooc).toEqual([]);
+  });
+});

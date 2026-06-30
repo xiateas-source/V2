@@ -35,6 +35,21 @@ function healStructure(value, defaults) {
   return out;
 }
 
+// A message still marked partial:true in restored data means its stream was cut
+// short by a reload/backgrounded tab before it could finish or error — the in-memory
+// catch path that normally finalizes a stuck stream (finalizeStuckPartial in
+// engine.js) only runs while that JS execution is still alive, so it never gets a
+// chance to run in this case. Restore time is the only place left to heal it. Only
+// the trailing entry can ever be partial (one stream runs at a time).
+function healPartialMessages(list) {
+  if (!Array.isArray(list) || list.length === 0) return list;
+  const idx = list.length - 1;
+  if (!list[idx]?.partial) return list;
+  const healed = [...list];
+  healed[idx] = { ...healed[idx], partial: false };
+  return healed;
+}
+
 // This heals any array/object-typed field (at any depth) back to its default shape
 // after merge/restore, and heals every character against DEFAULT_CHARACTER.
 export function healArrays(obj) {
@@ -42,6 +57,8 @@ export function healArrays(obj) {
   if (Array.isArray(out.characters)) {
     out.characters = out.characters.map(pc => healStructure(pc, DEFAULT_CHARACTER));
   }
+  out.narrative = healPartialMessages(out.narrative);
+  out.ooc = healPartialMessages(out.ooc);
   return out;
 }
 import { putAll, getByKey } from './local.js';
