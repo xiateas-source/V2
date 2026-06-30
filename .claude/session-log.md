@@ -1,5 +1,41 @@
 # Session Log — Handoff
 
+## Session 54 · 2026-06-30
+
+Branch `claude/workboard-priorities-1ykzmb` · committed, pushed.
+
+### What Shipped
+
+User asked what's next on the workboard, then asked to "hit what impacts player experience most." Picked Death Saves from the S52 punch list over Critical Hits: investigated Critical Hits first and found it's not a quick fix — PC attacks are fully AI-narrated (the classifier doesn't intercept combat attacks/saving throws, per existing Known Issues), so enforcing crit-doubling in code would require a new structured attack-roll mechanic before any damage-doubling logic could run, not just a `mechanics.js` change. Death Saves was self-contained and used data structures that already existed.
+
+1. **Death save auto-fail on damage at 0 HP** — previously, a PC already at 0 HP taking more damage relied entirely on the AI remembering to emit a `death_save: Name|failure` mechanic on its own initiative. Now `applyDamage()` in `mechanics.js` checks this on every `damage:`/`hp:` mechanic that reduces a PC's HP: if the PC was already at 0 before this hit, it's an automatic failed death save, no AI cooperation required.
+2. **Massive damage instant death** — a single hit's damage >= the PC's hp max is now instant death, computed two ways: (a) hit drops PC from >0 to 0 with leftover >= hp max (overkill case), or (b) PC already at 0 takes a hit >= hp max (nothing to absorb it, so the whole hit counts). Previously narration-only.
+3. **Refactored `killPC()` as a shared helper** — both the new automatic path and the existing `death_save` mechanic's 3-failures branch now call it, instead of duplicating the "clear deathSaves, add Dead condition" logic.
+4. **AI contract updated** — added a DEATH RULES note telling the AI not to double-emit `death_save` for hits the code already auto-failed, and not to ask for a death save on a hit the code already ruled instant death.
+5. **6 new unit tests** (45 total, up from 39): drop-to-exactly-0 doesn't trigger death saves yet, damage at 0 HP = 1 auto-failure, 3rd auto-failure kills, massive damage on the downing hit kills, massive damage while already at 0 kills, healing via `hp:` doesn't trigger death-save logic.
+
+### Decisions
+
+See `decisions.md` → "Rules Enforcement (S54)".
+
+### Verification
+
+- `npm install` (node_modules wasn't present in this environment) then `npm test` — 45/45 passing.
+- No live-UI verification — this is a pure game-logic fix with no UI surface (death save pips/conditions already render existing state correctly per S50/S51 work), and the sandboxed environment can't reach Firebase to boot the app live (same gap noted in S53's session log, not re-investigated this session).
+
+### Known Issues
+
+- Carried over from S52, still open: Critical Hits told-not-enforced (now scoped — needs a new attack-roll mechanic before code can double dice, not a quick fix), Action Economy heuristic-only, Cover missing entirely, Short Rest Hit Dice surfacing, Concentration's 30 DC cap. CharSheet's manual HP override still bypasses the mechanics pipeline. Charmed/Deafened/part of Grappled remain cosmetic-only.
+- The S53 boot-timeout gap (unreachable Firebase hangs boot forever) is still unaddressed — not touched this session, out of scope.
+
+### Next Up
+
+1. Critical Hits is the next highest-value SRD item but is now scoped as a real feature, not a tweak: needs a way for the app to know an attack roll happened and whether it was a nat 20 before it can enforce dice-doubling. Options to consider next session: extend the classifier to intercept attack declarations, or add a new `attack_roll:`-style mechanic the AI emits before resolving damage.
+2. Action Economy, Cover, Short Rest Hit Dice surfacing, Concentration's 30 DC cap — remaining S52 punch list items, smaller scope than Critical Hits.
+3. Carried-over priorities from S50/S51/S52/S53 — still open, deadline July 11 (see Priorities in workboard.md).
+
+---
+
 ## Session 53 · 2026-06-30
 
 Branch `claude/quick-pick-char-onboarding-l62z6d` · committed, pushed.

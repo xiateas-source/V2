@@ -1,12 +1,14 @@
 # Workboard
 
-*What to build next. Updated Session 53 · 2026-06-30.*
+*What to build next. Updated Session 54 · 2026-06-30.*
 
 ---
 
 ## Current State
 
-The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → validate → apply) is tested. Persistence works. Combat has turn enforcement. Character creation works (3 paths + guided wizard, plus mid-campaign via Settings). Level-up wizard handles all 12 classes. 39 unit tests passing.
+The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → validate → apply) is tested. Persistence works. Combat has turn enforcement. Character creation works (3 paths + guided wizard, plus mid-campaign via Settings). Level-up wizard handles all 12 classes. 45 unit tests passing.
+
+**Death Saves auto-fail + massive damage enforced in code (S54)** — closed one item from the S52 punch list. Previously, a PC taking damage while already at 0 HP relied entirely on the AI remembering to emit a `death_save` mechanic, and a single overkill hit (>= hp max) being instant death was narration-only with nothing in code backing it — a player's character could end up alive or dead purely based on whether the model did the math right that turn. Now `applyDamage()` in `mechanics.js` checks this on every `damage:`/`hp:` mechanic that actually reduces a PC's HP: damage taken at 0 HP auto-applies one failed death save, and damage >= hp max (either as overkill on the downing hit, or as a full hit while already at 0) marks the PC Dead automatically. Refactored the existing `death_save` mechanic's 3-failures kill logic into a shared `killPC()` helper. Updated the AI contract so it doesn't double-emit death saves or fight the code's Dead call. 6 new tests added (45 total, up from 39). See decisions.md "Rules Enforcement (S54)".
 
 **Onboarding repair: Quick Pick characters were getting no gear (S53)** — user-reported bug. Root cause: `STARTING_EQUIPMENT` only covered 3 of the 12 `CLASS_DATA` classes (Fighter/Rogue/Bard); Quick Pick and the Guided Build wizard both silently produced zero starting gear for the other 9. Filled in standard PHB starting-gear tables for Barbarian/Cleric/Druid/Monk/Paladin/Ranger/Sorcerer/Warlock/Wizard, fixing both paths at once since they share the table. While fixing it, found and fixed a second Law 2 gap in `forge.js`: AC was hardcoded to 16 for Fighter and a light-armor `11+dexMod` heuristic for every other class, ignoring the per-class `startingAC` field that already existed and was correct (a Quick Pick Paladin was getting AC ~11 instead of 18) — now reads `classInfo.startingAC` directly. Also fixed the "Talk to AI" builder's system prompt, which still told players "Supported classes: Fighter, Rogue, Bard ONLY" and steered them away from the other 9 even though every other path supported them. UX addition: the Quick Pick card now shows starting gear + gold before the player commits, matching standard VTT quick-build conventions (e.g. D&D Beyond) instead of handing over an unseen inventory. See decisions.md "Onboarding Repair (S53)".
 
@@ -28,7 +30,7 @@ The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → va
 
 ## Priorities (user-set, deadline July 11)
 
-1. **Continue SRD gap-analysis punch list (S52 follow-up)** — encumbrance/exhaustion ruleset fix and conditions+resistance enforcement are done (see decisions.md "Rules Enforcement (S52)"). Remaining items from the same gap analysis, not yet started: Critical Hits told-not-enforced (no code doubles dice on a nat 20), Action Economy is heuristic-only, Cover missing entirely, Death Saves partial (no auto-fail on damage at 0 HP, no massive-damage instant death), Short Rest missing Hit Dice healing surfacing, Concentration missing the 30 DC cap. Also flagged: CharSheet's manual HP override bypasses the mechanics pipeline (no temp-HP absorption, no concentration check).
+1. **Continue SRD gap-analysis punch list (S52/S54 follow-up)** — encumbrance/exhaustion, conditions+resistance, and Death Saves (auto-fail at 0 HP + massive damage) are done (see decisions.md "Rules Enforcement (S52)" and "(S54)"). Remaining items from the same gap analysis, not yet started: Critical Hits told-not-enforced (no code doubles dice on a nat 20 — note: PC attacks are fully AI-narrated, classifier doesn't intercept them, so this needs a new structured mechanic for attack rolls before code can enforce doubling, not just a mechanics.js tweak), Action Economy is heuristic-only, Cover missing entirely, Short Rest missing Hit Dice healing surfacing, Concentration missing the 30 DC cap. Also flagged: CharSheet's manual HP override bypasses the mechanics pipeline (no temp-HP absorption, no concentration check).
 2. **Audit for more unguarded nested-field accesses** — the conditions/deathSaves/initiative crash pattern may recur elsewhere; sweep render paths before next live test
 3. **Expand classifier coverage** — combat attacks, saving throws, contested checks
 4. **AI DC determination** — Phase 1 AI call for context-aware DCs (currently uses standard tiers)
@@ -89,7 +91,7 @@ Key files: `src/ai/classifier.js`, `src/ai/engine.js` (sendNarrative, resumeAfte
 - Action economy: `actionsUsed` flags exist in combatState but aren't checked by any gate
 - Classifier DCs are standard tiers (10/13/15) — not context-aware yet
 - Classifier doesn't handle combat attacks or saving throws (those go through existing flow)
-- Critical hits, Cover, full Death Saves (auto-fail at 0 HP, massive damage instant death), and Concentration's 30 DC cap are told-not-enforced (AI-narration only) — see S52 punch list in Priorities #1
+- Critical hits, Cover, and Concentration's 30 DC cap are told-not-enforced (AI-narration only) — see S52/S54 punch list in Priorities #1. Death Saves (auto-fail at 0 HP, massive damage) fixed in S54.
 - Charmed, Deafened, and part of Grappled have no roll-time enforcement (cosmetic only) — no data exists to determine which checks "require hearing/sight" or who a PC's grappler is; see decisions.md "Rules Enforcement (S52)"
 - CharSheet's manual HP override bypasses the mechanics pipeline entirely (no temp-HP absorption, no concentration check)
 

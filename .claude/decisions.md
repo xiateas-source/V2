@@ -193,6 +193,15 @@ A gap-analysis agent compared the codebase against the uploaded SRD 2024 `rulesg
 | `forge.js` AC now reads `classInfo.startingAC` directly | Found while fixing the gear gap: AC was hardcoded to 16 for Fighter and `11+dexMod` (light-armor math) for every other "supported" class, ignoring the per-class `startingAC` field that already existed in `CLASS_DATA` and was correct. A Quick Pick Paladin was getting AC ~11 instead of 18. Classic Law 2 gap — data existed, wasn't read. |
 | `CHAR_BUILDER_SYSTEM` prompt updated to list all 12 classes | The "Talk to AI" builder was still telling players "Supported classes: Fighter, Rogue, Bard ONLY" and steering them away from the other 9, even though Quick Pick/Guided Build/the Forge fully supported them. Stale instruction predating the 12-class CLASS_DATA expansion. |
 
+## Rules Enforcement (S54)
+
+| Decision | Rationale |
+|----------|-----------|
+| Death-save auto-fail and massive damage instant death enforced in `applyDamage()`/`handleDeathFromDamage()`, not left to the AI | Picked off the S52 punch list item: "Death Saves partial (no auto-fail on damage at 0 HP, no massive-damage instant death)". Same Law 2 pattern as the S52 `damage:` mechanic — the AI was told the SRD rule in `contracts.js` but nothing in code checked it, so a player's life/death outcome depended on the model doing the math correctly every time. |
+| Massive damage threshold computed two ways depending on starting HP | If a hit drops a PC from >0 to 0 with leftover damage >= hp max, that's instant death (the classic "overkill" case). If a PC is already at 0 and takes a hit >= hp max, that whole hit counts (they have nothing to absorb it). Both match SRD wording; unifying them under one "remaining damage >= hp max" check would undercount the already-at-0 case since there's no "remaining" to subtract from. |
+| `killPC()` extracted as a shared helper | The existing `death_save` mechanic's 3-failures branch and the new automatic-failure path both need to add the `Dead` condition and clear `deathSaves` — kept it in one place instead of duplicating. |
+| AI contract updated to say "don't emit death_save for this, don't fight the code's Dead call" | Without this, the AI would keep narrating/emitting its own death_save mechanic on the same hit the code already auto-failed, double-counting failures, or narrate a death save prompt on a hit code already ruled instant death. |
+
 ## Open Questions
 
 - **Child-friendly view target age** — 7-16 is wide. What's the actual simplification scope?
