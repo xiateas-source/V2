@@ -18,6 +18,16 @@ function healArrays(obj) {
       out[key] = [];
     }
   }
+  // Heal nested combatState fields (Firebase omits empty arrays inside objects too).
+  if (out.combatState && typeof out.combatState === 'object') {
+    if (!Array.isArray(out.combatState.initiative)) out.combatState.initiative = [];
+    if (!out.combatState.actionsUsed || typeof out.combatState.actionsUsed !== 'object') {
+      out.combatState.actionsUsed = DEFAULT_CAMPAIGN.combatState.actionsUsed;
+    }
+    if (!out.combatState.zones || typeof out.combatState.zones !== 'object') {
+      out.combatState.zones = {};
+    }
+  }
   // Heal each character: ensure every DEFAULT_CHARACTER array/object field exists.
   if (Array.isArray(out.characters)) {
     out.characters = out.characters.map(pc => {

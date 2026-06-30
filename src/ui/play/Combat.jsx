@@ -11,12 +11,12 @@ export default function Combat() {
 
   createEffect(() => {
     if (!active()) return;
-    const cur = combat().initiative[combat().currentTurn];
+    const cur = (combat().initiative || [])[combat().currentTurn];
     if (cur) setMinimized(cur.type === 'pc' && cur.hp > 0);
   });
 
   // Initiative is stored sorted (highest first); currentTurn indexes it directly.
-  const order = createMemo(() => (active() ? combat().initiative : []));
+  const order = createMemo(() => (active() ? (combat().initiative || []) : []));
 
   // Allies (PCs) read HP live from the character store so the tracker never
   // drifts from heals/overrides/level-ups. Enemies live only in the initiative
@@ -32,7 +32,7 @@ export default function Combat() {
   const zones = createMemo(() => {
     if (!active()) return {};
     const grouped = {};
-    for (const c of combat().initiative) {
+    for (const c of (combat().initiative || [])) {
       const z = c.zone || 'front';
       if (!grouped[z]) grouped[z] = [];
       grouped[z].push(c);

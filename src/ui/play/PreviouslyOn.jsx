@@ -35,7 +35,7 @@ export default function PreviouslyOn() {
     const partyStatus = chars.map(pc => {
       const hpPct = pc.hpMax ? Math.round((pc.hp / pc.hpMax) * 100) : 100;
       const status = hpPct > 75 ? 'healthy' : hpPct > 25 ? 'wounded' : 'critical';
-      const conds = pc.conditions.length ? ` (${pc.conditions.map(c => c.name || c).join(', ')})` : '';
+      const conds = (pc.conditions?.length) ? ` (${(pc.conditions || []).map(c => c.name || c).join(', ')})` : '';
       return `${pc.name}: ${status}${conds}`;
     }).join(' | ');
 
