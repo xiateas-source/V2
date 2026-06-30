@@ -329,6 +329,16 @@ User hit a real "Campaign not found" join failure in play and shared a full RTDB
 | `initFirebase()`'s existing `.info/connected` listener (`firebase.js`) now also calls `flushPending()` on every false→true transition, not just once via `initData()` at boot | Closes the actual gap per Law 1 ("reconciles on reconnect," not "reconciles on reboot"). Reuses the listener and queue that already existed — no new Firebase path, no schema change, no new mechanism. `flushPending()` is idempotent (re-attempts pending keys, removes on success, stops on first failure) so a redundant call at boot (both the listener's own first connect and `initData()`'s explicit check can fire close together) is harmless. |
 | Did not change `dbWrite()` to throw on failure / did not change `shareInvite()`'s error handling | Out of scope for this pass — the offline-first design (cache + queue instead of surfacing every transient write failure to the UI) is intentional per Law 5/Law 1, not the bug. The bug was specifically the *lack of a retry trigger* between "queued" and "next app boot," now fixed. A louder failure signal in `shareInvite()` is a separate, smaller UX question, not pursued without being asked. |
 
+## Play-screen presence indicator (S62)
+
+Live two-device retest of S60/S61 confirmed the sync fixes work, but surfaced real friction: checking whether the other player is online meant leaving Play and digging through Settings → Who Am I?, exactly the navigation cost S58 traded for by keeping presence out of ContextBanner.
+
+| Decision | Rationale |
+|----------|-----------|
+| Added a small presence icon to ContextBanner's `head-right` icon row (next to the existing multiplayer/TTS icons), badged with a count of other active players, tappable to jump to Settings | Reverses part of S58's "ContextBanner is reserved as a single slim line" decision — but only by adding an icon to the existing icon row (same row pattern as the multiplayer-mode/TTS toggles), not new text/lines. User confirmed this tradeoff explicitly when asked (vs. leaving it Settings-only, or improving the Settings list instead). Settings → Who Am I? remains the full roster/toggle UI; this is just a glanceable signal during Play. |
+| Badge counts presence entries excluding the viewer's own uid | The question being answered is "is someone *else* here," not "did I remember to toggle myself in" — counting self would be noise. |
+| No new Firebase paths or schema changes | Reads the existing `campaign.presence` field (S58); no new sync logic. |
+
 - **Child-friendly view target age** — 7-16 is wide. What's the actual simplification scope?
 - **Episode/module tracking system** — How does the AI know where the party is in the story? Needs spec.
 - **Quick Actions redesign** — What actions? How presented?
