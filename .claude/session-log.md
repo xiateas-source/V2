@@ -1,5 +1,43 @@
 # Session Log — Handoff
 
+## Session 57 · 2026-06-30
+
+Branch `claude/latest-test-analysis-v64a6i` · committed, pushed.
+
+### What Shipped
+
+User said "do two and three while i test," authorizing autonomous work on workboard Priorities #2 (unguarded nested-field audit) and #3 (classifier coverage expansion) while live-testing the S56 invite-link fixes in parallel.
+
+**Priority #2 — audit, completed.** Broad grep for unguarded `.field.(map|filter|find|some|every|forEach|reduce|length)(` across `src/ui/**/*.jsx`, triaged candidate by candidate against each field's default shape and ingestion path. Found and fixed one real gap: `restoreQuickActions()` (`data/keys.js`) wrote a restored `localStorage` config straight into `store.system.settings.quickActions` with only a truthy check — no shape healing, unlike every `campaign`-store ingestion point (which all go through `healArrays()`). A config missing `active`/`custom` would crash `QuickActions.jsx`. Fixed by merging the restored config over `DEFAULT_SYSTEM.settings.quickActions` and coercing `active`/`custom` back to arrays. All other candidates (Rewind.jsx, Chat.jsx, TurnPrompt.jsx, SituationBar.jsx, Combat.jsx, QuickActions.jsx, Journal.jsx, Cargo.jsx, CharCreate.jsx, CampaignConfig.jsx, DevTools.jsx, LevelUp.jsx) traced safe — see decisions.md "Priority #2 audit (S57)" for the full list and reasoning.
+
+**Priority #3 — scoped small win.** Investigated "expand classifier coverage" in depth: confirmed the documented "classifier skips combat" decision is deliberate (decisions.md, Game Loop S48) and left it alone. Saving throws already resolve through the existing `roll_request`/`RollBar.jsx` path — not a gap. The one real gap (PC attack rolls / critical-hit doubling) needs a new structured attack-roll mechanic and an NPC-stats data model expansion (NPCs currently have no ability scores or attack/save bonuses in `combatState.initiative`) — architecturally significant, so per CLAUDE.md Standing Permissions it was **not** built without checking in first; it's the same unbuilt item as Priority #1's Critical Hits. Instead shipped the safe, prompt-only piece: a "CONTESTED CHECKS" section in `contracts.js` instructing the AI to narrate the NPC's side of an opposed check itself and feed that roll as the `dc` of a normal PC `roll_request` — gets code-resolved contested checks (grapple, opposed Stealth, etc.) with zero new code.
+
+**Live test results arrived mid-session** — user sent two campaign exports (host + guest) from a real two-device invite-link test. Compared them directly: `campaign.id`, full character state, and all 24 narrative messages were byte-identical except the expected per-device `updatedAt` timestamp. **The S56 `shareInvite()` fix is confirmed working live** — the "Campaign not found" investigation is closed.
+
+The same test transcript surfaced a new, real bug: a player typed "I'm not at all distinct in chat from [the other player]" mid-game. Traced it — `messages.js` has always set `playerName` on every player message, but `Chat.jsx`'s renderer never displayed it (`grep playerName Chat.jsx` was empty). Fixed: added a name label above a player message's bubble, gated on `msg.type === 'player' && msg.playerName && store.campaign.characters.length > 1`. Gated on party size rather than `multiplay.role` because the host's own `role` field stays `'solo'` forever even with guests connected — only the joining device ever flips to `'guest'`, so it's not a reliable "multiple humans" signal. Party-size gating also covers the legitimate single-device multi-PC mode (`playerIdentity.mode: 'multi'`) and shows nothing for the common solo single-PC case.
+
+### Decisions
+
+See `decisions.md` → "Priority #2 audit (S57)", "Player name not shown in multiplayer chat (found via live S57 test transcript)", "Priority #3 small win (S57) — contested-check contract guidance", and the live-retest-result note appended under "Invite-link 'Campaign not found' investigation".
+
+### Verification
+
+- `npm test` — 57/57 passing.
+- `npm run build` — succeeds, no new warnings.
+- The invite-link fix specifically got real live two-device verification this session (see above) — the first S55-onward fix to get that. Everything else shipped this session (`restoreQuickActions()` healing, chat name label, contested-check contract text) is verified via `npm test`/`npm run build` only, not live play yet.
+
+### Known Issues
+
+- Critical Hits / PC attack-roll enforcement still unbuilt — needs explicit user scoping-and-confirmation before starting (new mechanic + NPC data model expansion, not a small patch). Same item as Priority #1.
+- Cover, Action Economy enforcement, Charmed/Deafened/Grappled roll-time enforcement — feature-sized SRD gaps, tracked in workboard.md, not started.
+- S56's partial-message healing fixes, S56's mechanics-pipeline routing fixes (DC cap, CharSheet HP override), and this session's `restoreQuickActions()`/chat-name-label fixes still don't have their own live re-test — only the invite-link fix got one this session.
+
+### Next Up
+
+1. Live-test the still-unverified S56/S57 fixes: reload/background mid-stream (partial-message healing), CharSheet manual HP buttons with temp HP/concentration active, a concentration save near DC 30, multi-PC chat to confirm the new name labels render correctly, and the Quick Actions panel after a localStorage restore.
+2. If the user wants to scope it, Critical Hits / PC attack rolls is the next big architectural item — needs a confirmation conversation per CLAUDE.md before any code starts (new mechanic, NPC stats data model).
+3. Carried-over priorities — deadline July 11 (see Priorities in workboard.md): AI DC determination, Scene transition gate, Rest buttons on CharSheet, CI database-rules deploy.
+
 ## Session 56 · 2026-06-30
 
 Branch `claude/latest-test-analysis-v64a6i` · committed, pushed.

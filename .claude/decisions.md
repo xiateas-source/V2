@@ -254,6 +254,33 @@ Live bug report: host invited a second player into a fresh test campaign, guest 
 | Root cause not reproducible in this sandboxed environment (no live Firebase/two-device access) | Both fixes close real, verified gaps in the share flow; user should live-test the invite flow again to confirm full resolution. |
 | Gate 8/XP player-facing prompt (S56 transcript finding) still not implemented | User has not yet confirmed authorizing this change; stays a documented, unconfirmed item. |
 
+**Live retest result (S57)**: User ran a real two-device join test (host + guest exports compared directly). `campaign.id`, full character state, and all 24 narrative messages were byte-identical across both devices except the expected per-device `updatedAt` timestamp. The join completed and synced correctly — the `shareInvite()` fixes are confirmed working live. Investigation closed.
+
+## Priority #2 audit (S57) — unguarded nested-field access sweep
+
+Continuation of the S56 audit. Broad grep for unguarded `.field.(map|filter|find|some|every|forEach|reduce|length)(` across `src/ui/**/*.jsx`, triaged file by file against each field's default shape and ingestion path.
+
+| Decision | Rationale |
+|----------|-----------|
+| `restoreQuickActions()` (`data/keys.js`) now heals the restored `localStorage` config against `DEFAULT_SYSTEM.settings.quickActions` instead of replacing the store value wholesale | Same bug class as the `campaign`-store healing work (S55/S56), but on the `system` store: `restoreQuickActions()` did `setStore('system','settings','quickActions', config)` with only a truthy check, no shape validation. A `quickActions` object missing `active`/`custom` (e.g. from an older app version or partial write) would clobber the store and crash `QuickActions.jsx`'s `qaConfig().custom.find(...)`. `campaign` data has always gone through `healArrays()` at every ingestion point; `system` data had no equivalent. Fixed by merging the restored config over the default shape, coercing `active`/`custom` back to arrays if not already arrays. |
+| All other audit candidates (Rewind.jsx, Chat.jsx, TurnPrompt.jsx, SituationBar.jsx, Combat.jsx, QuickActions.jsx, Journal.jsx, Cargo.jsx, CharCreate.jsx, CampaignConfig.jsx, DevTools.jsx, LevelUp.jsx) traced and confirmed safe, no fix needed | Every candidate resolves to a `DEFAULT_CAMPAIGN`/`DEFAULT_CHARACTER` field healed by the existing `healArrays()`/`healStructure()` walk, with array items always populated with required string fields (`name`/`text`) by the `mechanics.js` DISPATCH functions that construct them. `LevelUp.jsx:1235`'s `ci.attacks.map` is already guarded one line above (`if (!ci?.attacks) return [];`) — a grep false positive, not a real gap. |
+
+## Player name not shown in multiplayer chat (found via live S57 test transcript)
+
+Live-reported in-game: a player typed "I [...] who isn't at all distinct in chat from [the other player]" during the two-device test. Every narrative message already carries a `playerName` field (`messages.js`), but `Chat.jsx`'s message renderer never displayed it — `grep playerName src/ui/play/Chat.jsx` returned nothing.
+
+| Decision | Rationale |
+|----------|-----------|
+| `Chat.jsx` now renders a small name label above a player message's bubble, gated on `msg.type === 'player' && msg.playerName && store.campaign.characters.length > 1` | Gating on party size > 1 (not on `multiplay.role`) covers both real multiplayer *and* a single device running multiple PCs (`playerIdentity.mode: 'multi'`), and avoids relying on `multiplay.role`, which only ever flips to `'guest'` on the joining device — the host's own `role` stays `'solo'` forever even with guests connected, so it isn't a reliable signal for "multiple humans are playing." Solo single-PC campaigns never show the label, so there's no clutter for the common case. |
+
+## Priority #3 small win (S57) — contested-check contract guidance
+
+Investigated the larger "expand classifier coverage" item (see workboard Priority #1/#3). Confirmed `decisions.md`'s existing "classifier skips combat" decision is deliberate and still correct — did not touch it. Skill checks and saving throws already resolve through the existing `roll_request`/`RollBar.jsx` path. The one real, unaddressed gap (PC attack rolls / critical-hit doubling) needs a new structured attack-roll mechanic and an NPC-stats data model expansion — architecturally significant, not started without user confirmation per CLAUDE.md's standing-permissions rule.
+
+| Decision | Rationale |
+|----------|-----------|
+| Added a "CONTESTED CHECKS" section to `contracts.js` instructing the AI to narrate the NPC's side of an opposed check itself, then use that rolled total as the `dc` in a normal `roll_request` for the PC's side | Achieves code-resolved contested checks (grapple, opposed Stealth, etc.) using the existing `roll_request` mechanism — zero new code, zero schema change, prompt-only. Still told-not-enforced (AI must comply), but no worse than the existing roll-procedure trust model and closes a real SRD gap cheaply. |
+
 - **Child-friendly view target age** — 7-16 is wide. What's the actual simplification scope?
 - **Episode/module tracking system** — How does the AI know where the party is in the story? Needs spec.
 - **Quick Actions redesign** — What actions? How presented?
