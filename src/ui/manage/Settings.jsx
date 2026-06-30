@@ -1,7 +1,7 @@
 import { createSignal, Show, For } from 'solid-js';
 import { store, setStore, resetCampaign } from '../../state/index.js';
 import { saveKeys as persistKeys, saveProviderSettings } from '../../data/keys.js';
-import { clearActiveCampaign, exportSnapshot, saveLocalNow } from '../../data/persist.js';
+import { clearActiveCampaign, exportSnapshot, saveLocalNow, healArrays } from '../../data/persist.js';
 import { buildShareId, stopLiveSync } from '../../data/sync.js';
 import Contracts from './Contracts.jsx';
 import CharCreate from '../setup/CharCreate.jsx';
@@ -105,7 +105,7 @@ export default function Settings() {
         return;
       }
       if (!confirm(`Load save "${data.campaign.name || 'Untitled'}"? This replaces the current game.`)) return;
-      setStore('campaign', data.campaign);
+      setStore('campaign', healArrays(data.campaign));
       await saveLocalNow();
       window.dispatchEvent(new CustomEvent('toast', { detail: { text: `Game loaded: ${data.campaign.name || 'Untitled'}` } }));
     } catch (err) {
