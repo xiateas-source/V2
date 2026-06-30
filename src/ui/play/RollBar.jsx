@@ -98,6 +98,31 @@ function applyEncumbrance(advState, foundPC, skill) {
   return 'disadvantage';
 }
 
+function isAttackRoll(skill) {
+  const lower = (skill || '').toLowerCase().replace(/\s+/g, '');
+  return lower === 'attackroll' || lower === 'attack';
+}
+
+// SRD condition effects that touch a PC's own roll. Paralyzed/Stunned/
+// Unconscious/Petrified force automatic failure on Str/Dex saves rather than
+// disadvantage — not modeled here, since those conditions also make the PC
+// Incapacitated (can't take actions), so they rarely reach a roll in practice.
+function applyConditions(advState, foundPC, skill) {
+  if (!foundPC?.conditions?.length) return advState;
+  const names = new Set(foundPC.conditions.map(c => (typeof c === 'string' ? c : c.name || '').toLowerCase()));
+
+  const isAttack = isAttackRoll(skill);
+  const ability = getRollAbility(skill);
+
+  let disadvantaged = names.has('poisoned') || names.has('frightened');
+  if (names.has('restrained') && (isAttack || ability === 'dex')) disadvantaged = true;
+  if (names.has('prone') && isAttack) disadvantaged = true;
+
+  if (!disadvantaged) return advState;
+  if (advState === 'advantage') return 'normal';
+  return 'disadvantage';
+}
+
 export default function RollBar() {
   const [rollResults, setRollResults] = createSignal({});
   const [submitted, setSubmitted] = createSignal(new Set());
@@ -116,6 +141,7 @@ export default function RollBar() {
         // Exhaustion 1+ gives disadvantage on Dexterity (initiative) checks (2014 rules).
         let advState = foundPC && foundPC.exhaustion >= 1 ? 'disadvantage' : 'normal';
         advState = applyEncumbrance(advState, foundPC, 'Initiative');
+        advState = applyConditions(advState, foundPC, 'Initiative');
         return { id: `init-${c.name}`, skill: 'Initiative', dc: null, pcName: c.name, isPC: true, advState };
       });
   });
@@ -132,6 +158,7 @@ export default function RollBar() {
         let advState = 'normal';
         if (foundPC && foundPC.exhaustion >= 1) advState = 'disadvantage';
         advState = applyEncumbrance(advState, foundPC, r.skill);
+        advState = applyConditions(advState, foundPC, r.skill);
         return {
           id: `pre-${idx}`,
           skill: r.skill,
@@ -171,6 +198,7 @@ export default function RollBar() {
               advState = 'normal';
             }
             advState = applyEncumbrance(advState, foundPC, skill);
+            advState = applyConditions(advState, foundPC, skill);
             return {
               id: `${i}-${idx}`,
               skill,
