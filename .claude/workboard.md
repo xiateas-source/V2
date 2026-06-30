@@ -1,12 +1,14 @@
 # Workboard
 
-*What to build next. Updated Session 52 · 2026-06-30.*
+*What to build next. Updated Session 53 · 2026-06-30.*
 
 ---
 
 ## Current State
 
 The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → validate → apply) is tested. Persistence works. Combat has turn enforcement. Character creation works (3 paths + guided wizard, plus mid-campaign via Settings). Level-up wizard handles all 12 classes. 39 unit tests passing.
+
+**Onboarding repair: Quick Pick characters were getting no gear (S53)** — user-reported bug. Root cause: `STARTING_EQUIPMENT` only covered 3 of the 12 `CLASS_DATA` classes (Fighter/Rogue/Bard); Quick Pick and the Guided Build wizard both silently produced zero starting gear for the other 9. Filled in standard PHB starting-gear tables for Barbarian/Cleric/Druid/Monk/Paladin/Ranger/Sorcerer/Warlock/Wizard, fixing both paths at once since they share the table. While fixing it, found and fixed a second Law 2 gap in `forge.js`: AC was hardcoded to 16 for Fighter and a light-armor `11+dexMod` heuristic for every other class, ignoring the per-class `startingAC` field that already existed and was correct (a Quick Pick Paladin was getting AC ~11 instead of 18) — now reads `classInfo.startingAC` directly. Also fixed the "Talk to AI" builder's system prompt, which still told players "Supported classes: Fighter, Rogue, Bard ONLY" and steered them away from the other 9 even though every other path supported them. UX addition: the Quick Pick card now shows starting gear + gold before the player commits, matching standard VTT quick-build conventions (e.g. D&D Beyond) instead of handing over an unseen inventory. See decisions.md "Onboarding Repair (S53)".
 
 **SRD 2024 gap-analysis + enforcement pass (S52)**: a background agent diffed the codebase against the uploaded SRD glossary/playing-the-book docs and returned a 10-item punch list. Shipped the top two: (1) encumbrance switched from a wrong duplicated 2014 two-tier model (4 locations) to the 2024 SRD single STR×15 hard cap, and exhaustion switched from disadvantage-based to the 2024 flat −2/level penalty; (2) all 15 conditions now have real roll-time mechanical effects in `RollBar.jsx` (previously only 4 had partial effects), Paralyzed/Stunned/Unconscious/Petrified now force auto-fail on Str/Dex saves instead of just disadvantage, and a new `damage: PCname,amount,DamageType` mechanic lets the app compute resistance/vulnerability/immunity multipliers itself instead of trusting AI narration math. Also found and fixed a real three-phase-loop bug: the pre-send roll path showed garbled "rolled -1" text instead of a clean auto-fail message. See decisions.md "Rules Enforcement (S52)" for full list and remaining gaps (Charmed/Deafened/Grappled left cosmetic — no data to enforce them correctly).
 

@@ -4454,6 +4454,25 @@ body {
   font-family: var(--font-mono);
 }
 
+.qp-card-equipment {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.qp-equip-tag {
+  font-size: var(--font-size-xs);
+  background: var(--color-surface-alt);
+  color: var(--color-text-secondary);
+  padding: 3px 8px;
+  border-radius: 10px;
+}
+
+.qp-equip-tag.qp-equip-gold {
+  color: var(--color-warning, var(--color-text));
+  font-weight: 600;
+}
+
 .qp-actions {
   display: flex;
   gap: var(--spacing-sm);

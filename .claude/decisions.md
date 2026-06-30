@@ -119,6 +119,8 @@
 | Party role-coverage hint | Quiet nudge (no healer / no frontline / no spellcaster) |
 | Draft-safety gate (Resume / Start fresh) | Explicit choice instead of silent auto-resume |
 | Premise directly editable | Textarea, not read-only. Brainstorm still works as starting point. |
+| `STARTING_EQUIPMENT` covers all 12 classes, not just Fighter/Rogue/Bard (S53) | Was the original 3-class slice; Quick Pick/Guided Build can roll any of the 12 `CLASS_DATA` classes but 9 silently got zero gear. See "Onboarding Repair (S53)". |
+| Quick Pick card shows starting gear + gold before commit | Matches standard VTT quick-build UX (e.g. D&D Beyond) — players shouldn't accept a character blind to what's in their pack |
 
 ## Familiar System
 
@@ -182,6 +184,14 @@ A gap-analysis agent compared the codebase against the uploaded SRD 2024 `rulesg
 | New `damage: PCname,amount,DamageType` mechanic, separate from `hp: Name=value` | The `hp` mechanic only ever carried an absolute new total — no damage-type signal existed anywhere for `DISPATCH.hp` to apply a resistance/vulnerability/immunity multiplier to. Rather than trust the AI's mental math (the exact "told, not enforced" pattern Law 2 exists to kill), the AI now reports raw damage + type and the app computes the multiplier and final HP itself. `hp:` is kept as-is for healing and enemy/NPC damage (no resistance data tracked for non-PCs). |
 | Resistance = ×0.5, vulnerability = ×2, immunity = ×0, applied in that order if a PC somehow has both | Matches SRD wording exactly; applying both in sequence nets back to ×1, which is the correct RAW outcome for double-tagged edge cases without needing special-case logic. |
 | Charmed, Deafened, and part of Grappled left cosmetic-only (no roll-time enforcement) | Auto-fail/disadvantage for these requires data the app doesn't capture: which specific check "requires hearing/sight" (Deafened/Blinded's sight-only half), or who the grappler is (Grappled's "disadvantage on attacks against anyone but the grappler"). Documented as a known gap rather than silently dropped or guessed at. |
+
+## Onboarding Repair (S53)
+
+| Decision | Rationale |
+|----------|-----------|
+| Filled `STARTING_EQUIPMENT` for Barbarian/Cleric/Druid/Monk/Paladin/Ranger/Sorcerer/Warlock/Wizard | Root cause of "Quick Pick characters get no gear" — `AVAILABLE_CLASSES` (12) always exceeded `STARTING_EQUIPMENT`'s coverage (3). Affected both Quick Pick and the Guided Build wizard equally, since both read the same table. Used standard 5e PHB starting-gear tables, same always/choices/goldOption schema as the existing 3 classes. |
+| `forge.js` AC now reads `classInfo.startingAC` directly | Found while fixing the gear gap: AC was hardcoded to 16 for Fighter and `11+dexMod` (light-armor math) for every other "supported" class, ignoring the per-class `startingAC` field that already existed in `CLASS_DATA` and was correct. A Quick Pick Paladin was getting AC ~11 instead of 18. Classic Law 2 gap — data existed, wasn't read. |
+| `CHAR_BUILDER_SYSTEM` prompt updated to list all 12 classes | The "Talk to AI" builder was still telling players "Supported classes: Fighter, Rogue, Bard ONLY" and steering them away from the other 9, even though Quick Pick/Guided Build/the Forge fully supported them. Stale instruction predating the 12-class CLASS_DATA expansion. |
 
 ## Open Questions
 

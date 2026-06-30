@@ -1,5 +1,43 @@
 # Session Log — Handoff
 
+## Session 53 · 2026-06-30
+
+Branch `claude/quick-pick-char-onboarding-l62z6d` · committed, pushed.
+
+### What Shipped
+
+User-reported bug: "quick pick characters get no gear." Asked to review, repair, and optimize onboarding for player experience, taking inspiration from current VTT standards. Mid-session, user also flagged the "Talk to AI" builder as out of date.
+
+1. **Root cause: `STARTING_EQUIPMENT` only covered 3 of 12 classes** — `AVAILABLE_CLASSES`/`CLASS_DATA` in `quickBuild.js` support all 12 PHB classes, but `STARTING_EQUIPMENT` only had entries for Fighter, Rogue, and Bard (the original 3-class slice from early development). Quick Pick and the Guided Build wizard both read this same table, so Barbarian/Cleric/Druid/Monk/Paladin/Ranger/Sorcerer/Warlock/Wizard characters were silently created with empty inventories. Filled in standard 5e PHB starting-gear tables for all 9 missing classes, using the same `{goldOption, always, choices}` schema as the existing entries.
+2. **Found a second Law 2 gap while in the same code: AC was wrong for 9 of 12 classes** — `forge.js` computed AC via `className === 'Fighter' ? 16 : 11 + dexMod` for every "supported" class, ignoring the per-class `startingAC` field that already existed in `CLASS_DATA` and was correct (it accounts for each class's actual starting armor — heavy/medium/unarmored-defense, not just light armor). A Quick Pick Paladin was getting AC ~11 instead of 18. Fixed to read `classInfo.startingAC` directly.
+3. **Fixed the stale "Talk to AI" builder prompt** (user-flagged: "ai also seems out of date") — `CHAR_BUILDER_SYSTEM` in `setupPrompts.js` still said "Supported classes: Fighter, Rogue, Bard ONLY" and steered players away from the other 9, even though Quick Pick/Guided Build/the Forge fully supported them. Predates the 12-class `CLASS_DATA` expansion. Updated to list all 12 and gently redirect anything else (2014-only subclasses, homebrew) to the closest match.
+4. **UX addition: Quick Pick card now shows starting gear + gold before commit** — previously even the 3 originally-supported classes accepted blind (no equipment preview at all in the Quick Pick flow, only in the Guided Build wizard). Added an equipment chip list + gold amount to the `QuickPick` card in `CharCreate.jsx`, matching standard VTT quick-build UX (e.g. D&D Beyond shows starting gear before you accept a quick build). Matching CSS added to `style.css` (`.qp-card-equipment`/`.qp-equip-tag`), reusing the existing `.qp-card-attacks`/`.qp-attack-tag` visual pattern.
+
+### Decisions
+
+See `decisions.md` → "Onboarding Repair (S53)" and the two new rows added to "Character Creation".
+
+### Verification
+
+- `npm install` (node_modules wasn't present in this environment) then `npm test` — 39/39 passing, no existing test depended on the old AC formula or `STARTING_EQUIPMENT` contents.
+- `npm run build` — succeeded.
+- Standalone Node script exercising `forgeCharacter()` for all 12 classes — confirmed correct `startingAC` and non-empty equipment for every class, including the 9 that were previously broken.
+- **Could not visually verify in a live browser in this sandboxed environment.** The outbound proxy blocks the Firebase RTDB connection (`ERR_TUNNEL_CONNECTION_FAILED`), and `main.jsx`'s boot chain (`initData().then(boot)`) has no timeout around `initFirebase()` — when Firebase is unreachable the boot promise never settles, `render()` never runs, and the screen stays blank indefinitely with no error surfaced. This is a pre-existing gap unrelated to this session's changes (not touched, per CLAUDE.md's "ask before Firebase config changes" rule) — flagging it as a Law 5 resilience gap worth a future timeout/fallback fix, not something broken by this work.
+
+### Known Issues
+
+- The live-UI verification gap above: `initData()` has no timeout, so an unreachable Firebase backend hangs boot forever instead of falling through to the offline/error path. Worth a small resilience fix (e.g. `Promise.race` with a timeout) in a future session — Law 5 says zero cost to play, and a silent infinite hang is the worst version of an outage.
+- Carried over from S52 (untouched this session): Critical Hits, Action Economy, Cover, Death Saves edge cases, Short Rest Hit Dice surfacing, and Concentration's 30 DC cap are still told-not-enforced. CharSheet's manual HP override still bypasses the mechanics pipeline. Charmed/Deafened/part of Grappled remain cosmetic-only.
+- `npm install` surfaced 12 dependency vulnerabilities (10 moderate, 2 high) — not investigated or fixed this session, out of scope for the onboarding task.
+
+### Next Up
+
+1. Consider a boot timeout/fallback around `initFirebase()` in `main.jsx` so an unreachable backend degrades gracefully instead of an infinite blank screen (found during this session's verification, not yet scoped or approved).
+2. Resume the S52 gap-analysis punch list (Death Saves and Critical Hits are the highest-value next two).
+3. Carried-over priorities from S50/S51/S52 — still open, deadline July 11 (see Priorities in workboard.md).
+
+---
+
 ## Session 52 · 2026-06-30
 
 Branch `claude/tabletop-gameplay-ux-czwyfb` · committed, not yet pushed to main.
