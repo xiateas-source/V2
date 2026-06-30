@@ -247,6 +247,23 @@ export function mergeCampaign(localC, cloudC) {
   const merged = healArrays({ ...localC, ...cloudC });
   merged.narrative = unionById(localC.narrative, cloudC.narrative);
   merged.ooc = unionById(localC.ooc, cloudC.ooc);
+  merged.presence = mergePresence(localC.presence, cloudC.presence);
+  return merged;
+}
+
+// presence is the fastest-changing, most racy field in the campaign payload —
+// a device can flip its own entry locally and have a *different* device's
+// in-flight full-snapshot write (built before it learned of that change) land
+// moments later and wholesale-overwrite it back to stale, causing the toggle to
+// visibly flicker. Merge per-uid by ts so a locally newer entry always wins over
+// an older cloud one, while still picking up genuinely newer entries from others.
+function mergePresence(local = {}, cloud = {}) {
+  const merged = {};
+  for (const uid of new Set([...Object.keys(local || {}), ...Object.keys(cloud || {})])) {
+    const a = local?.[uid];
+    const b = cloud?.[uid];
+    merged[uid] = (a?.ts || 0) >= (b?.ts || 0) ? (a || b) : (b || a);
+  }
   return merged;
 }
 
