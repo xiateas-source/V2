@@ -2,7 +2,7 @@ import { createSignal, Show, For } from 'solid-js';
 import { store, setStore, resetCampaign } from '../../state/index.js';
 import { saveKeys as persistKeys, saveProviderSettings } from '../../data/keys.js';
 import { clearActiveCampaign, exportSnapshot, saveLocalNow, healArrays } from '../../data/persist.js';
-import { buildShareId, stopLiveSync } from '../../data/sync.js';
+import { buildShareId, stopLiveSync, forceSyncNow } from '../../data/sync.js';
 import Contracts from './Contracts.jsx';
 import CharCreate from '../setup/CharCreate.jsx';
 
@@ -46,7 +46,15 @@ export default function Settings() {
 
   async function shareInvite() {
     const shareId = buildShareId();
-    if (!shareId) return;
+    if (!shareId) {
+      alert('Can\'t generate an invite link yet — still connecting to the server. Try again in a moment.');
+      return;
+    }
+    // Push current state immediately so a guest who joins right after sharing
+    // doesn't hit a stale or empty record at the host's campaign path.
+    try {
+      await forceSyncNow();
+    } catch { /* offline — link still works once connectivity returns */ }
     const url = `${window.location.origin}${window.location.pathname}?join=${shareId}`;
     if (navigator.share) {
       try {
