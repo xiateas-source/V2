@@ -339,6 +339,18 @@ Live two-device retest of S60/S61 confirmed the sync fixes work, but surfaced re
 | Badge counts presence entries excluding the viewer's own uid | The question being answered is "is someone *else* here," not "did I remember to toggle myself in" — counting self would be noise. |
 | No new Firebase paths or schema changes | Reads the existing `campaign.presence` field (S58); no new sync logic. |
 
+## Character union merge + immediate sync on char changes (S62)
+
+Guest character Nyx disappeared after user tabbed out on iOS. iOS kills JS before the 3s Firebase debounce fires; on reload, `mergeCampaign()`'s spread let stale cloud `characters` overwrite local.
+
+| Decision | Rationale |
+|----------|-----------|
+| Union-merge characters by id in `mergeCampaign()` (cloud wins per-id, local-only ids survive) | Safety net: even if a character hasn't reached Firebase yet, it won't be silently dropped on reload by a live-sync callback carrying stale cloud data. Cloud winning per-id ensures HP/stats from another device stay authoritative. Characters without ids (legacy edge case) fall back to cloud-or-local array. |
+| `forceSyncNow()` after all CharCreate commit/remove paths | Primary fix: get characters into Firebase before the user can tab out, bypassing the 3s debounce. Immediate sync here is correct — adding a character is a discrete intentional event, not a streaming field change like location or HP. |
+| No change to the general 3s sync debounce | The debounce exists for high-frequency fields (every narrative message, every HP tick in combat) — tuning it down globally would burn Firebase quota. Character changes are rare enough that immediate sync is the right exception. |
+
+## Open Questions (not yet answered)
+
 - **Child-friendly view target age** — 7-16 is wide. What's the actual simplification scope?
 - **Episode/module tracking system** — How does the AI know where the party is in the story? Needs spec.
 - **Quick Actions redesign** — What actions? How presented?

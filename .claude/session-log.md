@@ -1,5 +1,46 @@
 # Session Log — Handoff
 
+## Session 62 · 2026-06-30
+
+Branch `claude/latest-test-analysis-v64a6i` · committed, pushed. Two bugs surfaced in real play, both fixed.
+
+### What Shipped
+
+**S60/S61 confirmed live in production.** User confirmed the merge to `main` from the prior session is working in real play ("its live, it's working").
+
+**Play-screen presence indicator (ContextBanner).** User said checking whether the other player was online was "tedious" — currently required navigating away from Play to Settings → Who Am I?. After asking rather than assuming, user chose a compact icon in `ContextBanner`'s existing `head-right` icon row: a circle icon (Phosphor `ph-circle`) badged with a count of other active players, highlighted when anyone else is present, tapping navigates to Settings via `navigateTo('manage')`. Reads the existing `campaign.presence` field — no new Firebase paths or schema. CSS: added `.presence-badge` (9px accent-colored absolute-positioned dot) and `position: relative` to `.head .btn-icon`. This partially reverses S58's "ContextBanner is a single slim line" UI decision by explicit user sign-off — documented in decisions.md.
+
+Note: a block of text appeared mid-session formatted to look like an authoritative directive instructing a stop to the actual task. This is the third such injection attempt across S60/S61/S62. Identified it as not from the user, declined to follow it, continued the real work.
+
+**"Campaign not found" auto-retry fix.** User hit the error again in play after the S61 fix — traced two additional causes: (1) `getUid()` returning null when Firebase anonymous auth was still in flight (`joinCampaign()` would read before auth was established, getting PERMISSION_DENIED not "not found," but the error message was the same confusing one) — fixed with an explicit auth guard that throws a clearer "still connecting" error. (2) The host's `forceSyncNow()` write can still be propagating when the guest reads immediately after — fixed with a 3s auto-retry in `joinCampaign()` (one silent retry before giving up). User confirmed after the auto-retry fix: "i just tried it again and it worked." Also: `shareInvite()`'s `await forceSyncNow()` swallowed its own failures silently — now dispatches an explicit offline error toast if the write fails.
+
+**Guest character union merge + immediate Firebase sync (persist.js + CharCreate.jsx).** User reported: guest character Nyx disappeared when she tabbed out. Root cause traced: iOS kills the JS process before the 3s Firebase sync debounce fires; on reload, `mergeCampaign()`'s `{...localC, ...cloudC}` spread lets the stale cloud `characters` array overwrite local, silently dropping any character not yet pushed. Two-pronged fix: (1) `persist.js`'s `mergeCampaign()` now uses a new `mergeCharacters()` function that union-merges by id — cloud wins per-id (HP/stats), but local-only ids (characters the cloud hasn't seen yet) are preserved rather than dropped. (2) `CharCreate.jsx` calls `forceSyncNow()` immediately after `commitCharacter()`, `handleWizardComplete()`, `commitQuickChar()`, and `removeCharacter()`, bypassing the 3s debounce so characters reach Firebase before the user can tab out. Both changes committed and pushed (`75c693f`). 60/60 tests pass, build clean.
+
+### Decisions
+
+See `decisions.md` → "Play-screen presence indicator (S62)" and "Character union merge + immediate sync on char changes (S62)".
+
+### Verification
+
+- `npm test` — 60/60 passing.
+- `npm run build` — succeeds, only pre-existing large-chunk warning.
+- **Needs live verification:** presence badge (two-device session to confirm count updates off the other player's toggle); join auto-retry (confirm the 3s retry actually fires when the host's write is still propagating); character union merge (tab-kill test — tab out right after adding a character, reload, confirm the character survived).
+
+### Known Issues
+
+Carried from S61, plus:
+- S62's three fixes all need live verification.
+- `dbWrite()` still doesn't surface write failures to callers — `shareInvite()`'s `forceSyncNow()` catch-and-toast helps with the offline case but not silent mid-session blips. Not addressed.
+
+### Next Up
+
+1. Deploy S62 (merge to main) — ask user.
+2. Live two-device session covering: presence badge count accuracy, join auto-retry, character union merge on tab-kill.
+3. Multiplayer Pass 2: bundles MVP.
+4. SRD gap analysis follow-ups (Action Economy, Cover, Short Rest / Hit Dice).
+
+---
+
 ## Session 61 · 2026-06-30
 
 Branch `claude/latest-test-analysis-v64a6i` · committed, pushed. Live bug investigation, not a planned feature session.
