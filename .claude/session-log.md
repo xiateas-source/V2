@@ -1,5 +1,37 @@
 # Session Log — Handoff
 
+## Session 59 · 2026-06-30
+
+Branch `claude/quick-wins-review-07zr0m` · committed, pushed. Time-boxed (low context, ~30 min) — review pass, not a feature session.
+
+### What Shipped
+
+User asked for a quick scan of the app for easy wins under a hard time/context budget. Did a static review rather than a deep audit: grepped for `:hover` CSS (mobile Law 3 — none found), `console.log`/`debugger` (none), stub files (`Modal.jsx`/`SessionReview.jsx`/`ContentImport.jsx`/`SessionZero.jsx` all confirmed still intentional one-line stubs, `Modal.jsx` specifically has zero importers — dead but not broken), and `alert()`/`confirm()` usage (6 call sites across `Settings.jsx` and `DevTools.jsx`).
+
+Shipped the one finding that was actually "quick": replaced 4 native `alert()` calls with the existing `toast` CustomEvent pipeline (`Settings.jsx`: invite-link-not-ready, invalid-save-file, load-save-failed; `DevTools.jsx`: copied-to-clipboard). Pattern already established elsewhere (`CharSheet.jsx`, `LevelUp.jsx`, `Chat.jsx`, `engine.js`) — no new component, no design decision needed. The 2 `confirm()` calls (new-campaign and load-save, both destructive-action gates) were deliberately left native — swapping those needs a real yes/no modal, which means actually building `Modal.jsx` out, not a quick edit.
+
+### Decisions
+
+None requiring a decisions.md entry — this was a mechanical pattern-match swap, not a design choice.
+
+### Verification
+
+- `npm install` (node_modules wasn't present at session start), `npm test` — 60/60 passing.
+- `npm run build` — succeeds, only the pre-existing large-chunk warning.
+- Not live-tested in a browser (time-boxed session) — the toast swap is low-risk (identical dispatch pattern used 6+ other places in the codebase) but unverified visually.
+
+### Known Issues
+
+Carried over from S58, unchanged — see below. Nothing new introduced this session.
+
+### Next Up
+
+1. **Inline NPC name linking** (`player-requests-v2.md`) — flagged this session as a plausible next quick-ish win. Tap-to-source infra (`sourceBus.js`) already exists for items/MechPills; didn't trace the Chat.jsx NPC-name rendering path deeply enough this session to confirm scope.
+2. If `Modal.jsx` ever gets built out (e.g. for the bundles MVP UI), revisit the 2 leftover native `confirm()` calls in `Settings.jsx` and swap them too.
+3. Everything else carried from S58 below — multiplayer Pass 2 (bundles), live two-device presence test, Priorities deadline July 11.
+
+---
+
 ## Session 58 · 2026-06-30
 
 Branch `claude/latest-test-analysis-v64a6i` · committed, pushed.
