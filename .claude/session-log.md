@@ -1,5 +1,40 @@
 # Session Log — Handoff
 
+## Session 52 · 2026-06-30
+
+Branch `claude/tabletop-gameplay-ux-czwyfb` · committed, not yet pushed to main.
+
+### What Shipped
+
+A background gap-analysis agent diffed the codebase against the uploaded SRD 2024 `rulesglossary.md`/`playingthegame.md` docs and returned a 10-item punch list. User picked the top two to ship this session: switch encumbrance to 2024 SRD rules, then fix conditions + resistance enforcement.
+
+1. **Encumbrance switched to 2024 SRD (single STR×15 hard cap, no tiers)** — the app had the wrong 2014 two-tier model (Encumbered at ×5, Heavily Encumbered at ×10) duplicated in 4 places: `contracts.js` (AI instructions), `RollBar.jsx` (roll penalties), `Cargo.jsx` (the bottom-nav tab players actually see), and `CharSheet.jsx`'s Equipment tab. All 4 now agree: STR×15 lb is a hard cap, nothing more. Also simplified `prompt.js`'s per-PC carry-weight ledger line to match. Removed the now-dead `isHeavilyEncumbered`/`applyEncumbrance` functions from `RollBar.jsx` and the now-unreachable `.encumbered`/`.heavy`/`.cs-enc-mark` CSS rules.
+2. **Exhaustion switched to 2024 SRD (flat −2/level, not disadvantage)** — `RollBar.jsx` had a 2014-rules implementation explicitly marked `// (2014 rules)` in its own code comment. Now every level of Exhaustion applies a flat −2 penalty to every d20 Test (not disadvantage) plus −5ft speed/level (no enforcement needed, no movement system exists); a Long Rest removes 1 level. Added an EXHAUSTION section to `contracts.js` (didn't exist before) and rewrote `CharSheet.jsx`'s exhaustion tooltip, which was fully 2014-rules wrong.
+3. **All 15 conditions now have real roll-time effects** — previously only Poisoned/Frightened/Restrained/Prone had any effect on rolls, and Poisoned/Frightened were over-broadly applying disadvantage to saving throws too (RAW excludes saves for those two). Rewrote `RollBar.jsx`'s condition-effects logic from scratch against the exact RAW text (read directly from the glossary for all 15 conditions): Blinded/Prone → disadvantage on own attacks; Invisible → advantage on own attacks; Restrained → disadvantage on attacks + Dex saves specifically; Poisoned/Frightened → disadvantage on checks+attacks only, not saves; any Incapacitating condition → disadvantage on Initiative. Built a new `isSavingThrow(skill)` heuristic (bare ability name = save, named skill or "Initiative" = check) to make the check-vs-save distinction possible without changing the `roll_request` mechanic format — this was a documented gap since S51.
+4. **Auto-fail for Paralyzed/Stunned/Unconscious/Petrified** — these now force automatic failure on Str/Dex saves (not just disadvantage), closing the S51-documented gap. Implemented by forcing `total = -1` in the roll data so the existing `total >= dc` success/failure check resolves correctly with no plumbing changes; added `AUTO-FAIL` badges reusing existing CSS, and an "Acknowledge" button state instead of a roll button.
+5. **Found and fixed a real three-phase-loop bug while wiring auto-fail through** — the pre-send roll path (`engine.js`'s `resumeAfterRolls`, used when the classifier intercepts a message before sending) built its outcome text from raw `total`/`d20`/`mod` numbers. An auto-fail roll (faked as `total:-1, d20:0, mod:0`) would've shown garbled text like "rolled -1 (d20: 0 +0)" to both the AI and the player's own visible chat bubble, instead of "automatically fails (Paralyzed)". The other roll path already worded this correctly — only the pre-send path was broken. Fixed by threading `autoFailReason` through and special-casing it in both of `engine.js`'s text builders.
+6. **Resistance/vulnerability/immunity now enforced in code, not AI-narrated** — the `hp` mechanic only ever carried an absolute new HP total, with no damage-type signal anywhere for code to apply a multiplier to; the AI was fully trusted to do the resistance math itself before reporting the final number (the same "told, not enforced" pattern that caused the original encumbrance bug). Added a new `damage: PCname,amount,DamageType` mechanic — the AI now reports raw, un-modified damage + its type, and `mechanics.js` looks up the PC's resistances/vulnerabilities/immunities and computes the final HP itself (resistance ×0.5, vulnerability ×2, immunity ×0). `hp:` is kept as-is for healing and enemy/NPC damage. Refactored the shared temp-HP-absorption/concentration-check/combat-sync logic out of `DISPATCH.hp` into `applyDamage()` so both mechanics use the same path.
+7. **6 new unit tests** covering the new `damage` mechanic (plain damage, resistance halving, vulnerability doubling, immunity zeroing, case-insensitive type matching, temp-HP absorption) — 39/39 passing, plus a clean production build.
+
+### Decisions
+
+See `decisions.md` → "Rules Enforcement (S52)" for the full list, including why Charmed/Deafened/part of Grappled were deliberately left cosmetic-only (no data exists to enforce them correctly — documented rather than guessed at).
+
+### Known Issues
+
+- Remaining items from the same gap-analysis punch list, not yet started: Critical Hits told-not-enforced, Action Economy heuristic-only, Cover missing entirely, Death Saves partial (no auto-fail on damage at 0 HP, no massive-damage instant death), Short Rest missing Hit Dice healing surfacing, Concentration missing the 30 DC cap.
+- CharSheet's manual HP override still bypasses the mechanics pipeline entirely (no temp-HP absorption, no concentration check) — flagged by the gap analysis, not addressed this session.
+- Charmed, Deafened, and part of Grappled remain cosmetic-only — see decisions.md for why.
+- `npm install` had not been run in this environment before this session (no `node_modules`); now installed.
+
+### Next Up
+
+1. Work through the remaining gap-analysis punch list items above, roughly in the order listed (Death Saves and Critical Hits are probably the highest-value next two — both are core combat moments).
+2. Consider fixing CharSheet's manual HP override to route through `applyDamage()`/the mechanics pipeline instead of writing HP directly, now that that logic is factored out and reusable.
+3. Carried-over priorities from S50/S51 (audit unguarded nested-field accesses, classifier coverage expansion, AI DC determination, scene transition gate, rest buttons, CI database rules deploy) — still open, deadline July 11.
+
+---
+
 ## Session 51 · 2026-06-30
 
 Branch `main` @ `1936091` · pushed, auto-deploying.

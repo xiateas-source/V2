@@ -26,21 +26,21 @@ const ABILITY_NAMES = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
 const ABILITY_FULL = { str: 'Strength', dex: 'Dexterity', con: 'Constitution', int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma' };
 
 const CONDITION_EFFECTS = {
-  blinded: 'Auto-fail sight checks. Attack rolls have disadvantage. Attacks against you have advantage.',
-  charmed: 'Can\'t attack the charmer. Charmer has advantage on social checks.',
-  deafened: 'Auto-fail hearing checks.',
-  frightened: 'Disadvantage on ability checks and attacks while source is visible. Can\'t willingly move closer.',
-  grappled: 'Speed becomes 0. Ends if grappler is incapacitated or forced apart.',
-  incapacitated: 'Can\'t take actions or reactions.',
-  invisible: 'Attacks against you have disadvantage. Your attacks have advantage.',
-  paralyzed: 'Incapacitated. Auto-fail STR/DEX saves. Attacks have advantage. Melee hits are critical.',
-  petrified: 'Weight ×10. Incapacitated. Auto-fail STR/DEX saves. Resistance to all damage. Immune to poison/disease.',
+  blinded: 'Auto-fail checks that require sight. Your attacks have disadvantage. Attacks against you have advantage.',
+  charmed: 'Can\'t attack the charmer or target them with harmful effects. Charmer has advantage on social checks with you.',
+  deafened: 'Auto-fail checks that require hearing.',
+  frightened: 'Disadvantage on ability checks and attacks while the source of fear is in sight. Can\'t willingly move closer to it.',
+  grappled: 'Speed 0. Ends if the grappler is incapacitated or you\'re forced out of its reach.',
+  incapacitated: 'Can\'t take actions or reactions. Speaks only falteringly. Loses concentration.',
+  invisible: 'Heavily obscured for hiding purposes. Attacks against you have disadvantage. Your attacks have advantage.',
+  paralyzed: 'Incapacitated, can\'t move or speak. Auto-fail STR/DEX saves. Attacks against you have advantage; hits from within 5ft are critical.',
+  petrified: 'Weight ×10, stops aging. Incapacitated, unaware of surroundings. Auto-fail STR/DEX saves. Attacks against you have advantage. Resistance to all damage. Immune to poison and disease.',
   poisoned: 'Disadvantage on attack rolls and ability checks.',
-  prone: 'Disadvantage on attacks. Melee attacks against you have advantage. Ranged attacks have disadvantage. Must use half movement to stand.',
-  restrained: 'Speed 0. Attacks have disadvantage. Attacks against you have advantage. Disadvantage on DEX saves.',
-  stunned: 'Incapacitated. Auto-fail STR/DEX saves. Attacks against you have advantage.',
-  unconscious: 'Incapacitated. Drop prone. Auto-fail STR/DEX saves. Attacks have advantage. Melee hits are critical.',
-  exhaustion: 'Penalties scale with level: 1=disadvantage on checks, 2=speed halved, 3=disadvantage on attacks/saves, 4=HP max halved, 5=speed 0, 6=death.',
+  prone: 'Disadvantage on your attacks. Attacks against you have advantage from within 5ft, disadvantage otherwise. Standing costs half your movement.',
+  restrained: 'Speed 0. Your attacks have disadvantage; attacks against you have advantage. Disadvantage on DEX saves.',
+  stunned: 'Incapacitated, can\'t move, speaks only falteringly. Auto-fail STR/DEX saves. Attacks against you have advantage.',
+  unconscious: 'Incapacitated, can\'t move or speak, unaware of surroundings. Drops items and falls prone. Auto-fail STR/DEX saves. Attacks against you have advantage; hits from within 5ft are critical.',
+  exhaustion: 'Cumulative. Each level: −2 penalty to every d20 Test, −5ft speed. Level 6 = death. A Long Rest removes 1 level.',
 };
 
 const TABS = ['Stats', 'Vitals', 'Spells', 'Features', 'Equipment', 'Bio'];
@@ -914,22 +914,8 @@ export default function CharSheet(props) {
     const totalWeight = () => items.reduce((s, i) => s + (Number(i.weight) || 0) * (Number(i.qty) || 1), 0);
     const str = () => p.abilityScores?.str || 10;
     const capacity = () => str() * 15;
-    const encumbered = () => str() * 5;
-    const heavilyEncumbered = () => str() * 10;
-    const encumbranceLevel = () => {
-      const w = totalWeight();
-      if (w > capacity()) return 'over';
-      if (w > heavilyEncumbered()) return 'heavy';
-      if (w > encumbered()) return 'encumbered';
-      return 'ok';
-    };
-    const encumbranceText = () => {
-      const lvl = encumbranceLevel();
-      if (lvl === 'over') return 'Over capacity! Cannot move.';
-      if (lvl === 'heavy') return 'Heavily encumbered: -20ft speed, disadvantage on STR/DEX/CON checks, attacks, and saves.';
-      if (lvl === 'encumbered') return 'Encumbered: -10ft speed.';
-      return '';
-    };
+    const encumbranceLevel = () => (totalWeight() > capacity() ? 'over' : 'ok');
+    const encumbranceText = () => (encumbranceLevel() === 'over' ? 'Over capacity! Cannot pick up or carry more.' : '');
 
     return (
       <div class="cs-tab-body">
@@ -938,8 +924,6 @@ export default function CharSheet(props) {
           <div class={`cs-encumbrance ${encumbranceLevel()}`}>
             <div class="cs-enc-bar">
               <div class="cs-enc-fill" style={{ width: `${Math.min(100, (totalWeight() / capacity()) * 100)}%` }} />
-              <div class="cs-enc-mark enc" style={{ left: `${(encumbered() / capacity()) * 100}%` }} />
-              <div class="cs-enc-mark heavy" style={{ left: `${(heavilyEncumbered() / capacity()) * 100}%` }} />
             </div>
             <div class="cs-enc-text">
               <span>{totalWeight()} / {capacity()} lb</span>

@@ -1,12 +1,14 @@
 # Workboard
 
-*What to build next. Updated Session 51 · 2026-06-30.*
+*What to build next. Updated Session 52 · 2026-06-30.*
 
 ---
 
 ## Current State
 
-The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → validate → apply) is tested. Persistence works. Combat has turn enforcement. Character creation works (3 paths + guided wizard, plus mid-campaign via Settings). Level-up wizard handles all 12 classes. 33 unit tests passing.
+The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → validate → apply) is tested. Persistence works. Combat has turn enforcement. Character creation works (3 paths + guided wizard, plus mid-campaign via Settings). Level-up wizard handles all 12 classes. 39 unit tests passing.
+
+**SRD 2024 gap-analysis + enforcement pass (S52)**: a background agent diffed the codebase against the uploaded SRD glossary/playing-the-book docs and returned a 10-item punch list. Shipped the top two: (1) encumbrance switched from a wrong duplicated 2014 two-tier model (4 locations) to the 2024 SRD single STR×15 hard cap, and exhaustion switched from disadvantage-based to the 2024 flat −2/level penalty; (2) all 15 conditions now have real roll-time mechanical effects in `RollBar.jsx` (previously only 4 had partial effects), Paralyzed/Stunned/Unconscious/Petrified now force auto-fail on Str/Dex saves instead of just disadvantage, and a new `damage: PCname,amount,DamageType` mechanic lets the app compute resistance/vulnerability/immunity multipliers itself instead of trusting AI narration math. Also found and fixed a real three-phase-loop bug: the pre-send roll path showed garbled "rolled -1" text instead of a clean auto-fail message. See decisions.md "Rules Enforcement (S52)" for full list and remaining gaps (Charmed/Deafened/Grappled left cosmetic — no data to enforce them correctly).
 
 **Stale DM contract fixed + rules enforcement gaps closed (S51)**: `DEFAULT_CONTRACTS.never` still told the AI to use the pre-S48 roll-and-wait flow for everything; fixed, plus a one-time migration in `persist.js` heals existing campaigns whose `contracts.never` still holds the old text verbatim. Drift detector extended to catch narrated enemy/PC defeat language (collapses, dies, knocked out, etc.) with no matching `hp` mechanic — found via a real bug transcript (Vesper's Adventure). Encumbrance and conditions (Poisoned, Frightened, Restrained, Prone) were tracked in state and shown to the AI in the ledger, but nothing enforced them — extended the existing exhaustion-disadvantage path in `RollBar.jsx` so Heavily Encumbered PCs and these conditions now actually apply disadvantage on rolls. See decisions.md "Rules Enforcement (S51)" and session-log.md for detail.
 
@@ -24,7 +26,7 @@ The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → va
 
 ## Priorities (user-set, deadline July 11)
 
-1. **Continue Rules Glossary implementation** (S51 follow-up, user starting a fresh session for this) — uploaded SRD Rules Glossary (`rulesglossary.md`, ~150 entries) is the reference. Next concrete item: auto-fail Str/Dex saves for Paralyzed/Stunned/Unconscious/Petrified (needs a forced-failure path through `RollBar.jsx` roll resolution — bigger than the disadvantage-only fixes already shipped). Beyond that, no full gap-analysis has been done yet against the glossary's other ~145 entries (damage types, rests, death saves, AoE shapes, object AC/HP, etc.) — worth doing before picking the next batch.
+1. **Continue SRD gap-analysis punch list (S52 follow-up)** — encumbrance/exhaustion ruleset fix and conditions+resistance enforcement are done (see decisions.md "Rules Enforcement (S52)"). Remaining items from the same gap analysis, not yet started: Critical Hits told-not-enforced (no code doubles dice on a nat 20), Action Economy is heuristic-only, Cover missing entirely, Death Saves partial (no auto-fail on damage at 0 HP, no massive-damage instant death), Short Rest missing Hit Dice healing surfacing, Concentration missing the 30 DC cap. Also flagged: CharSheet's manual HP override bypasses the mechanics pipeline (no temp-HP absorption, no concentration check).
 2. **Audit for more unguarded nested-field accesses** — the conditions/deathSaves/initiative crash pattern may recur elsewhere; sweep render paths before next live test
 3. **Expand classifier coverage** — combat attacks, saving throws, contested checks
 4. **AI DC determination** — Phase 1 AI call for context-aware DCs (currently uses standard tiers)
@@ -85,8 +87,9 @@ Key files: `src/ai/classifier.js`, `src/ai/engine.js` (sendNarrative, resumeAfte
 - Action economy: `actionsUsed` flags exist in combatState but aren't checked by any gate
 - Classifier DCs are standard tiers (10/13/15) — not context-aware yet
 - Classifier doesn't handle combat attacks or saving throws (those go through existing flow)
-- Paralyzed/Stunned/Unconscious/Petrified don't yet force auto-fail on Str/Dex saves (disadvantage-only conditions are enforced as of S51; auto-fail needs a forced-failure roll path — see Priorities #1)
-- `roll_request`'s `skill` field doesn't distinguish ability check vs. saving throw, so condition effects that differ between the two (e.g. Poisoned RAW excludes saves) are applied blanket instead
+- Critical hits, Cover, full Death Saves (auto-fail at 0 HP, massive damage instant death), and Concentration's 30 DC cap are told-not-enforced (AI-narration only) — see S52 punch list in Priorities #1
+- Charmed, Deafened, and part of Grappled have no roll-time enforcement (cosmetic only) — no data exists to determine which checks "require hearing/sight" or who a PC's grappler is; see decisions.md "Rules Enforcement (S52)"
+- CharSheet's manual HP override bypasses the mechanics pipeline entirely (no temp-HP absorption, no concentration check)
 
 ---
 
