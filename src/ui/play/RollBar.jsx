@@ -81,6 +81,28 @@ function isAttackRoll(skill) {
   return lower === 'attackroll' || lower === 'attack';
 }
 
+// Parses a stored attack damage formula like "1d8+3" or "2d6" (leading
+// dice notation; trailing text such as a damage-type word is ignored).
+function parseDamageFormula(formula) {
+  const m = /^(\d+)d(\d+)\s*(?:([+-])\s*(\d+))?/.exec((formula || '').trim());
+  if (!m) return null;
+  const sign = m[3] === '-' ? -1 : 1;
+  return { count: parseInt(m[1], 10), sides: parseInt(m[2], 10), bonus: m[4] ? sign * parseInt(m[4], 10) : 0 };
+}
+
+// Rolls a PC's weapon/attack damage formula, doubling the dice (not the
+// modifier) on a critical hit per SRD rules.
+function rollDamage(formula, crit) {
+  const parsed = parseDamageFormula(formula);
+  if (!parsed) return null;
+  const diceCount = crit ? parsed.count * 2 : parsed.count;
+  const rolls = Array.from({ length: diceCount }, () => Math.floor(Math.random() * parsed.sides) + 1);
+  const sum = rolls.reduce((a, b) => a + b, 0);
+  const total = sum + parsed.bonus;
+  const bonusStr = parsed.bonus ? (parsed.bonus > 0 ? `+${parsed.bonus}` : `${parsed.bonus}`) : '';
+  return { total, detail: `${diceCount}d${parsed.sides}${bonusStr} (${rolls.join('+')}${bonusStr}) = ${total}` };
+}
+
 // roll_request only ever carries a skill/ability name, never an explicit
 // check-vs-save flag. By convention (how the AI is prompted and how the
 // classifier emits checks), a bare ability name (e.g. "Dexterity") is a
@@ -282,6 +304,19 @@ export default function RollBar() {
 
   const modStr = () => { const m = bonus(); return m >= 0 ? `+${m}` : `${m}`; };
 
+  // null = no DC/AC to compare against. For attack rolls, a natural 20
+  // always hits and a natural 1 always misses, regardless of total vs AC.
+  const rollPasses = () => {
+    const roll = currentRoll();
+    if (!roll?.dc) return null;
+    const d20 = effectiveD20();
+    if (isAttackRoll(roll.skill)) {
+      if (d20 === 20) return true;
+      if (d20 === 1) return false;
+    }
+    return total() >= roll.dc;
+  };
+
   function doRoll() {
     const roll = currentRoll();
     if (!roll) return;
@@ -364,10 +399,40 @@ export default function RollBar() {
       else d20 = res.d1;
       const t = d20 + mod;
       const ms = mod >= 0 ? `+${mod}` : `${mod}`;
-      const dcPart = roll.dc ? ` — DC ${roll.dc}` : '';
       let advNote = '';
       if (roll.advState === 'advantage') advNote = ` [ADV: ${res.d1}, ${res.d2}]`;
       else if (roll.advState === 'disadvantage') advNote = ` [DIS: ${res.d1}, ${res.d2}]`;
+
+      if (isAttackRoll(roll.skill)) {
+        const ac = roll.dc || 13;
+        const isCrit = d20 === 20;
+        const isFumble = d20 === 1;
+        const hit = isCrit || (!isFumble && t >= ac);
+        const outcome = isFumble ? 'CRITICAL MISS' : isCrit ? 'CRITICAL HIT' : hit ? 'HIT' : 'MISS';
+        let dmg = null;
+        if (hit) {
+          const formula = p?.attacks?.[0]?.damage;
+          dmg = formula ? rollDamage(formula, isCrit) : null;
+        }
+        const dmgPart = dmg ? ` — damage: ${dmg.detail}` : '';
+        lines.push(`${roll.pcName} rolled ${t} for Attack (d20: ${d20} ${ms}) vs AC ${ac} — ${outcome}${dmgPart}${advNote}`);
+        rollData.push({
+          pcName: roll.pcName,
+          skill: roll.skill,
+          dc: ac,
+          d20,
+          mod,
+          total: t,
+          isAttack: true,
+          outcome,
+          crit: isCrit,
+          damage: dmg ? dmg.total : null,
+          damageDetail: dmg ? dmg.detail : null,
+        });
+        continue;
+      }
+
+      const dcPart = roll.dc ? ` — DC ${roll.dc}` : '';
       lines.push(`${roll.pcName} rolled ${t} for ${roll.skill} (d20: ${d20} ${ms})${dcPart}${advNote}`);
 
       rollData.push({
@@ -430,7 +495,7 @@ export default function RollBar() {
             <span class="roll-skill">{currentRoll()?.skill}</span>
             <span class="roll-pc">{currentRoll()?.pcName}</span>
             <Show when={currentRoll()?.dc}>
-              <span class="roll-dc">DC {currentRoll()?.dc}</span>
+              <span class="roll-dc">{isAttackRoll(currentRoll()?.skill) ? 'AC' : 'DC'} {currentRoll()?.dc}</span>
             </Show>
             <Show when={currentRoll()?.autoFail}>
               <span class="roll-dis" title={currentRoll()?.autoFailReason}>AUTO-FAIL</span>
@@ -471,7 +536,7 @@ export default function RollBar() {
                   </span>
                   <span class="roll-mod">{modStr()}</span>
                   <span class="roll-eq">=</span>
-                  <span class={`roll-total ${currentRoll()?.dc && total() >= currentRoll()?.dc ? 'roll-pass' : ''} ${currentRoll()?.dc && total() < currentRoll()?.dc ? 'roll-fail' : ''}`}>
+                  <span class={`roll-total ${rollPasses() ? 'roll-pass' : ''} ${rollPasses() === false ? 'roll-fail' : ''}`}>
                     {total()}
                   </span>
                 </>

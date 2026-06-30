@@ -93,17 +93,24 @@ export async function resumeAfterRolls(rollResultLines, onChunk) {
   try {
     const outcomeBlock = rollResultLines.map(r => {
       if (r.autoFailReason) return `${r.pcName}: ${r.skill} — automatic failure (${r.autoFailReason}, no roll possible) → FAILURE`;
+      if (r.isAttack) {
+        const dmgPart = r.damage != null ? ` — damage: ${r.damageDetail}` : '';
+        return `${r.pcName}: Attack roll — rolled ${r.total} (d20: ${r.d20} ${r.mod >= 0 ? '+' : ''}${r.mod}) vs AC ${r.dc} → ${r.outcome}${dmgPart}`;
+      }
       const outcome = r.total >= r.dc ? 'SUCCESS' : 'FAILURE';
       return `${r.pcName}: ${r.skill} check — rolled ${r.total} (d20: ${r.d20} ${r.mod >= 0 ? '+' : ''}${r.mod}) vs DC ${r.dc} → ${outcome}`;
     }).join('\n');
 
     const contextInject = `PREDETERMINED ROLL RESULTS (these outcomes are final — narrate accordingly, do not contradict or re-roll):\n${outcomeBlock}`;
 
-    const rollSuffix = rollResultLines.map(r =>
-      r.autoFailReason
-        ? `${r.pcName} automatically fails ${r.skill} (${r.autoFailReason}) — FAILURE`
-        : `${r.pcName} rolled ${r.total} for ${r.skill} (DC ${r.dc}) — ${r.total >= r.dc ? 'SUCCESS' : 'FAILURE'}`
-    ).join('; ');
+    const rollSuffix = rollResultLines.map(r => {
+      if (r.autoFailReason) return `${r.pcName} automatically fails ${r.skill} (${r.autoFailReason}) — FAILURE`;
+      if (r.isAttack) {
+        const dmgPart = r.damage != null ? `, damage ${r.damage}` : '';
+        return `${r.pcName} rolled ${r.total} for Attack (AC ${r.dc}) — ${r.outcome}${dmgPart}`;
+      }
+      return `${r.pcName} rolled ${r.total} for ${r.skill} (DC ${r.dc}) — ${r.total >= r.dc ? 'SUCCESS' : 'FAILURE'}`;
+    }).join('; ');
     const combinedText = `${originalMessage}\n\n[ROLLS: ${rollSuffix}]`;
 
     // Update the existing player message (added when classifier intercepted)
