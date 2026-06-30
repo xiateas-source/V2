@@ -2,6 +2,8 @@ import { Show } from 'solid-js';
 import { store, setStore } from '../../state/index.js';
 import { confirmLocation, rejectLocation } from '../../ai/mechanics.js';
 import { autoRead, toggleAutoRead } from '../../audio/browserTTS.js';
+import { getUid } from '../../data/index.js';
+import { navigateTo } from '../shared/sourceBus.js';
 
 export default function ContextBanner() {
   const loc = () => store.campaign.location;
@@ -10,6 +12,11 @@ export default function ContextBanner() {
   const pending = () => store.campaign.pendingLocation;
   const isMulti = () => store.system.playerIdentity.mode === 'multi';
   const inCombat = () => store.campaign.combatState?.active;
+  const othersHere = () => {
+    const uid = getUid();
+    return Object.entries(store.campaign.presence || {})
+      .filter(([id, p]) => id !== uid && p.active);
+  };
 
   function toggleMultiPlayer() {
     const newMode = isMulti() ? 'single' : 'multi';
@@ -44,6 +51,16 @@ export default function ContextBanner() {
           </div>
           <Show when={!inCombat()}>
             <div class="head-right">
+              <Show when={isMulti()}>
+                <button
+                  class={`btn-icon ${othersHere().length > 0 ? 'active' : ''}`}
+                  onClick={() => navigateTo('manage')}
+                  title={othersHere().length > 0 ? othersHere().map(([, p]) => p.name || 'Player').join(', ') + ' here' : 'No one else here'}
+                >
+                  <i class="ph ph-circle" />
+                  <Show when={othersHere().length > 0}><span class="presence-badge">{othersHere().length}</span></Show>
+                </button>
+              </Show>
               <button
                 class={`btn-icon ${isMulti() ? 'active' : ''}`}
                 onClick={toggleMultiPlayer}
