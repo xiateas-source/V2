@@ -39,6 +39,7 @@ function getSyncPayload() {
     townReputation: c.townReputation,
     travelLog: c.travelLog,
     wagonState: c.wagonState,
+    presence: c.presence,
     narrative: c.narrative.slice(-50),
     ooc: c.ooc.slice(-20),
     contracts: c.contracts,
@@ -117,6 +118,19 @@ export async function forceSyncNow() {
   const path = getCampaignPath();
   if (!path) return;
   await dbWrite(path, getSyncPayload());
+}
+
+// Explicit "I'm here" / "I've left" toggle (Settings → Who Am I?). No automatic
+// presence detection (onDisconnect/heartbeat) — backgrounded mobile tabs make
+// that unreliable, and the player already knows when they're joining/leaving.
+// Writes through the normal campaign payload so every device sees it via the
+// existing live-sync listener, same as any other campaign field.
+export function setPresence(active) {
+  const uid = getUid();
+  if (!uid) return;
+  const name = store.system.playerIdentity?.name?.trim() || 'Player';
+  setStore('campaign', 'presence', uid, { name, active, ts: Date.now() });
+  scheduleSync();
 }
 
 // Build the shareable invite string for this campaign.

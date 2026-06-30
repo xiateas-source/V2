@@ -1,12 +1,14 @@
 # Workboard
 
-*What to build next. Updated Session 57 · 2026-06-30.*
+*What to build next. Updated Session 58 · 2026-06-30.*
 
 ---
 
 ## Current State
 
-The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → validate → apply) is tested. Persistence works. Combat has turn enforcement. Character creation works (3 paths + guided wizard, plus mid-campaign via Settings). Level-up wizard handles all 12 classes. Multiplayer (invite links, live Firebase sync, shared identity) shipped S50, **live two-device retested and confirmed working S57**. Three-phase skill-check resolution (classify → roll bar → narrate) shipped S48, live-verified S49. 57 unit tests passing.
+The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → validate → apply) is tested. Persistence works. Combat has turn enforcement. Character creation works (3 paths + guided wizard, plus mid-campaign via Settings). Level-up wizard handles all 12 classes. Multiplayer (invite links, live Firebase sync, shared identity) shipped S50, **live two-device retested and confirmed working S57**, plus a manual presence toggle shipped S58. Three-phase skill-check resolution (classify → roll bar → narrate) shipped S48, live-verified S49. 60 unit tests passing.
+
+**Latest (S58)** — Pass 1 of a multiplayer-improvement push: CI now deploys `database.rules.json` automatically (Priority #7, closed — `deploy.yml` gained a `firebase deploy --only database` step, so rules can't drift from the Console silently again). Added a manual presence toggle ("I'm here"/"I've left" in Settings → Who Am I?) instead of automatic `onDisconnect()` detection — deliberately, per a V1 lesson (automatic AFK handling solved a problem players already solve socially) and because mobile backgrounding makes connection-based presence unreliable. New `campaign.presence` field, synced like any other campaign field. Also added the first Firebase-mocking test precedent (`tests/sync.test.js`, simulates two devices against an in-memory fake RTDB through the real `joinCampaign()`/`setPresence()`/`mergeCampaign()` code paths) and a DevTools "Multiplayer" tab for eyeballing the presence roster with a fake guest entry, without needing a second phone. Bundles (publish/import/delete/replace/edit) intentionally deferred to a later pass — not started this session. See decisions.md "Multiplayer Presence + CI Database Deploy (S58)".
 
 **Latest (S57)** — live two-device multiplayer retest confirmed the S56 `shareInvite()` fixes work: host/guest exports compared byte-for-byte identical (campaign state, all 24 narrative messages) except per-device `updatedAt`. The same test transcript surfaced a real bug (player messages weren't visually distinguishable in multiplayer chat — `playerName` was stored but never rendered), now fixed with a name label gated on party size > 1. Priority #2's audit continued: found and fixed one more instance of the recurring "healed at one ingestion point, not another" bug class, this time in the `system` store (`restoreQuickActions()` now heals against `DEFAULT_SYSTEM` instead of replacing wholesale); all other audit candidates traced safe. Priority #3 got a small, decision-compliant win: a contract-only "contested checks" instruction (NPC rolls itself, feeds result into a normal PC `roll_request` as the DC) — zero new code. Critical Hits / PC-attack-roll enforcement (Priority #1) then shipped same-session: `RollBar.jsx` already had unused attack-roll infrastructure, so the fix was a missing `contracts.js` instruction (route PC attacks through `roll_request: Attack|AC|PCName`) plus code-enforced HIT/MISS/CRITICAL HIT/CRITICAL MISS determination and damage rolling (doubled on crit) in `RollBar.jsx`/`engine.js` — closes the "told-not-enforced" gap per Law 2. NPC attacks against PCs remain AI-rolled/narrated, unchanged. See `decisions.md` and `session-log.md` for full session-by-session history (S48–S57).
 
@@ -20,7 +22,8 @@ The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → va
 4. **AI DC determination** — Phase 1 AI call for context-aware DCs (currently uses standard tiers)
 5. **Scene transition gate** — hold scene changes for player confirmation (Gate 2 in enforcement spec)
 6. **Rest buttons** on CharSheet Vitals tab
-7. **CI: deploy database rules** — `database.rules.json` is never auto-deployed; add `firebase deploy --only database` to the pipeline so it stops drifting from the manually-managed Console rules
+7. **CI: deploy database rules** — done (S58). `deploy.yml` now runs `firebase deploy --only database` alongside the hosting deploy.
+8. **Multiplayer Pass 2: bundles MVP** — publish/import/delete/replace/edit for shared content bundles (`data/bundles.js` is still a stub returning `{}`). Deferred from S58's Pass 1 (CI deploy + presence toggle + test aids, all done) — not yet started.
 
 ---
 

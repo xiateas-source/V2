@@ -28,3 +28,14 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_PEBBLE_V2 }}
           channelId: live
           projectId: pebble-v2
+
+      # database.rules.json drifted from the deployed Console rules because nothing
+      # ever pushed it — hosting-deploy above only touches static assets. Deploy it
+      # explicitly so the committed file is the actual source of truth.
+      - name: Deploy database rules
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > /tmp/firebase-sa.json
+          npx firebase-tools deploy --only database --project pebble-v2 --non-interactive
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_PEBBLE_V2 }}
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/firebase-sa.json
