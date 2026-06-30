@@ -1,12 +1,14 @@
 # Workboard
 
-*What to build next. Updated Session 54 · 2026-06-30.*
+*What to build next. Updated Session 55 · 2026-06-30.*
 
 ---
 
 ## Current State
 
-The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → validate → apply) is tested. Persistence works. Combat has turn enforcement. Character creation works (3 paths + guided wizard, plus mid-campaign via Settings). Level-up wizard handles all 12 classes. 45 unit tests passing.
+The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → validate → apply) is tested. Persistence works. Combat has turn enforcement. Character creation works (3 paths + guided wizard, plus mid-campaign via Settings). Level-up wizard handles all 12 classes. 49 unit tests passing.
+
+**Multiplayer join bug fixed: guest-side crash, host never seeing guest, "Joining…" hang, keyboard cutoff (S55)** — user reported a real, reproducible bug with an exported campaign JSON as evidence: joining via invite link hung on "Joining…" indefinitely; after a manual refresh, a Quick Pick character's creation screen was "cut off at the bottom" on mobile; once in the campaign, sending any message crashed with `Cannot read properties of undefined (reading 'length')`; and the host never saw the guest's character appear at all. Root-caused all four to the same family of bug — code paths that read/restore state without the healing/persistence machinery other paths already use: (1) `joinCampaign()` in `sync.js` wrote Firebase's campaign data straight into the store with no array-healing, unlike `restoreSession()`/`mergeCampaign()` which both call `healArrays()` — Firebase RTDB drops empty arrays on write, so the host's `conditions: []` came back missing, and `genLedger()`'s `pc.conditions.length` crashed on the guest's very first message; (2) `system.multiplay` was never part of `persist.js`'s local snapshot, so a guest's `role`/`hostUid` silently reset to `solo` on every reload, sending their writes to their own orphaned Firebase path instead of the host's — this is why the host never saw the guest populate; (3) `dbRead()` had no timeout, so a stalled connection could leave `joinCampaign()`'s `await` (and the "Joining…" button) hung forever; (4) the page shell used a fixed `100%` height instead of `100dvh`, so the on-screen keyboard covered bottom-of-form content like CharCreate's AI builder submit button. `healArrays` exported from `persist.js` for reuse; `dbRead` now has a 10s timeout; `multiplay` restoration prefers the cloud pointer over the local snapshot when both exist. 4 new tests pin `healArrays()`'s contract. See decisions.md "Multiplayer Join Bug Fix (S55)".
 
 **Death Saves auto-fail + massive damage enforced in code (S54)** — closed one item from the S52 punch list. Previously, a PC taking damage while already at 0 HP relied entirely on the AI remembering to emit a `death_save` mechanic, and a single overkill hit (>= hp max) being instant death was narration-only with nothing in code backing it — a player's character could end up alive or dead purely based on whether the model did the math right that turn. Now `applyDamage()` in `mechanics.js` checks this on every `damage:`/`hp:` mechanic that actually reduces a PC's HP: damage taken at 0 HP auto-applies one failed death save, and damage >= hp max (either as overkill on the downing hit, or as a full hit while already at 0) marks the PC Dead automatically. Refactored the existing `death_save` mechanic's 3-failures kill logic into a shared `killPC()` helper. Updated the AI contract so it doesn't double-emit death saves or fight the code's Dead call. 6 new tests added (45 total, up from 39). See decisions.md "Rules Enforcement (S54)".
 
@@ -93,6 +95,8 @@ Key files: `src/ai/classifier.js`, `src/ai/engine.js` (sendNarrative, resumeAfte
 - Classifier doesn't handle combat attacks or saving throws (those go through existing flow)
 - Critical hits, Cover, and Concentration's 30 DC cap are told-not-enforced (AI-narration only) — see S52/S54 punch list in Priorities #1. Death Saves (auto-fail at 0 HP, massive damage) fixed in S54.
 - Charmed, Deafened, and part of Grappled have no roll-time enforcement (cosmetic only) — no data exists to determine which checks "require hearing/sight" or who a PC's grappler is; see decisions.md "Rules Enforcement (S52)"
+- `players/{uid}/joined` (the pointer `restoreGuestSession()` reads on boot) is still only written via the 3s-debounced `scheduleSync()`, not synchronously inside `joinCampaign()` — a guest who reloads within ~3s of joining still relies on the S55 local-snapshot fallback to recover their guest role, not the cloud pointer. Not yet a confirmed live bug, just a known race not fully closed.
+- S55's `100dvh` keyboard-cutoff fix and the multiplayer join fixes were verified via `npm test`/`npm run build` only — not yet confirmed against a live two-device join, since the original bug report's repro needs two real devices/sessions
 - CharSheet's manual HP override bypasses the mechanics pipeline entirely (no temp-HP absorption, no concentration check)
 
 ---

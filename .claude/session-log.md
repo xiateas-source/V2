@@ -1,5 +1,46 @@
 # Session Log — Handoff
 
+## Session 55 · 2026-06-30
+
+Branch `claude/workboard-priorities-1ykzmb` · committed, pushed.
+
+### What Shipped
+
+User reported a live multiplayer bug after a real two-device play session, with an exported campaign JSON as evidence (guest device, "Kir" controlling "Melody"): joining via invite link hung on "Joining…" indefinitely and needed a refresh; after the refresh, Quick Pick character creation was usable but "cut off at the bottom" so the player couldn't reach the AI builder; once in the campaign, sending "Hi" crashed with `Cannot read properties of undefined (reading 'length')`; and the host ("Finch") never saw "Melody" populate into his game at all.
+
+Root-caused all four to the same family of bug — state-restore code paths that skip the healing/persistence machinery other paths already use:
+
+1. **The send-message crash** — `joinCampaign()` in `sync.js` wrote Firebase's campaign data straight into the store with `setStore('campaign', { ...DEFAULT_CAMPAIGN, ...data, id: campaignId })`, with no array-healing step. `restoreSession()` and `mergeCampaign()` (used by the live-sync listener) both already call `healArrays()` before committing Firebase data — `joinCampaign()` was the one path that didn't. Firebase RTDB drops empty arrays on write, so the host's character (which had `conditions: []`) came back from `dbRead()` with `conditions` missing entirely. The guest's very first message ran `genLedger()` in `prompt.js`, which does `pc.conditions.length` unconditionally for every PC — crash, exact message match. Fixed by exporting `healArrays` from `persist.js` (was module-private) and wrapping `joinCampaign()`'s store write in it.
+2. **Host never sees guest join** — `system.multiplay` (`{role, hostUid}`) was never part of `persist.js`'s local snapshot/restore cycle at all. Every page reload silently reset a guest's role back to the default `{role:'solo', hostUid:''}` regardless of whether they'd successfully joined, unless the Firebase-pointer fallback (`restoreGuestSession()`, which depends on a 3s-debounced write) happened to win the race. Once reset to `solo`, `getCampaignPath()` in `sync.js` routes all of that device's writes to its own orphaned uid path instead of the host's — explaining why Finch's export never gained Melody. Fixed: `multiplay` added to `snapshot()`/`restoreSession()`, restored only when `restoreGuestSession()` (which runs first at boot) hasn't already established guest mode, so the more-authoritative cloud pointer wins when both are available.
+3. **The "Joining…" hang** — `dbRead()` had no timeout; `get()` can hang indefinitely with no network/unreachable RTDB, and `joinCampaign()`'s `await dbRead(...)` had nothing to make it ever resolve or reject. Added a 10s `Promise.race` timeout, mirroring the existing 5s pattern already used in `initFirebase()`'s auth race.
+4. **Character creation cut off at the bottom** — `html`/`body`/`#app` used a fixed `height: 100%` (effectively `100vh`), which doesn't shrink when the on-screen keyboard opens on mobile, leaving content below the fold (e.g. CharCreate's "Talk to AI" submit button) unreachable. Switched to `100dvh` with `100%` as a fallback for unsupported browsers.
+5. **4 new unit tests** (49 total, up from 45) pin `healArrays()`'s contract directly: missing `conditions` array restored, missing `deathSaves` object restored, fully-populated characters left untouched, top-level campaign arrays (quests/npcs) healed — so `joinCampaign()` can't regress to skipping the heal step again.
+
+### Decisions
+
+See `decisions.md` → "Multiplayer Join Bug Fix (S55)".
+
+### Verification
+
+- `npm test` — 49/49 passing.
+- `npm run build` — succeeds, no new warnings beyond the pre-existing large-chunk warning.
+- No live two-device verification — the sandboxed environment can't reach Firebase (same gap noted in S53/S54 session logs), so the fix is confirmed by code-path tracing against the exact crash in the user's exported JSON plus unit tests, not a live repro. Recommend the user re-test the original join-a-friend's-game flow on two real devices before considering this fully closed.
+
+### Known Issues
+
+- `players/{uid}/joined` (the pointer `restoreGuestSession()` reads on boot) is still only written via the 3s-debounced `scheduleSync()`, not synchronously inside `joinCampaign()`. A guest reloading within ~3s of joining still depends on the new local-snapshot fallback (item 2 above) rather than the cloud pointer — not a confirmed live bug, but the race isn't fully closed, just covered by a second layer.
+- The S53 boot-timeout gap (`initData()`/`flushPending()` can hang boot if Firebase is unreachable) is still unaddressed — different code path than this session's fixes, out of scope.
+- Carried over from S52/S54: Critical Hits told-not-enforced (scoped, needs a new attack-roll mechanic), Action Economy heuristic-only, Cover missing, Short Rest Hit Dice surfacing, Concentration's 30 DC cap. CharSheet's manual HP override still bypasses the mechanics pipeline.
+
+### Next Up
+
+1. Live two-device re-test of the original bug report (join via link, send a message, confirm host sees guest) to confirm this session's fixes actually close it in practice, not just in code-path tracing.
+2. Consider writing the `players/{uid}/joined` pointer synchronously inside `joinCampaign()` instead of waiting for the 3s debounce, to close the remaining race noted above.
+3. Critical Hits / Action Economy / Cover / Short Rest / Concentration — remaining S52 punch list items.
+4. Carried-over priorities from S50/S51/S52/S53/S54 — still open, deadline July 11 (see Priorities in workboard.md).
+
+---
+
 ## Session 54 · 2026-06-30
 
 Branch `claude/workboard-priorities-1ykzmb` · committed, pushed.

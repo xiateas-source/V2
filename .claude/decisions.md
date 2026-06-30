@@ -202,7 +202,16 @@ A gap-analysis agent compared the codebase against the uploaded SRD 2024 `rulesg
 | `killPC()` extracted as a shared helper | The existing `death_save` mechanic's 3-failures branch and the new automatic-failure path both need to add the `Dead` condition and clear `deathSaves` — kept it in one place instead of duplicating. |
 | AI contract updated to say "don't emit death_save for this, don't fight the code's Dead call" | Without this, the AI would keep narrating/emitting its own death_save mechanic on the same hit the code already auto-failed, double-counting failures, or narrate a death save prompt on a hit code already ruled instant death. |
 
-## Open Questions
+## Multiplayer Join Bug Fix (S55)
+
+A live bug report (with an exported campaign JSON as evidence) traced to three related multiplayer gaps, all fixed together since they share one root cause family — code paths that read/restore campaign or system state without going through the same healing/persistence machinery other paths already use.
+
+| Decision | Rationale |
+|----------|-----------|
+| `joinCampaign()` now runs the Firebase data through `healArrays()` before committing it to the store | This was the actual crash: `joinCampaign()` wrote `dbRead()`'s result straight into `store.campaign` with no healing, unlike `restoreSession()` and `mergeCampaign()` which both already call `healArrays()`. Firebase RTDB drops empty arrays on write, so the host's character with `conditions: []` came back with `conditions` missing entirely; the guest's first message crashed in `genLedger()` on `pc.conditions.length`. Exported as `healArrays` from `persist.js` (was module-private) so `sync.js` can reuse it instead of re-implementing the heal logic a third time. |
+| `system.multiplay` added to `persist.js`'s local snapshot/restore cycle | It was never persisted at all — every page reload silently reset a guest's `role`/`hostUid` back to the default `{role:'solo', hostUid:''}`, so all of that guest's subsequent Firebase writes went to their own orphaned uid path instead of the host's. This is why "Finch never saw Melody populate." Restored conditionally — only if `restoreGuestSession()` (which runs first at boot and checks a Firebase pointer) didn't already establish guest mode — so the more-authoritative cloud value wins when both are available. |
+| `dbRead()` wrapped in a 10s timeout | `get()` can hang indefinitely with no network/no RTDB connection, which is the literal mechanism behind "page left pending indefinitely showing 'Joining…'" — `joinCampaign()`'s `await dbRead(...)` had nothing to make it ever resolve. Mirrors the existing 5s timeout pattern already used in `initFirebase()`'s auth race. |
+| `html`/`body`/`#app` height switched from fixed `100%` to `100dvh` (with `100%` fallback) | "Character creation was cut off at the bottom" on mobile — a fixed-height, `overflow:hidden` shell doesn't shrink when the on-screen keyboard opens, so content below the fold (e.g. CharCreate's AI builder submit button) becomes unreachable. `100dvh` (dynamic viewport height) tracks the actual visible viewport including keyboard intrusion on supporting mobile browsers. |
 
 - **Child-friendly view target age** — 7-16 is wide. What's the actual simplification scope?
 - **Episode/module tracking system** — How does the AI know where the party is in the story? Needs spec.
