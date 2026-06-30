@@ -4,7 +4,7 @@ import KeyGate from './KeyGate.jsx';
 import CharCreate from './CharCreate.jsx';
 import CampaignConfig from './CampaignConfig.jsx';
 import { loadDemoCampaign } from '../../data/demo.js';
-import { joinCampaign } from '../../data/sync.js';
+import { joinCampaign, startLiveSync } from '../../data/sync.js';
 
 export default function PlayerOnboard() {
   const [step, setStep] = createSignal(store.system.providers.geminiKey ? 1 : 0);
@@ -50,6 +50,11 @@ export default function PlayerOnboard() {
       const cid = `camp_${Date.now()}`;
       setStore('campaign', 'id', cid);
       setStore('system', 'activeCampaignId', cid);
+      // A host creating a campaign mid-session (e.g. after Settings → New Campaign)
+      // never goes through main.jsx's boot() again, which is the only other place
+      // that arms the live listener — without this, this device would have no
+      // realtime listener for the rest of the session until a manual page reload.
+      startLiveSync();
     }
     for (let i = 0; i < store.campaign.characters.length; i++) {
       const pc = store.campaign.characters[i];
