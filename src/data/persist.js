@@ -8,6 +8,18 @@ import { createEffect, on } from 'solid-js';
 import { unwrap } from 'solid-js/store';
 import { store, setStore } from '../state/index.js';
 import { DEFAULT_CAMPAIGN, DEFAULT_CONTRACTS } from '../state/campaign.js';
+
+// Firebase omits/nullifies empty arrays and can return non-array for array fields.
+// This heals any array-typed field back to an array after merge/restore.
+function healArrays(obj) {
+  const out = { ...obj };
+  for (const [key, defVal] of Object.entries(DEFAULT_CAMPAIGN)) {
+    if (Array.isArray(defVal) && !Array.isArray(out[key])) {
+      out[key] = [];
+    }
+  }
+  return out;
+}
 import { putAll, getByKey } from './local.js';
 import { getUid, dbRead } from './firebase.js';
 
@@ -142,7 +154,7 @@ export async function restoreSession() {
   } catch (_) {}
 
   if (snap?.campaign?.id) {
-    setStore('campaign', { ...structuredClone(DEFAULT_CAMPAIGN), ...snap.campaign });
+    setStore('campaign', healArrays({ ...structuredClone(DEFAULT_CAMPAIGN), ...snap.campaign }));
     setStore('system', 'activeCampaignId', snap.campaign.id);
     // Heal older saves that predate default contracts (empty persona ⇒ no DM spine).
     const con = store.campaign.contracts || {};
@@ -174,7 +186,7 @@ async function loadCloud(id) {
 }
 
 export function mergeCampaign(localC, cloudC) {
-  const merged = { ...localC, ...cloudC };
+  const merged = healArrays({ ...localC, ...cloudC });
   merged.narrative = unionById(localC.narrative, cloudC.narrative);
   merged.ooc = unionById(localC.ooc, cloudC.ooc);
   return merged;
