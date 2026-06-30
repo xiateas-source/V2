@@ -16,6 +16,7 @@ const profSkills = (char) => {
   return Object.keys(sk).filter(k => sk[k]).map(skillName).sort();
 };
 import { forgeCharacter, proficiencyBonus } from '../../data/forge.js';
+import { forceSyncNow } from '../../data/sync.js';
 import CharWizard from './CharWizard.jsx';
 import CharSheet from '../reference/CharSheet.jsx';
 
@@ -114,6 +115,7 @@ export default function CharCreate(props) {
     setMode(null);
     setEquipChoices({});
     setEquipMode('default');
+    if (store.campaign.id) forceSyncNow();
   }
 
   function handleWizardComplete(char, goldGP, items, isGoldMode) {
@@ -134,6 +136,7 @@ export default function CharCreate(props) {
     }
 
     setMode(null);
+    if (store.campaign.id) forceSyncNow();
   }
 
   function commitQuickChar() {
@@ -154,6 +157,7 @@ export default function CharCreate(props) {
 
     setQuickChar(null);
     setMode(null);
+    if (store.campaign.id) forceSyncNow();
   }
 
   async function rollQuickPick() {
@@ -192,6 +196,7 @@ export default function CharCreate(props) {
   function removeCharacter(idx) {
     const updated = store.campaign.characters.filter((_, i) => i !== idx);
     setStore('campaign', 'characters', updated);
+    if (store.campaign.id) forceSyncNow();
   }
 
   async function onCharParsed(charObj) {

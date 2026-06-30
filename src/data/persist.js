@@ -248,7 +248,21 @@ export function mergeCampaign(localC, cloudC) {
   merged.narrative = unionById(localC.narrative, cloudC.narrative);
   merged.ooc = unionById(localC.ooc, cloudC.ooc);
   merged.presence = mergePresence(localC.presence, cloudC.presence);
+  merged.characters = mergeCharacters(localC.characters, cloudC.characters);
   return merged;
+}
+
+// Characters are union-merged by id so a local-only addition (e.g. a new guest
+// character whose 3s Firebase sync hadn't fired before the tab was killed) isn't
+// silently wiped out when the live-sync listener fires on reload with stale cloud
+// data. Cloud wins per-character (latest HP/stats), but local-only chars survive.
+function mergeCharacters(local = [], cloud = []) {
+  const byId = new Map();
+  for (const c of local) { if (c?.id) byId.set(c.id, c); }
+  for (const c of cloud) { if (c?.id) byId.set(c.id, c); }
+  const withId = Array.from(byId.values());
+  const noId = (cloud.length ? cloud : local).filter(c => !c?.id);
+  return [...withId, ...noId];
 }
 
 // presence is the fastest-changing, most racy field in the campaign payload —

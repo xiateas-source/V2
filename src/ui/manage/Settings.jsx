@@ -55,7 +55,9 @@ export default function Settings() {
     // doesn't hit a stale or empty record at the host's campaign path.
     try {
       await forceSyncNow();
-    } catch { /* offline — link still works once connectivity returns */ }
+    } catch {
+      window.dispatchEvent(new CustomEvent('toast', { detail: { text: "You appear to be offline — the invite link is copied, but guests may see 'Campaign not found' until you reconnect.", type: 'error' } }));
+    }
     const url = `${window.location.origin}${window.location.pathname}?join=${shareId}`;
     if (navigator.share) {
       try {
