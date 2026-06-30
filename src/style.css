@@ -6082,7 +6082,11 @@ body {
 /* single-class rules win by source order over earlier defaults.  */
 /* ============================================================= */
 
-html, body { height: 100%; }
+/* 100dvh (dynamic viewport height) shrinks with the on-screen keyboard on
+   mobile, unlike 100%/100vh which stays fixed and lets the keyboard cover
+   the bottom of forms (e.g. CharCreate's AI builder input + submit button).
+   The 100% above is a fallback for browsers that don't support dvh. */
+html, body { height: 100%; height: 100dvh; }
 body {
   margin: 0;
   background: var(--color-bg);
@@ -6090,7 +6094,7 @@ body {
   font-family: var(--ui);
   -webkit-font-smoothing: antialiased;
 }
-#app { height: 100%; }
+#app { height: 100%; height: 100dvh; }
 
 .app-shell {
   height: 100%;

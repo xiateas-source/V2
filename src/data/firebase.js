@@ -71,7 +71,13 @@ export async function initFirebase() {
 
 export async function dbRead(path) {
   try {
-    const snap = await get(ref(db, path));
+    // get() can hang indefinitely if the device never establishes a connection
+    // (no network, RTDB unreachable) — cap it so callers (e.g. joinCampaign's
+    // "Joining…" state) can't be stuck forever waiting on a promise that never settles.
+    const snap = await Promise.race([
+      get(ref(db, path)),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('dbRead timeout')), 10000)),
+    ]);
     return snap.exists() ? snap.val() : null;
   } catch (e) {
     const cached = localStorage.getItem(`fb_cache:${path}`);

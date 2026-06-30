@@ -1,7 +1,7 @@
 import { createEffect, on } from 'solid-js';
 import { store, setStore } from '../state/index.js';
 import { dbWrite, dbRead, dbListen, getUid } from './firebase.js';
-import { mergeCampaign } from './persist.js';
+import { mergeCampaign, healArrays } from './persist.js';
 import { DEFAULT_CAMPAIGN } from '../state/campaign.js';
 import { saveLocalNow } from './persist.js';
 
@@ -147,7 +147,7 @@ export async function joinCampaign(shareIdRaw) {
   const data = await dbRead(`campaigns/${hostUid}/${campaignId}`);
   if (!data) throw new Error('Campaign not found. Make sure the host is online and the code is correct.');
 
-  setStore('campaign', { ...DEFAULT_CAMPAIGN, ...data, id: campaignId });
+  setStore('campaign', healArrays({ ...DEFAULT_CAMPAIGN, ...data, id: campaignId }));
   setStore('system', 'activeCampaignId', campaignId);
   setStore('system', 'multiplay', { role: 'guest', hostUid });
 

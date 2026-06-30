@@ -364,3 +364,49 @@ describe('Stop Generation', () => {
     expect(typeof sendMsg).toBe('function');
   });
 });
+
+describe('healArrays (multiplayer join data healing)', () => {
+  // Firebase RTDB drops empty arrays on write/read. A guest joining a host's
+  // campaign via joinCampaign() reads that data straight from Firebase — if a
+  // PC's `conditions` array came back missing, genLedger()'s `pc.conditions.length`
+  // crashes the very next message send. healArrays() is the fix; these tests
+  // pin its contract so joinCampaign() can't regress to skipping it again.
+  it('restores a missing conditions array on a character read from Firebase', async () => {
+    const { healArrays } = await import('../src/data/persist.js');
+    const raw = {
+      characters: [
+        { id: 'pc_finch', name: 'Finch', class: 'Rogue', hp: 7, hpMax: 10 },
+      ],
+    };
+    const healed = healArrays(raw);
+    expect(Array.isArray(healed.characters[0].conditions)).toBe(true);
+    expect(healed.characters[0].conditions).toEqual([]);
+  });
+
+  it('restores missing deathSaves object on a character read from Firebase', async () => {
+    const { healArrays } = await import('../src/data/persist.js');
+    const raw = { characters: [{ id: 'pc_finch', name: 'Finch' }] };
+    const healed = healArrays(raw);
+    expect(healed.characters[0].deathSaves).toEqual({ successes: 0, failures: 0 });
+  });
+
+  it('leaves a fully-populated character untouched', async () => {
+    const { healArrays } = await import('../src/data/persist.js');
+    const raw = {
+      characters: [
+        { id: 'pc_finch', name: 'Finch', conditions: [{ name: 'Poisoned' }], deathSaves: { successes: 1, failures: 2 } },
+      ],
+    };
+    const healed = healArrays(raw);
+    expect(healed.characters[0].conditions).toEqual([{ name: 'Poisoned' }]);
+    expect(healed.characters[0].deathSaves).toEqual({ successes: 1, failures: 2 });
+  });
+
+  it('heals top-level campaign arrays Firebase dropped (e.g. empty quests)', async () => {
+    const { healArrays } = await import('../src/data/persist.js');
+    const raw = { characters: [] };
+    const healed = healArrays(raw);
+    expect(Array.isArray(healed.quests)).toBe(true);
+    expect(Array.isArray(healed.npcs)).toBe(true);
+  });
+});

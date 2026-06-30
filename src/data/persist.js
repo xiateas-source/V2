@@ -17,7 +17,7 @@ const STALE_CONTRACTS = {
 
 // Firebase omits/nullifies empty arrays and can return non-array for array fields.
 // This heals any array-typed field back to an array after merge/restore.
-function healArrays(obj) {
+export function healArrays(obj) {
   const out = { ...obj };
   for (const [key, defVal] of Object.entries(DEFAULT_CAMPAIGN)) {
     if (Array.isArray(defVal) && !Array.isArray(out[key])) {
@@ -66,6 +66,7 @@ function snapshot() {
   return {
     campaign: plain(store.campaign),
     playerIdentity: plain(store.system.playerIdentity),
+    multiplay: plain(store.system.multiplay),
     theme: store.system.settings.theme,
     ts: Date.now(),
   };
@@ -207,6 +208,12 @@ export async function restoreSession() {
       }
     }
     if (snap.playerIdentity) setStore('system', 'playerIdentity', snap.playerIdentity);
+    // Only fall back to the locally-persisted role if restoreGuestSession() (which
+    // runs first, at boot, and checks Firebase) didn't already establish guest mode —
+    // that cloud pointer is more authoritative when both are available.
+    if (snap.multiplay?.role === 'guest' && snap.multiplay?.hostUid && store.system.multiplay?.role === 'solo') {
+      setStore('system', 'multiplay', snap.multiplay);
+    }
     if (snap.theme) {
       setStore('system', 'settings', 'theme', snap.theme);
       document.documentElement.setAttribute('data-theme', snap.theme);
