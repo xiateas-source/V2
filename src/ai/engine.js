@@ -29,6 +29,21 @@ export function stopGeneration() {
   setSending(false);
 }
 
+// A stream error (network drop, provider failure) thrown mid-response leaves the
+// in-progress DM message stuck at partial:true with whatever text arrived before
+// the throw — it never streams further and never gets finalized, so it renders as
+// a permanently cut-off message. Mark it final wherever an error catch block runs,
+// for both the narrative and OOC logs (mirrors the AbortError handling in sendMsg).
+function finalizeStuckPartial() {
+  for (const key of ['narrative', 'ooc']) {
+    const list = store.campaign[key];
+    const idx = list.length - 1;
+    if (list[idx]?.partial) {
+      setStore('campaign', key, idx, 'partial', false);
+    }
+  }
+}
+
 function currentActorName() {
   const cs = store.campaign.combatState;
   return cs.initiative[cs.currentTurn]?.name || 'the active character';
@@ -104,6 +119,7 @@ export async function resumeAfterRolls(rollResultLines, onChunk) {
 
     return await sendNarrative(combinedText, { contextInject, onChunk });
   } catch (e) {
+    finalizeStuckPartial();
     const errMsg = createNarrativeMsg('system', `Error: ${e.message}`);
     setStore('campaign', 'narrative', [...store.campaign.narrative, errMsg]);
     throw e;
@@ -154,6 +170,7 @@ export async function sendMsg(text, options = {}) {
       wasAborted = false;
       return;
     }
+    finalizeStuckPartial();
     const errMsg = createNarrativeMsg('system', `Error: ${e.message}`);
     setStore('campaign', 'narrative', [...store.campaign.narrative, errMsg]);
     throw e;

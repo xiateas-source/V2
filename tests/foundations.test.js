@@ -409,4 +409,49 @@ describe('healArrays (multiplayer join data healing)', () => {
     expect(Array.isArray(healed.quests)).toBe(true);
     expect(Array.isArray(healed.npcs)).toBe(true);
   });
+
+  // Regression: inventory and wagonState are objects, not arrays, at the top
+  // level — the old flat healArrays() loop only checked Array.isArray(defVal)
+  // on direct DEFAULT_CAMPAIGN keys, so it skipped these entirely. Firebase
+  // dropping inventory.wagon left genLedger()'s `c.inventory.wagon.length`
+  // crashing on every message send, including the host's own (S55 live bug).
+  it('heals nested inventory fields Firebase dropped (wagon, hoard, carried)', async () => {
+    const { healArrays } = await import('../src/data/persist.js');
+    const raw = { characters: [], inventory: {} };
+    const healed = healArrays(raw);
+    expect(Array.isArray(healed.inventory.wagon)).toBe(true);
+    expect(Array.isArray(healed.inventory.hoard)).toBe(true);
+    expect(healed.inventory.carried).toEqual({});
+  });
+
+  it('heals nested wagonState fields Firebase dropped (animals)', async () => {
+    const { healArrays } = await import('../src/data/persist.js');
+    const raw = { characters: [], wagonState: {} };
+    const healed = healArrays(raw);
+    expect(Array.isArray(healed.wagonState.animals)).toBe(true);
+    expect(healed.wagonState.maxWeight).toBe(0);
+  });
+
+  it('leaves populated inventory/wagonState untouched', async () => {
+    const { healArrays } = await import('../src/data/persist.js');
+    const raw = {
+      characters: [],
+      inventory: { carried: { pc_1: [{ name: 'Rope' }] }, wagon: [{ name: 'Chest' }], hoard: [] },
+      wagonState: { animals: [{ name: 'Mule' }], maxWeight: 200 },
+    };
+    const healed = healArrays(raw);
+    expect(healed.inventory.carried).toEqual({ pc_1: [{ name: 'Rope' }] });
+    expect(healed.inventory.wagon).toEqual([{ name: 'Chest' }]);
+    expect(healed.wagonState.animals).toEqual([{ name: 'Mule' }]);
+    expect(healed.wagonState.maxWeight).toBe(200);
+  });
+
+  it('heals nested combatState.actionsUsed keys individually instead of wholesale replace', async () => {
+    const { healArrays } = await import('../src/data/persist.js');
+    const raw = { characters: [], combatState: { active: true, actionsUsed: { action: true } } };
+    const healed = healArrays(raw);
+    expect(healed.combatState.actionsUsed.action).toBe(true);
+    expect(healed.combatState.actionsUsed.bonus).toBe(false);
+    expect(healed.combatState.active).toBe(true);
+  });
 });

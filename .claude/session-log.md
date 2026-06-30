@@ -16,15 +16,23 @@ Root-caused all four to the same family of bug — state-restore code paths that
 4. **Character creation cut off at the bottom** — `html`/`body`/`#app` used a fixed `height: 100%` (effectively `100vh`), which doesn't shrink when the on-screen keyboard opens on mobile, leaving content below the fold (e.g. CharCreate's "Talk to AI" submit button) unreachable. Switched to `100dvh` with `100%` as a fallback for unsupported browsers.
 5. **4 new unit tests** (49 total, up from 45) pin `healArrays()`'s contract directly: missing `conditions` array restored, missing `deathSaves` object restored, fully-populated characters left untouched, top-level campaign arrays (quests/npcs) healed — so `joinCampaign()` can't regress to skipping the heal step again.
 
+### Follow-up (same session): live test found the first fix incomplete
+
+The user immediately live-tested the fix above on two real devices and reported back: Finch's (the *host's*) game was now also crashing with the identical `Cannot read properties of undefined (reading 'length')` error, and "half the last messages from the DM have been cut off." Both needed real fixes, not just retesting:
+
+6. **Host-side crash, second instance of the same bug class** — `healArrays()` itself had a structural gap: its top-level healing loop only checked `Array.isArray(defVal)` on direct `DEFAULT_CAMPAIGN` keys, with one hand-coded special case for `combatState`. `inventory` (`{carried:{}, wagon:[], hoard:[]}`) and `wagonState` (`{animals:[], maxWeight:0}`) are *objects*, not arrays, at the top level — so the loop skipped them entirely, in all three call sites (`restoreSession()`, `mergeCampaign()`, `joinCampaign()`). `genLedger()` in `prompt.js` reads `c.inventory.wagon.length` unconditionally on every message from any player, host included. Once Finch's own Firebase record lost that field (via his own normal live-sync round-trip, independent of Melody's join bug), every message he sent crashed too — same error string, different field, same root cause. Fixed by replacing `healArrays()`'s flat/special-cased implementation with a recursive `healStructure(value, defaults)` helper that walks the *entire* `DEFAULT_CAMPAIGN`/`DEFAULT_CHARACTER` shape and heals any array/object field at any nesting depth, not just the ones someone remembered to hand-code. This also generalizes the old `combatState.actionsUsed` wholesale-replace into a more precise per-key heal.
+7. **"DM messages cut off"** — traced to a separate gap in `engine.js`: `sendNarrative()`/`sendOOC()` stream into a message created with `partial: true`, finalizing it (`partial: false`) only after the stream completes successfully. The `AbortError` catch branch in `sendMsg()` already cleared this flag on a user-initiated stop, but no other catch path did — so any *other* stream failure (network drop, provider error, or the crash above happening to interrupt an in-flight stream) left that placeholder permanently stuck at `partial: true` with only the text that had streamed in so far, rendering as a message cut off mid-sentence with no way to recover. Added a `finalizeStuckPartial()` helper, called from every non-abort catch block in `sendMsg()`/`resumeAfterRolls()`, covering both the narrative and OOC logs.
+8. **5 more unit tests** (53 total, up from 49): nested `inventory.wagon`/`hoard`/`carried` healed when missing, nested `wagonState.animals` healed when missing, populated `inventory`/`wagonState` left untouched, `combatState.actionsUsed` healed key-by-key instead of wholesale-replaced.
+
 ### Decisions
 
-See `decisions.md` → "Multiplayer Join Bug Fix (S55)".
+See `decisions.md` → "Multiplayer Join Bug Fix (S55)" and "Follow-up (S55, same session)".
 
 ### Verification
 
-- `npm test` — 49/49 passing.
+- `npm test` — 53/53 passing.
 - `npm run build` — succeeds, no new warnings beyond the pre-existing large-chunk warning.
-- No live two-device verification — the sandboxed environment can't reach Firebase (same gap noted in S53/S54 session logs), so the fix is confirmed by code-path tracing against the exact crash in the user's exported JSON plus unit tests, not a live repro. Recommend the user re-test the original join-a-friend's-game flow on two real devices before considering this fully closed.
+- No live two-device verification of *this* follow-up round yet — the sandboxed environment can't reach Firebase (same gap noted in S53/S54 session logs). The first S55 round was confirmed incomplete by exactly this kind of live test, so treat this round the same way: confident in the code-level root cause (traced directly to the exact error string and the exact line `prompt.js:83`), but not claiming full closure without another live two-device pass. If the user can check, a host party that currently has any wagon/cargo items would correlate with this root cause.
 
 ### Known Issues
 
@@ -34,7 +42,7 @@ See `decisions.md` → "Multiplayer Join Bug Fix (S55)".
 
 ### Next Up
 
-1. Live two-device re-test of the original bug report (join via link, send a message, confirm host sees guest) to confirm this session's fixes actually close it in practice, not just in code-path tracing.
+1. Live two-device re-test of both rounds of S55 fixes (join via link, send messages from both host and guest, confirm no crash and no cut-off DM text) — this is now the second round of "code-traced but not live-confirmed," so treat live verification as the priority before anything else.
 2. Consider writing the `players/{uid}/joined` pointer synchronously inside `joinCampaign()` instead of waiting for the 3s debounce, to close the remaining race noted above.
 3. Critical Hits / Action Economy / Cover / Short Rest / Concentration — remaining S52 punch list items.
 4. Carried-over priorities from S50/S51/S52/S53/S54 — still open, deadline July 11 (see Priorities in workboard.md).

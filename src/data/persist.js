@@ -15,36 +15,32 @@ const STALE_CONTRACTS = {
   never: 'Never auto-resolve a roll — when an action is uncertain, emit a roll_request and wait for the player\'s submitted result. Never resolve actions for a PC the player did not mention. Never kill a PC without death saves. Never reveal DM secrets or undiscovered content. Never change HP, gold, items, quests, NPCs, or location in prose without emitting the matching mechanic.',
 };
 
-// Firebase omits/nullifies empty arrays and can return non-array for array fields.
-// This heals any array-typed field back to an array after merge/restore.
+// Firebase RTDB omits/nullifies empty arrays and empty objects on write, and can
+// return a non-array/non-object for a field whose default is one. Recursively walk
+// a restored object against its known-good default shape and patch any field back
+// to an empty array/object (or its default) wherever Firebase dropped it — at any
+// nesting depth, not just the top level (e.g. inventory.wagon, wagonState.animals).
+function healStructure(value, defaults) {
+  const out = { ...(value && typeof value === 'object' ? value : {}) };
+  for (const [key, defVal] of Object.entries(defaults)) {
+    const current = out[key];
+    if (Array.isArray(defVal)) {
+      if (!Array.isArray(current)) out[key] = [];
+    } else if (defVal && typeof defVal === 'object') {
+      out[key] = healStructure(current, defVal);
+    } else if (current === undefined) {
+      out[key] = defVal;
+    }
+  }
+  return out;
+}
+
+// This heals any array/object-typed field (at any depth) back to its default shape
+// after merge/restore, and heals every character against DEFAULT_CHARACTER.
 export function healArrays(obj) {
-  const out = { ...obj };
-  for (const [key, defVal] of Object.entries(DEFAULT_CAMPAIGN)) {
-    if (Array.isArray(defVal) && !Array.isArray(out[key])) {
-      out[key] = [];
-    }
-  }
-  // Heal nested combatState fields (Firebase omits empty arrays inside objects too).
-  if (out.combatState && typeof out.combatState === 'object') {
-    if (!Array.isArray(out.combatState.initiative)) out.combatState.initiative = [];
-    if (!out.combatState.actionsUsed || typeof out.combatState.actionsUsed !== 'object') {
-      out.combatState.actionsUsed = DEFAULT_CAMPAIGN.combatState.actionsUsed;
-    }
-    if (!out.combatState.zones || typeof out.combatState.zones !== 'object') {
-      out.combatState.zones = {};
-    }
-  }
-  // Heal each character: ensure every DEFAULT_CHARACTER array/object field exists.
+  const out = healStructure(obj, DEFAULT_CAMPAIGN);
   if (Array.isArray(out.characters)) {
-    out.characters = out.characters.map(pc => {
-      const healed = { ...pc };
-      for (const [key, defVal] of Object.entries(DEFAULT_CHARACTER)) {
-        if (healed[key] === undefined || healed[key] === null) {
-          healed[key] = Array.isArray(defVal) ? [] : typeof defVal === 'object' && defVal !== null ? { ...defVal } : defVal;
-        }
-      }
-      return healed;
-    });
+    out.characters = out.characters.map(pc => healStructure(pc, DEFAULT_CHARACTER));
   }
   return out;
 }
