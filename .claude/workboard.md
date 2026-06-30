@@ -1,12 +1,14 @@
 # Workboard
 
-*What to build next. Updated Session 62 (end) · 2026-06-30.*
+*What to build next. Updated Session 63 (end) · 2026-06-30.*
 
 ---
 
 ## Current State
 
 The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → validate → apply) is tested. Persistence works. Combat has turn enforcement. Character creation works (3 paths + guided wizard, plus mid-campaign via Settings). Level-up wizard handles all 12 classes. Multiplayer (invite links, live Firebase sync, shared identity) shipped S50, **live two-device retested and confirmed working S57**, plus a manual presence toggle shipped S58, three sync-bug fixes shipped S60, a root-caused live join-failure fix shipped S61 — **S60/S61 merged to main and confirmed live in production S62** — and a Play-screen presence indicator shipped S62. Three-phase skill-check resolution (classify → roll bar → narrate) shipped S48, live-verified S49. 60 unit tests passing.
+
+**Latest (S63)** — Three player-reported issues fixed plus combat side drawers shipped. (1) Pack contents (Burglar's Pack etc.) were invisible — `CharCreate.jsx` now preserves `note` field on items, `Cargo.jsx` shows it expandably on tap. (2) Bag of Holding now actually reduces carry weight — per-item `inContainer` toggle, weight excluded from total, name-based regex for AI-typed containers. (3) Side drawers: a left handle (shield icon) slides out character vitals + attacks, a right handle (sparkle icon) slides out spells/resources — always reachable even during combat. HP adjust, slot expend, and resource use all route through the mechanics pipeline. All changes committed, pushed to `claude/latest-test-analysis-v64a6i`. Build clean.
 
 **Latest (S62)** — Two bugs surfaced in real play, both fixed and pushed. (1) "Campaign not found" returned again after S61 — fixed with an auth guard (`getUid()` null → clearer error) and a 3s auto-retry in `joinCampaign()`, plus an offline-toast on `shareInvite()`'s `forceSyncNow()`. (2) Guest character Nyx disappeared on iOS tab-kill — fixed with `mergeCharacters()` union-merge by id in `persist.js`'s `mergeCampaign()` (local-only chars preserved; cloud wins per-id for HP/stats) and immediate `forceSyncNow()` after all `CharCreate.jsx` commit/remove paths to bypass the 3s debounce. Also shipped: Play-screen presence indicator in `ContextBanner` — compact circle badge in the icon row, counts other active players, taps to Settings roster. All changes committed + pushed (`75c693f`). 60/60 tests passing, build clean. Not yet deployed to main or live-verified — needs user sign-off to deploy, then a two-device session to verify badge + join retry + character survival on tab-kill.
 

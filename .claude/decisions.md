@@ -45,6 +45,7 @@
 | No visible OOC echo | Recent Ask DM exchanges silently injected into buildPrompt |
 | Overlays vs persisted messages | Roll requests, scene holds, combat prompts = ephemeral. Gate flags, XP audits = persisted. |
 | Stop generation button | Cancel streaming, keep text, discard partial mechanics |
+| Side drawers (S63): combat companion, not CharSheet duplication | Left drawer = vitals + attacks. Right drawer = spells + resources. Full CharSheet still reachable via link at bottom. Drawers intentionally omit ability scores, skills, bio, equipment, XP — those live in CharSheet. HP/slots/resources still go through the mechanics pipeline. Handles are fixed-position on screen edges so they're always reachable even when combat overlay covers CharTiles. |
 | CharSheet tab "Vitals" not "Combat" | Avoids confusion with the combat overlay |
 | "What changed" tab badges | Pulsing gold dot on tabs where AI mechanics changed fields |
 | Swipe between PCs in character sheet | Dot indicators show position |
