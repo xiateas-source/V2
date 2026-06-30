@@ -28,9 +28,19 @@ Left tracked, not implemented (feature-sized or needs further confirmation): Act
 
 Also compressed workboard.md's "Current State" section from ~10 paragraph-long per-session writeups (S48-S56) down to a short summary + this session's highlights, and trimmed/reworded the Known Issues list to drop the 3 now-fixed items and consolidate the "verified via tests only, not live" caveat into one line covering all unverified rounds (S55 onward).
 
+### Invite-link "Campaign not found" bug (same session, continued)
+
+User uploaded a fresh test campaign export ("Vesper's Adventure") and reported: invited a second player, guest got "Campaign not found." Traced `joinCampaign()` → `dbRead()` → `scheduleSync()`/`startLiveSync()`/`flushPending()` end to end; user checked the Firebase Console RTDB Rules tab directly and confirmed the deployed rules match `database.rules.json` exactly (`auth != null` on `campaigns`/`players`) — ruled out rules drift, which had been the leading suspect given workboard Priority #7 already flagged rules as manually-managed/never-auto-deployed.
+
+With rules ruled out, found and fixed two real silent-failure gaps in `shareInvite()` (`Settings.jsx`):
+1. It used to `return` with zero feedback if `buildShareId()` came back null (no uid yet, e.g. anonymous auth still racing its 5s timeout) — the host could tap "Invite Players" and get nothing, no error, easy to miss and then send a stale link from earlier testing instead. Now shows an `alert()`.
+2. It built the link from whatever the last 3s-debounced background sync happened to push, with no guarantee the host's current state had reached Firebase yet. Now calls `forceSyncNow()` immediately before building the link.
+
+Root cause not reproducible in this sandboxed environment (no live Firebase/two-device access) — both fixes close verified gaps that match the reported symptom, but need a live two-device retest to confirm full resolution.
+
 ### Decisions
 
-See `decisions.md` → "Restore-time partial-message healing (post-S55, found via test transcript analysis)" and "Known Issues triage (S56, same session as restore-time healing)".
+See `decisions.md` → "Restore-time partial-message healing (post-S55, found via test transcript analysis)", "Known Issues triage (S56, same session as restore-time healing)", and "Invite-link 'Campaign not found' investigation (post-S56)".
 
 ### Verification
 
@@ -46,7 +56,7 @@ See `decisions.md` → "Restore-time partial-message healing (post-S55, found vi
 
 ### Next Up
 
-1. Live-test this session's fixes on a real device/two devices: reload/background mid-stream (partial-message healing), join via invite link and reload within 3s (join-pointer fix), take damage with temp HP/concentration active via CharSheet's manual HP buttons (mechanics-pipeline routing), and a hit that would exceed DC 30 on a concentration save.
+1. Live-test this session's fixes on a real device/two devices: reload/background mid-stream (partial-message healing), join via invite link and reload within 3s (join-pointer fix), take damage with temp HP/concentration active via CharSheet's manual HP buttons (mechanics-pipeline routing), a hit that would exceed DC 30 on a concentration save, and a fresh invite-link share/join end to end (silent-failure + force-sync fixes).
 2. If the user confirms, build the Gate 8/XP player-facing prompt — the missing half of `enforcement-spec.md`'s "Gate 7: XP Audit" design.
 3. Carried-over priorities from S50-S56 — still open, deadline July 11 (see Priorities in workboard.md).
 
