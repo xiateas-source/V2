@@ -18,21 +18,25 @@ let db = null;
 let uid = null;
 let connected = false;
 
-const dirtyPaths = new Map();
-const DIRTY_WINDOW_MS = 3000;
+// Tracks the last value this device wrote to each path, so dbListen can ignore
+// the echo of its own write without also dropping a *different* device's write
+// that happens to land in the same window. A blind time-based suppression window
+// (the previous approach) silently swallowed real remote updates whenever this
+// device's own debounced sync fired within ~3s of another device's write to the
+// same path — e.g. a routine auto-sync racing a guest's presence toggle — leaving
+// the listener showing stale data until some unrelated change fired onValue again.
+const lastWritten = new Map();
 
-function markDirty(path) {
-  dirtyPaths.set(path, Date.now());
+function markWritten(path, value) {
+  lastWritten.set(path, JSON.stringify(value));
 }
 
-function isDirty(path) {
-  const ts = dirtyPaths.get(path);
-  if (!ts) return false;
-  if (Date.now() - ts > DIRTY_WINDOW_MS) {
-    dirtyPaths.delete(path);
-    return false;
-  }
-  return true;
+function isEcho(path, incoming) {
+  const expected = lastWritten.get(path);
+  if (expected === undefined) return false;
+  const matches = JSON.stringify(incoming) === expected;
+  if (matches) lastWritten.delete(path);
+  return matches;
 }
 
 export function isConnected() {
@@ -86,7 +90,7 @@ export async function dbRead(path) {
 }
 
 export async function dbWrite(path, value) {
-  markDirty(path);
+  markWritten(path, value);
   try {
     await set(ref(db, path), value);
     localStorage.setItem(`fb_cache:${path}`, JSON.stringify(value));
@@ -97,9 +101,8 @@ export async function dbWrite(path, value) {
 }
 
 export async function dbUpdate(path, updates) {
-  markDirty(path);
-  for (const key of Object.keys(updates)) {
-    markDirty(`${path}/${key}`);
+  for (const [key, value] of Object.entries(updates)) {
+    markWritten(`${path}/${key}`, value);
   }
   try {
     await update(ref(db, path), updates);
@@ -115,8 +118,9 @@ export async function dbUpdate(path, updates) {
 export function dbListen(path, callback) {
   const r = ref(db, path);
   onValue(r, (snap) => {
-    if (isDirty(path)) return;
-    callback(snap.exists() ? snap.val() : null);
+    const value = snap.exists() ? snap.val() : null;
+    if (isEcho(path, value)) return;
+    callback(value);
   });
   return () => off(r);
 }
