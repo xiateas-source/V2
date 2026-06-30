@@ -22,6 +22,13 @@ export default function Cargo() {
   const [typeFilter, setTypeFilter] = createSignal('all');
   const [q, setQ] = createSignal('');
   const [adding, setAdding] = createSignal(false);
+  const [openItem, setOpenItem] = createSignal(null);
+
+  function itemKey(i) { return `${i.name}::${i._owner}`; }
+  function toggleNote(i) {
+    const k = itemKey(i);
+    setOpenItem(prev => prev === k ? null : k);
+  }
 
   const gold = () => store.campaign.gold;
   const characters = () => store.campaign.characters;
@@ -182,18 +189,33 @@ export default function Cargo() {
                 <section class="cargo-group">
                   <div class="cargo-group-label">{typeLabel(type)}</div>
                   <For each={items}>
-                    {(i) => (
-                      <div class="cargo-item">
-                        <span class="cargo-item-name">{i.name}</span>
-                        <Show when={owner() === 'all' && i._ownerLabel}>
-                          <span class="cargo-item-owner">{i._ownerLabel}</span>
-                        </Show>
-                        <span class="cargo-item-meta">
-                          {i.qty > 1 ? <span class="cargo-qty">×{i.qty}</span> : ''}
-                          {itemWeight(i) ? <span class="cargo-wt">{itemWeight(i)}lb</span> : ''}
-                        </span>
-                      </div>
-                    )}
+                    {(i) => {
+                      const key = itemKey(i);
+                      const isOpen = () => openItem() === key;
+                      const hasNote = !!i.note;
+                      return (
+                        <div
+                          class="cargo-item"
+                          classList={{ 'has-note': hasNote }}
+                          onClick={() => hasNote && toggleNote(i)}
+                        >
+                          <span class="cargo-item-name">{i.name}</span>
+                          <Show when={owner() === 'all' && i._ownerLabel}>
+                            <span class="cargo-item-owner">{i._ownerLabel}</span>
+                          </Show>
+                          <span class="cargo-item-meta">
+                            {i.qty > 1 ? <span class="cargo-qty">×{i.qty}</span> : ''}
+                            {itemWeight(i) ? <span class="cargo-wt">{itemWeight(i)}lb</span> : ''}
+                            <Show when={hasNote}>
+                              <i class={`ph ${isOpen() ? 'ph-caret-up' : 'ph-caret-down'} cargo-note-caret`} />
+                            </Show>
+                          </span>
+                          <Show when={isOpen()}>
+                            <div class="cargo-item-note">{i.note}</div>
+                          </Show>
+                        </div>
+                      );
+                    }}
                   </For>
                 </section>
               )}

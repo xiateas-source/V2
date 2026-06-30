@@ -100,7 +100,7 @@ export default function CharCreate(props) {
         : getDefaultEquipment(char.class);
       if (items.length > 0) {
         const carried = { ...store.campaign.inventory.carried };
-        carried[char.id] = items.map(i => ({ name: i.name, qty: i.qty, type: i.type, attunement: 'none', weight: i.weight || 0 }));
+        carried[char.id] = items.map(i => ({ name: i.name, qty: i.qty, type: i.type, attunement: 'none', weight: i.weight || 0, ...(i.note ? { note: i.note } : {}) }));
         setStore('campaign', 'inventory', 'carried', carried);
       }
       const gold = getStartingGold(char.level || 1);
@@ -128,7 +128,7 @@ export default function CharCreate(props) {
     } else {
       if (items.length > 0) {
         const carried = { ...store.campaign.inventory.carried };
-        carried[char.id] = items.map(i => ({ name: i.name, qty: i.qty, type: i.type, attunement: 'none', weight: i.weight || 0 }));
+        carried[char.id] = items.map(i => ({ name: i.name, qty: i.qty, type: i.type, attunement: 'none', weight: i.weight || 0, ...(i.note ? { note: i.note } : {}) }));
         setStore('campaign', 'inventory', 'carried', carried);
       }
       if (idx === 0) setStore('campaign', 'gold', 'gp', goldGP);
@@ -148,7 +148,7 @@ export default function CharCreate(props) {
     const items = getDefaultEquipment(char.class);
     if (items.length > 0) {
       const carried = { ...store.campaign.inventory.carried };
-      carried[char.id] = items.map(i => ({ name: i.name, qty: i.qty, type: i.type, attunement: 'none', weight: i.weight || 0 }));
+      carried[char.id] = items.map(i => ({ name: i.name, qty: i.qty, type: i.type, attunement: 'none', weight: i.weight || 0, ...(i.note ? { note: i.note } : {}) }));
       setStore('campaign', 'inventory', 'carried', carried);
     }
     const gold = getStartingGold(char.level || 1);

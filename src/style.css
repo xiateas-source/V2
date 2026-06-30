@@ -7450,16 +7450,23 @@ body {
   color: var(--color-accent-dim); margin-bottom: 6px;
 }
 .cargo-item {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   padding: 8px 11px; margin-bottom: 5px;
   background: var(--color-surface); border: 1px solid var(--line-soft);
   border-radius: 9px;
 }
+.cargo-item.has-note { cursor: pointer; }
 .cargo-item-name { font-family: var(--serif); font-size: 13.5px; color: var(--color-text); flex: 1; min-width: 0; }
 .cargo-item-owner { font-size: 9.5px; color: var(--faint); padding: 2px 7px; border: 1px solid var(--line-soft); border-radius: 10px; white-space: nowrap; }
 .cargo-item-meta { display: flex; align-items: center; gap: 7px; font-variant-numeric: tabular-nums; }
 .cargo-qty { font-size: 11px; color: var(--color-text-muted); }
 .cargo-wt { font-size: 10px; color: var(--faint); }
+.cargo-note-caret { font-size: 10px; color: var(--faint); }
+.cargo-item-note {
+  width: 100%; font-size: 11.5px; color: var(--color-text-muted);
+  padding-top: 6px; border-top: 1px solid var(--line-soft);
+  line-height: 1.5; margin-top: 2px;
+}
 
 /* add form */
 .cargo-addform { margin: 0 16px 12px; padding: 11px; background: var(--color-surface); border: 1px solid var(--line); border-radius: var(--r); }
