@@ -222,13 +222,16 @@ export default function CharSheet(props) {
     else setActivePC((activePC() + 1) % total);
   }
 
-  // HP adjustment
+  // HP adjustment — routed through the hp mechanic so manual edits get the
+  // same temp-HP absorption, concentration-save trigger, and death/massive-
+  // damage enforcement as AI-driven damage (mechanics.js applyDamage).
   function adjustHP(delta) {
     const idx = activePC();
     const p = store.campaign.characters[idx];
     if (!p) return;
     const newHP = Math.max(0, Math.min(p.hp + delta, p.hpMax));
-    setStore('campaign', 'characters', idx, 'hp', newHP);
+    const { valid } = validateMechanics([{ key: 'hp', value: `${p.name}=${newHP}`, target: '', applied: false }]);
+    applyMechanics(valid);
   }
 
   function promptCustomHP() {
@@ -277,7 +280,11 @@ export default function CharSheet(props) {
       switch (field()) {
         case 'hp': {
           const n = parseInt(v, 10);
-          if (!isNaN(n)) setStore('campaign', 'characters', idx, 'hp', Math.max(0, Math.min(n, p.hpMax)));
+          if (!isNaN(n)) {
+            const target = Math.max(0, Math.min(n, p.hpMax));
+            const { valid } = validateMechanics([{ key: 'hp', value: `${p.name}=${target}`, target: '', applied: false }]);
+            applyMechanics(valid);
+          }
           break;
         }
         case 'tempHp': {

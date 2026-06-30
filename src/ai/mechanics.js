@@ -305,7 +305,7 @@ function applyDamage(idx, rawDamage) {
     const newHp = Math.max(0, pc.hp - remainingDamage);
     aiSet(`characters.${idx}.hp`, newHp);
     if (remainingDamage > 0 && pc.concentration) {
-      const dc = Math.max(10, Math.floor(rawDamage / 2));
+      const dc = Math.min(30, Math.max(10, Math.floor(rawDamage / 2)));
       pendingConcentrationSaves.push({ pc: pc.name, spell: pc.concentration.spell, dc });
     }
     actualDamage = remainingDamage;
@@ -313,7 +313,7 @@ function applyDamage(idx, rawDamage) {
     const clamped = Math.max(0, Math.min(pc.hp - rawDamage, pc.hpMax));
     aiSet(`characters.${idx}.hp`, clamped);
     if (rawDamage > 0 && pc.concentration) {
-      const dc = Math.max(10, Math.floor(rawDamage / 2));
+      const dc = Math.min(30, Math.max(10, Math.floor(rawDamage / 2)));
       pendingConcentrationSaves.push({ pc: pc.name, spell: pc.concentration.spell, dc });
     }
   }
