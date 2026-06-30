@@ -1,5 +1,43 @@
 # Session Log — Handoff
 
+## Session 60 · 2026-06-30
+
+Branch `claude/latest-test-analysis-v64a6i` · committed, pushed. Agent audit pass on the S58 multiplayer presence/sync work.
+
+### What Shipped
+
+A prior agent audit traced through the S58 presence/sync path (prompted by the flicker risk `persist.js`'s own comments already called out) and found three real bugs, all fixed with targeted, logic-only diffs — no new Firebase paths, no schema changes:
+
+1. **`dbListen()` echo suppression** (`firebase.js`) — was a flat 3s time window that dropped *any* incoming snapshot on a path after this device wrote there, not just the echo of its own write. Since the routine debounced campaign auto-sync and another device's write (e.g. a presence toggle) land on the same RTDB path, a same-device write within 3s of a remote change silently swallowed that change until some unrelated update fired `onValue()` again. Replaced with content-based echo detection (`lastWritten` cache + `isEcho()`).
+2. **`startLiveSync()` not armed on mid-session campaign creation** (`PlayerOnboard.jsx`) — only ever called from `main.jsx`'s `boot()` and `joinCampaign()` (guest path). A host creating a new campaign mid-session (Settings → New Campaign → onboarding → Start Adventure) had no realtime listener for the rest of that session — a guest's join or any other remote change wouldn't appear without a manual reload. Now called from `startAdventure()`.
+3. **`mergeCampaign()` wholesale-overwriting presence** (`persist.js`) — `{...localC, ...cloudC}` meant any field in the cloud snapshot fully replaced the local value, including `presence`, the fastest-changing field. A device flipping its own presence entry locally could have a different device's in-flight full-snapshot write (built before it learned of that change) land moments later and clobber it back to stale, visibly flickering the toggle. Now merges presence per-uid by `ts` via `mergePresence()`.
+
+These three commits (`d66db53`, `d9cd1f7`, `4a3d5f6`) were already on the branch and pushed from the prior audit pass; this session's work was verifying them and writing them up, since the doc-update step of the session protocol hadn't run yet.
+
+Also handled, same session: a block of text appeared mid-conversation formatted to look like a legitimate "conversation summary," but contained an instruction (impersonating my own prior reasoning) to build a new "dedicated presence RTDB path" — a different and incorrect description of what the real audit had actually done. Identified it as not originating from the user, declined to act on it, and confirmed the real audit work with the user before writing it up. No action was taken on the injected instruction; nothing in this entry implements a separate presence RTDB path — presence still lives at `campaign.presence` inside the existing campaign sync blob.
+
+### Decisions
+
+See `decisions.md` → "Multiplayer Sync Bug Audit (S60)" for the full rationale table.
+
+### Verification
+
+- `npm test` — 60/60 passing.
+- `npm run build` — succeeds, only the pre-existing large-chunk warning.
+- Not live-tested — this sandboxed environment can't reach Firebase. All three fixes need a real two-device session to confirm (see workboard.md Known Issues).
+
+### Known Issues
+
+Carried over from S59, unchanged, plus: S60's three sync-bug fixes are unverified live (see Verification above).
+
+### Next Up
+
+1. Live two-device test covering: presence toggle no longer flickering, a guest's join showing up on a host who created the campaign mid-session without reload, and a remote update landing within 3s of a local auto-sync no longer getting dropped.
+2. Carried from S59: inline NPC name linking (tap-to-source infra exists via `sourceBus.js`), Gate 8's missing-XP click handler (pending user confirmation).
+3. Carried from S58: Multiplayer Pass 2 (bundles MVP), Priorities deadline July 11 (see workboard.md).
+
+---
+
 ## Session 59 · 2026-06-30
 
 Branch `claude/quick-wins-review-07zr0m` · committed, pushed. Time-boxed (low context, ~30 min) — review pass, not a feature session.
