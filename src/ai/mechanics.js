@@ -295,6 +295,8 @@ function damageMultiplier(pc, type) {
 
 function applyDamage(idx, rawDamage) {
   const pc = store.campaign.characters[idx];
+  const preHp = pc.hp;
+  let actualDamage = rawDamage;
 
   if (rawDamage > 0 && pc.hpTemp > 0) {
     const tempAbsorb = Math.min(pc.hpTemp, rawDamage);
@@ -306,6 +308,7 @@ function applyDamage(idx, rawDamage) {
       const dc = Math.max(10, Math.floor(rawDamage / 2));
       pendingConcentrationSaves.push({ pc: pc.name, spell: pc.concentration.spell, dc });
     }
+    actualDamage = remainingDamage;
   } else {
     const clamped = Math.max(0, Math.min(pc.hp - rawDamage, pc.hpMax));
     aiSet(`characters.${idx}.hp`, clamped);
@@ -324,6 +327,47 @@ function applyDamage(idx, rawDamage) {
       aiSet(`combatState.initiative.${initIdx}.hp`, finalHp);
     }
   }
+
+  if (rawDamage > 0 && actualDamage > 0) {
+    handleDeathFromDamage(idx, preHp, actualDamage);
+  }
+}
+
+// SRD 2024 death rules the AI was only narrating, never enforced:
+// - damage that drops a PC from >0 to 0 with leftover >= their hp max is
+//   instant death (massive damage)
+// - damage taken while already at 0 hp is one automatic failed death save,
+//   and counts as massive damage on its own if it alone is >= hp max
+function handleDeathFromDamage(idx, preHp, actualDamage) {
+  const pc = store.campaign.characters[idx];
+  if ((pc.conditions || []).some(c => (c.name || c).toLowerCase() === 'dead')) return;
+  const hpMax = pc.hpMax;
+  if (!hpMax) return;
+
+  if (preHp > 0) {
+    const overflow = actualDamage - preHp;
+    if (overflow >= hpMax) killPC(idx);
+    return;
+  }
+
+  if (actualDamage >= hpMax) {
+    killPC(idx);
+    return;
+  }
+
+  const saves = { ...store.campaign.characters[idx].deathSaves };
+  saves.failures = Math.min(3, (saves.failures || 0) + 1);
+  aiSet(`characters.${idx}.deathSaves`, saves);
+  if (saves.failures >= 3) killPC(idx);
+}
+
+function killPC(idx) {
+  aiSet(`characters.${idx}.deathSaves`, { successes: 0, failures: 0 });
+  const conditions = [...store.campaign.characters[idx].conditions];
+  if (!conditions.some(c => (c.name || c).toLowerCase() === 'dead')) {
+    conditions.push({ name: 'Dead', duration: null });
+  }
+  aiSet(`characters.${idx}.conditions`, conditions);
 }
 
 const DISPATCH = {
@@ -874,9 +918,7 @@ const DISPATCH = {
       aiSet(`characters.${idx}.deathSaves`, { successes: 0, failures: 0 });
     }
     if (saves.failures >= 3) {
-      aiSet(`characters.${idx}.deathSaves`, { successes: 0, failures: 0 });
-      const conditions = [...store.campaign.characters[idx].conditions, { name: 'Dead', duration: null }];
-      aiSet(`characters.${idx}.conditions`, conditions);
+      killPC(idx);
     }
   },
 

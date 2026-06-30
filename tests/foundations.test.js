@@ -215,6 +215,46 @@ describe('Mechanics Pipeline', () => {
     expect(store.campaign.characters[0].hpTemp).toBe(0);
     expect(store.campaign.characters[0].hp).toBe(28);
   });
+
+  it('damage dropping a PC to exactly 0 does not trigger death saves yet', () => {
+    applyMechanics([{ key: 'damage', value: 'Ivy,31,bludgeoning', target: '', applied: false }]);
+    expect(store.campaign.characters[0].hp).toBe(0);
+    expect(store.campaign.characters[0].deathSaves.failures).toBe(0);
+    expect(store.campaign.characters[0].conditions.some(c => c.name === 'Dead')).toBe(false);
+  });
+
+  it('damage taken while already at 0 hp is an automatic failed death save', () => {
+    setStore('campaign', 'characters', 0, 'hp', 0);
+    applyMechanics([{ key: 'damage', value: 'Ivy,3,bludgeoning', target: '', applied: false }]);
+    expect(store.campaign.characters[0].deathSaves.failures).toBe(1);
+    expect(store.campaign.characters[0].conditions.some(c => c.name === 'Dead')).toBe(false);
+  });
+
+  it('a third automatic failed death save kills the PC', () => {
+    setStore('campaign', 'characters', 0, 'hp', 0);
+    setStore('campaign', 'characters', 0, 'deathSaves', { successes: 0, failures: 2 });
+    applyMechanics([{ key: 'damage', value: 'Ivy,3,bludgeoning', target: '', applied: false }]);
+    expect(store.campaign.characters[0].conditions.some(c => c.name === 'Dead')).toBe(true);
+  });
+
+  it('massive damage (overflow >= hp max) on the downing hit is instant death', () => {
+    applyMechanics([{ key: 'damage', value: 'Ivy,62,bludgeoning', target: '', applied: false }]);
+    expect(store.campaign.characters[0].hp).toBe(0);
+    expect(store.campaign.characters[0].conditions.some(c => c.name === 'Dead')).toBe(true);
+  });
+
+  it('massive damage while already at 0 hp is instant death', () => {
+    setStore('campaign', 'characters', 0, 'hp', 0);
+    applyMechanics([{ key: 'damage', value: 'Ivy,31,bludgeoning', target: '', applied: false }]);
+    expect(store.campaign.characters[0].conditions.some(c => c.name === 'Dead')).toBe(true);
+  });
+
+  it('healing via hp mechanic does not trigger death-save logic', () => {
+    setStore('campaign', 'characters', 0, 'hp', 0);
+    applyMechanics([{ key: 'hp', value: 'Ivy=10', target: '', applied: false }]);
+    expect(store.campaign.characters[0].hp).toBe(10);
+    expect(store.campaign.characters[0].deathSaves.failures).toBe(0);
+  });
 });
 
 describe('Gate Firing', () => {

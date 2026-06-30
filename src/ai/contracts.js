@@ -116,6 +116,7 @@ CRITICAL RULES:
 - Income category: reward/found/loot/quest/trade.
 - item_add target: wagon/cargo/hoard/party/PCname.
 - HP is clamped to 0–hp_max. 0 HP triggers death saves.
+- DEATH RULES (the app enforces these — narrate to match, don't fight it): if a PC already at 0 HP takes any damage, the app auto-applies one failed death save — do NOT also emit a death_save mechanic for that hit. If a single hit's damage (after a PC reaches 0, or while already at 0) is >= their HP max, that's instant death by massive damage and the app marks them Dead automatically — narrate the kill, don't ask for a death save.
 `.trim();
 
 export function buildContracts() {
