@@ -157,8 +157,20 @@ export async function joinCampaign(shareIdRaw) {
   const parsed = parseShareId(shareIdRaw);
   if (!parsed) throw new Error('Invalid invite code — check and try again.');
 
+  // Firebase reads require auth. If anonymous sign-in is still in flight (e.g.
+  // slow first-load on a weak connection), the read will fail with PERMISSION_DENIED
+  // and fall back to an empty cache, triggering a false "not found."
+  if (!getUid()) throw new Error('Still connecting to the server — please wait a moment and try again.');
+
   const { hostUid, campaignId } = parsed;
-  const data = await dbRead(`campaigns/${hostUid}/${campaignId}`);
+
+  // The host's forceSyncNow() write may still be propagating when a guest joins
+  // right after receiving the invite. Retry once with a short delay before giving up.
+  let data = await dbRead(`campaigns/${hostUid}/${campaignId}`);
+  if (!data) {
+    await new Promise(r => setTimeout(r, 3000));
+    data = await dbRead(`campaigns/${hostUid}/${campaignId}`);
+  }
   if (!data) throw new Error('Campaign not found. Make sure the host is online and the code is correct.');
 
   setStore('campaign', healArrays({ ...DEFAULT_CAMPAIGN, ...data, id: campaignId }));
