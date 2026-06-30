@@ -262,7 +262,9 @@ function mergeCharacters(local = [], cloud = []) {
   for (const c of cloud) { if (c?.id) byId.set(c.id, c); }
   const withId = Array.from(byId.values());
   const noId = (cloud.length ? cloud : local).filter(c => !c?.id);
-  return [...withId, ...noId];
+  // Heal each character: Firebase omits empty arrays on write, so fields like
+  // conditions/resistances/resources may come back undefined from the cloud copy.
+  return [...withId, ...noId].map(c => healStructure(c, DEFAULT_CHARACTER));
 }
 
 // presence is the fastest-changing, most racy field in the campaign payload —
