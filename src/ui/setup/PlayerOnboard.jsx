@@ -1,4 +1,4 @@
-import { createSignal, Show } from 'solid-js';
+import { createSignal, Show, onMount } from 'solid-js';
 import { store, setStore } from '../../state/index.js';
 import KeyGate from './KeyGate.jsx';
 import CharCreate from './CharCreate.jsx';
@@ -15,12 +15,16 @@ export default function PlayerOnboard() {
 
   // Check for an invite link in the URL (e.g. ?join=uid~campaignId)
   const urlCode = new URLSearchParams(window.location.search).get('join');
-  if (urlCode && !joiningMode()) {
+  if (urlCode) {
     setJoiningMode(true);
     setJoinCode(urlCode);
     // Clean the URL so a reload doesn't re-trigger
     window.history.replaceState({}, '', window.location.pathname);
   }
+
+  // Auto-join when launched from an invite link — Firebase auth is already
+  // ready by the time PlayerOnboard mounts (boot() awaits initData() first).
+  onMount(() => { if (urlCode) handleJoin(); });
 
   const hasKey = () => !!store.system.providers.geminiKey || !!store.system.providers.openrouterKey;
   const hasChar = () => store.campaign.characters.length > 0;
