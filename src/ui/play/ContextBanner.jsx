@@ -51,14 +51,14 @@ export default function ContextBanner() {
           </div>
           <Show when={!inCombat()}>
             <div class="head-right">
-              <Show when={isMulti()}>
+              <Show when={othersHere().length > 0}>
                 <button
-                  class={`btn-icon ${othersHere().length > 0 ? 'active' : ''}`}
+                  class="btn-icon active"
                   onClick={() => navigateTo('manage')}
-                  title={othersHere().length > 0 ? othersHere().map(([, p]) => p.name || 'Player').join(', ') + ' here' : 'No one else here'}
+                  title={othersHere().map(([, p]) => p.name || 'Player').join(', ') + ' here'}
                 >
                   <i class="ph ph-circle" />
-                  <Show when={othersHere().length > 0}><span class="presence-badge">{othersHere().length}</span></Show>
+                  <span class="presence-badge">{othersHere().length}</span>
                 </button>
               </Show>
               <button
