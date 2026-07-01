@@ -315,11 +315,19 @@ function Objectives() {
   const done = () => byStatus('done');
   const failed = () => byStatus('failed');
   const [showDone, setShowDone] = createSignal(false);
+  const [q, setQ] = createSignal('');
+  const filtered = () => {
+    const term = q().trim().toLowerCase();
+    return term ? active().filter(quest => quest.text.toLowerCase().includes(term)) : active();
+  };
 
   return (
     <div class="quest-list">
-      <Show when={active().length > 0} fallback={<p class="empty-state">No open objectives.</p>}>
-        <For each={active()}>{(q) => <QuestCard q={q} />}</For>
+      <Show when={active().length > 8}>
+        <input class="journal-search" placeholder="Search quests…" value={q()} onInput={e => setQ(e.target.value)} />
+      </Show>
+      <Show when={filtered().length > 0} fallback={<p class="empty-state">{active().length === 0 ? 'No open objectives.' : 'No quests match.'}</p>}>
+        <For each={filtered()}>{(q) => <QuestCard q={q} />}</For>
       </Show>
       <Show when={done().length + failed().length > 0}>
         <button class="quest-done-toggle" onClick={() => setShowDone(!showDone())}>
@@ -336,11 +344,21 @@ function Objectives() {
 function QuestCard(props) {
   const q = () => props.q;
   const statusClass = () => `qstatus-${q().status}`;
+
+  function markDone() {
+    const idx = store.campaign.quests.indexOf(q());
+    if (idx === -1) return;
+    setStore('campaign', 'quests', idx, 'status', 'done');
+  }
+
   return (
     <div class={`quest-card ${statusClass()}`}>
       <div class="quest-row">
         <span class={`status-dot ${statusClass()}`} />
         <span class={`quest-text ${q().status !== 'active' ? 'quest-struck' : ''}`}>{q().text}</span>
+        <Show when={q().status === 'active'}>
+          <button class="quest-done-btn" onClick={e => { e.stopPropagation(); markDone(); }} title="Mark as done">✓</button>
+        </Show>
       </div>
       <div class="quest-meta">
         <Show when={q().location}><span class="chip chip-loc"><i class="ph ph-map-pin" />{q().location}</span></Show>

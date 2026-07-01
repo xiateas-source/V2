@@ -3333,6 +3333,10 @@ body {
 .drawer-stat-val { font-size: 18px; font-weight: 700; color: var(--color-text); line-height: 1.1; }
 .drawer-stat-sub { font-size: 11px; color: var(--faint); }
 .drawer-stat-label { font-size: 10px; color: var(--faint); margin-top: 2px; }
+.drawer-stat-btn { cursor: pointer; border: 1px solid var(--line-soft); border-radius: 10px; background: var(--color-surface); padding: 8px 4px; text-align: center; transition: background 0.1s; }
+.drawer-stat-btn:active { background: color-mix(in srgb, var(--color-accent) 15%, var(--color-surface)); }
+.drawer-stat-btn.depleted { opacity: 0.45; cursor: default; }
+.drawer-stat-cover { font-size: 10px; color: var(--color-success); font-weight: 600; }
 
 /* Section label */
 .drawer-section-label {
@@ -3439,6 +3443,16 @@ body {
   margin-top: auto;
 }
 .drawer-full-link:active { background: var(--line-soft); }
+.drawer-familiar { display: flex; align-items: center; gap: 10px; background: var(--color-surface); border: 1px solid var(--line-soft); border-radius: 10px; padding: 8px 10px; margin-bottom: 4px; }
+.drawer-fam-icon { font-size: 22px; flex-shrink: 0; }
+.drawer-fam-info { flex: 1; min-width: 0; }
+.drawer-fam-name { font-family: var(--serif); font-size: 13px; color: var(--color-text); margin-bottom: 4px; }
+.drawer-fam-hp-bar { height: 4px; background: var(--line-soft); border-radius: 2px; overflow: hidden; margin-bottom: 3px; }
+.drawer-fam-hp-fill { height: 100%; background: var(--color-accent); border-radius: 2px; transition: width 0.2s; }
+.drawer-fam-hp-text { font-size: 10px; color: var(--faint); }
+.drawer-fam-btns { display: flex; flex-direction: column; gap: 4px; }
+.drawer-fam-btn { background: var(--color-input-bg); border: 1px solid var(--line-soft); border-radius: 6px; padding: 4px 8px; font-size: 12px; color: var(--color-text); cursor: pointer; }
+.drawer-fam-btn:active { opacity: 0.6; }
 
 /* --- SHEET OVERLAY --- */
 
@@ -7362,6 +7376,8 @@ body {
 .chip-status.qstatus-done { color: var(--color-success); border-color: color-mix(in srgb, var(--color-success) 35%, transparent); text-transform: capitalize; }
 .chip-status.qstatus-failed { color: var(--color-danger); border-color: color-mix(in srgb, var(--color-danger) 35%, transparent); text-transform: capitalize; }
 .quest-notes { font-size: 12px; color: var(--color-text-muted); margin-top: 7px; font-style: italic; }
+.quest-done-btn { margin-left: auto; flex-shrink: 0; background: none; border: 1px solid color-mix(in srgb, var(--color-success) 40%, transparent); border-radius: 6px; color: var(--color-success); font-size: 13px; width: 26px; height: 26px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.quest-done-btn:active { background: color-mix(in srgb, var(--color-success) 15%, transparent); }
 .quest-done-toggle, .place-hist-toggle {
   background: transparent; border: none;
   color: var(--color-text-muted); font-size: 11px;

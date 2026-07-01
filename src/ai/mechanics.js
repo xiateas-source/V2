@@ -27,7 +27,7 @@ const KNOWN_KEYS = new Set([
   'zone_effect', 'zone_label', 'combat_start', 'combat_end', 'zone_fog',
   'death_save', 'none', 'round_advance', 'hit_dice_use', 'inspiration', 'temp_hp',
   'resistance_add', 'resistance_remove', 'vulnerability_add', 'vulnerability_remove',
-  'immunity_add', 'immunity_remove',
+  'immunity_add', 'immunity_remove', 'cover',
 ]);
 
 function findPC(name) {
@@ -846,6 +846,12 @@ const DISPATCH = {
       actionsUsed: { action: false, bonus: false, reaction: false, movement: false },
       zones: {},
     });
+    // Clear cover bonuses when combat ends
+    for (let i = 0; i < store.campaign.characters.length; i++) {
+      if (store.campaign.characters[i].coverBonus) {
+        aiSet(`characters.${i}.coverBonus`, 0);
+      }
+    }
   },
 
   zone_add_enemy(value) {
@@ -1014,6 +1020,15 @@ const DISPATCH = {
     if (idx === -1) return;
     const current = store.campaign.characters[idx].hpTemp || 0;
     aiSet(`characters.${idx}.hpTemp`, Math.max(current, amount));
+  },
+
+  cover(value) {
+    // cover: Name=half|three-quarters|total|none
+    const [name, level] = value.split('=').map(s => s.trim().toLowerCase());
+    const bonus = level === 'half' ? 2 : level === 'three-quarters' ? 5 : 0;
+    const idx = findPCIndex(name);
+    if (idx === -1) return;
+    aiSet(`characters.${idx}.coverBonus`, bonus);
   },
 
   save_game() {},

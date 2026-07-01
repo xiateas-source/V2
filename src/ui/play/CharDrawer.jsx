@@ -50,6 +50,33 @@ export default function CharDrawer({ onClose }) {
     onClose();
   }
 
+  function adjustFamiliarHP(delta) {
+    const p = pc();
+    if (!p?.familiar) return;
+    const cur = p.familiar.hp ?? p.familiar.hpMax;
+    const target = Math.max(0, Math.min(cur + delta, p.familiar.hpMax));
+    const { valid } = validateMechanics([{ key: 'familiar_hp', value: `${p.familiar.name}|${target}`, target: '', applied: false }]);
+    applyMechanics(valid);
+  }
+
+  const FAMILIAR_ICON = { Owl: '🦉', Cat: '🐱', Hawk: '🦅', Snake: '🐍', Raven: '🐦‍⬛', Rat: '🐀', Frog: '🐸', Spider: '🕷️' };
+
+  function spendHitDie() {
+    const p = pc();
+    if (!p) return;
+    const avail = (p.hitDice?.total || 0) - (p.hitDice?.used || 0);
+    if (avail <= 0) return;
+    const dieSize = parseInt((p.hitDice?.die || 'd8').replace('d', ''), 10) || 8;
+    const conMod = Math.floor(((p.abilityScores?.con || 10) - 10) / 2);
+    const roll = Math.floor(Math.random() * dieSize) + 1;
+    const heal = Math.max(1, roll + conMod);
+    const newHP = Math.min((p.hp || 0) + heal, p.hpMax);
+    setStore('campaign', 'characters', pcIdx(), 'hitDice', { ...p.hitDice, used: (p.hitDice?.used || 0) + 1 });
+    const { valid } = validateMechanics([{ key: 'hp', value: `${p.name}=${newHP}`, target: '', applied: false }]);
+    applyMechanics(valid);
+    window.dispatchEvent(new CustomEvent('toast', { detail: { text: `+${heal} HP (${p.hitDice?.die || 'd8'} rolled ${roll}, CON ${conMod >= 0 ? '+' : ''}${conMod})` } }));
+  }
+
   // Only show tabs for PCs the player controls (guests see only their chars, host sees all).
   const visibleChars = createMemo(() => {
     if (selectedPCs().length > 0) {
@@ -116,8 +143,13 @@ export default function CharDrawer({ onClose }) {
           {/* Quick stats */}
           <div class="drawer-stats-row">
             <div class="drawer-stat">
-              <div class="drawer-stat-val">{pc().ac}</div>
-              <div class="drawer-stat-label">AC</div>
+              <div class="drawer-stat-val">
+                {(pc().ac || 0) + (pc().coverBonus || 0)}
+                <Show when={pc().coverBonus > 0}>
+                  <span class="drawer-stat-cover">+{pc().coverBonus}</span>
+                </Show>
+              </div>
+              <div class="drawer-stat-label">AC{pc().coverBonus > 0 ? ' (cover)' : ''}</div>
             </div>
             <div class="drawer-stat">
               <div class="drawer-stat-val">{pc().speed || 30}</div>
@@ -127,10 +159,10 @@ export default function CharDrawer({ onClose }) {
               <div class="drawer-stat-val">{initMod()}</div>
               <div class="drawer-stat-label">Init</div>
             </div>
-            <div class="drawer-stat">
+            <button class={`drawer-stat drawer-stat-btn ${hdAvail() <= 0 ? 'depleted' : ''}`} onClick={spendHitDie} disabled={hdAvail() <= 0} title={hdAvail() > 0 ? 'Tap to spend 1 Hit Die' : 'No Hit Dice remaining'}>
               <div class="drawer-stat-val">{hdAvail()}<span class="drawer-stat-sub">/{pc().hitDice?.total || 0}</span></div>
               <div class="drawer-stat-label">HD {pc().hitDice?.die || 'd8'}</div>
-            </div>
+            </button>
           </div>
 
           {/* Status */}
@@ -185,6 +217,27 @@ export default function CharDrawer({ onClose }) {
                 <For each={[0, 1, 2]}>
                   {(i) => <div class={`drawer-ds-pip fail ${(pc().deathSaves?.failures || 0) > i ? 'filled' : ''}`} />}
                 </For>
+              </div>
+            </div>
+          </Show>
+
+          {/* Familiar */}
+          <Show when={pc().familiar && pc().familiar.status !== 'dismissed'}>
+            <div class="drawer-section-label">Familiar</div>
+            <div class="drawer-familiar">
+              <span class="drawer-fam-icon">{FAMILIAR_ICON[pc().familiar?.species] || '🐾'}</span>
+              <div class="drawer-fam-info">
+                <div class="drawer-fam-name">{pc().familiar?.name}</div>
+                <div class="drawer-fam-hp-bar">
+                  <div class="drawer-fam-hp-fill" style={{
+                    width: `${pc().familiar?.hpMax ? Math.max(0, Math.min(100, ((pc().familiar.hp ?? pc().familiar.hpMax) / pc().familiar.hpMax) * 100)) : 0}%`
+                  }} />
+                </div>
+                <div class="drawer-fam-hp-text">{pc().familiar?.hp ?? pc().familiar?.hpMax} / {pc().familiar?.hpMax} HP</div>
+              </div>
+              <div class="drawer-fam-btns">
+                <button class="drawer-fam-btn" onClick={() => adjustFamiliarHP(-1)}>−1</button>
+                <button class="drawer-fam-btn" onClick={() => adjustFamiliarHP(1)}>+1</button>
               </div>
             </div>
           </Show>

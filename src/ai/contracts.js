@@ -41,6 +41,7 @@ death_save: Name|success/failure/nat20/nat1 | short_rest: Name (or "party") | lo
 hit_dice_use: Name=count | inspiration: Name+true | temp_hp: Name=amount
 spell_add: PC|Name|Level|CastTime|Range|Duration|Components|Desc
 familiar_hp: Name|HP | animal_hp: Name=HP
+cover: Name=half|three-quarters|none (half = +2 AC/Dex saves, three-quarters = +5, none = remove)
 resistance_add: PCname, DamageType | resistance_remove: PCname, DamageType
 vulnerability_add: PCname, DamageType | vulnerability_remove: PCname, DamageType
 immunity_add: PCname, DamageType | immunity_remove: PCname, DamageType
