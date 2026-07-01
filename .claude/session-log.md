@@ -1,71 +1,46 @@
-# Session Log — S66 (2026-07-01)
+# Session Log — S67 (2026-07-01)
 
 ## Branch / Build
-Branch: `claude/latest-test-analysis-v64a6i` · merged to main · build clean
+Branch: `claude/workboard-sprint-deadline-ka8m7y` · not yet merged to main · build clean, 68/68 tests passing
 
 ---
 
 ## What Shipped This Session
 
-### Undo button moved into input row
-- Undo is now the leftmost icon button in the input row (↺ counterclockwise arrow, 40px circle matching d20)
-- Previously floated as a block between TurnPrompt and the input, causing visual orphaning and overlap
-- Appears only when there's something to undo — no permanent space reservation
-- Files: `src/ui/play/Rewind.jsx`, `src/ui/play/InputBar.jsx`, `src/ui/play/Chat.jsx`, `src/style.css`
+### Action Economy — code-level enforcement (Priority #1 remainder)
+Workboard gap: `combatState.actionsUsed` flags existed (action/bonus/reaction/movement) but nothing actually checked them — Gate 2 was pure prose-regex counting over the whole AI response, no persistence, no real prevention.
 
-### Dice tab now reachable in combat
-- d20 button previously called `setTurnPromptMinimized()` during combat instead of opening QuickActions
-- Fixed: d20 always calls `toggle('actions')` regardless of combat state
-- Files: `src/ui/play/InputBar.jsx`
+Investigated the combat turn lifecycle before building anything: `advanceCombatToNextPC()` (`src/ai/gates.js`) resets `actionsUsed` after *every* AI response, because this engine advances the turn pointer once per message — there's no supported "multiple messages within one still-open PC turn." That ruled out the obvious-looking design (cross-check `actionsUsed` inside Gate 2 after the AI responds) — by the time a response comes back, `actionsUsed.action` being true almost always just means "the quick-action tap that produced this very message," so a post-hoc reuse check would false-positive on ordinary single use. Built and then discarded that version once the bug was clear (see decisions.md for the full trace).
 
-### Combat card dismiss button
-- TurnPrompt expanded card now has a `−` button (right of header) to minimize to the strip
-- Minimized strip taps to re-expand; card starts expanded
-- Files: `src/ui/play/TurnPrompt.jsx`, `src/style.css`
+Shipped instead:
+- **`TurnPrompt.jsx`**: quick-action buttons (Attack/Dash/Dodge/Disengage/Hide/Help for Action econ; Cunning Action/Second Wind/Inspire for Bonus econ) get the native `disabled` attribute once `combatState.actionsUsed[econ]` is already true this turn. Previously the "spent" pill next to Action/Bonus/Move was cosmetic only — a player could tap an Attack *and* a Dash in the same turn with nothing stopping it. `take()` now also bails early if the slot's already spent, and calls the existing (previously dead/unused) `markActionUsed()` from `gates.js` instead of duplicating the store write inline.
+- **`src/ai/gates.js` Gate 2**: `multi_action`/`multi_bonus`/`multi_reaction` prose scan now scopes regex matching to sentences mentioning the *current actor* (new `actorSentences()` helper) instead of counting matches across the entire AI response. Fixes a real false-positive risk — NPC/enemy turns narrated in the same response (legitimate; enemies act before the next PC) were inflating the action/bonus count and could misfire the hard re-prompt `combatViolation()` triggers in `engine.js`. Added an Extra Attack allowance (threshold 2 instead of 1) alongside the pre-existing Action Surge bypass.
+- **`src/style.css`**: `.turn-action-btn:disabled` styling (dimmed, no active-state flash).
+- **8 new tests** in `tests/foundations.test.js` ("Gate 2 — Action Economy" describe block) covering: multi-attack flagging, single-action no-flag, NPC-action-doesn't-count-toward-PC (the false-positive fix), Extra Attack allowance, Action Surge full bypass, multi-bonus flagging, wrong-turn flagging, and combat-inactive no-op.
 
-### NPC ally guest join flow
-- GuestCharPick rebuilt as three-path mode picker:
-  1. **Play a character** — pick from existing party PCs (multi-select)
-  2. **Join as NPC ally** — pick from campaign NPC list OR enter custom name
-  3. **Create new character** — routes to CharCreate
-- NPC ally stored as `playerIdentity.mode = 'npc'` / `playerIdentity.npcName`
-- `system.js` adds `npcName: ''` to playerIdentity defaults
-- Files: `src/ui/setup/GuestCharPick.jsx`, `src/state/system.js`, `src/style.css`
+Files: `src/ui/play/TurnPrompt.jsx`, `src/ai/gates.js`, `src/ai/engine.js` (no functional change there in the end — see below), `src/style.css`, `tests/foundations.test.js`.
 
-### Prior this session (also on main)
-- Spell ⓘ button in ActionsDrawer sidebar
-- Combat tracker no longer auto-minimizes (manual control only)
-- Victory button when all enemies hit 0 HP
-- Conditions parsing: `Name, condition` and `Name, -condition` formats
-- Large text mode toggle (Settings → Display, persisted)
-- All 20 color themes rebuilt with color theory (60-30-10, named themes)
-- Data protection: New Campaign auto-exports JSON before clearing
-- Last saved indicator + Check for Update button in Settings
+**Not live-verified in the browser.** Tried — this sandbox can't reach Firebase, and `main.jsx`'s boot sequence (`restoreGuestSession()`/Firebase long-polling) hangs before the app ever renders to the DOM here (confirmed via Playwright: empty `#app` after 15s+). This matches the project's own documented sandbox limitation (see workboard.md Known Issues), not something new. Verified via `npm test` (68/68) and `npm run build` (clean) only.
 
 ---
 
-## Phase Status
-
-### Phase 1 — No broken mechanics (COMPLETE)
-### Phase 2 — Christian's active experience (COMPLETE)
-
-### Phase 3 — Second player ready
-- ✅ GuestCharPick three-path flow (Play PC / NPC ally / Create new)
-- ✅ NPC ally mode stored and retrievable
-- Guest experience audit — needs live two-device test
-
-### Phase 4 — July 11 deadline
-- [ ] AI DC determination (complex, do last)
+## Decisions Made
+See `.claude/decisions.md` → "Action Economy enforcement (S67)" for the full rationale, including why a cross-message `actionsUsed` check in Gate 2 was considered and rejected.
 
 ---
 
-## Known Gaps Still Unbuilt
-- AI DC determination (Phase 4)
-- Multiplayer bundles MVP (`data/bundles.js` stub)
-- `dbWrite()` write failures never surface to caller (cosmetic)
-- Color themes need live visual verification
-- Guest join NPC ally — no UI yet in ContextBanner/presence to show "Fenwick (NPC)" vs "Nyx (PC)"
+## Known Issues / Follow-ups
+- S67's button-disable needs a real combat turn to eyeball — logic is tested, feel is not.
+- Free-typed narrative actions still rely on Gate 2's prose heuristic (unchanged in kind, just scoped more accurately this session) — a player who hand-types two actions in one message isn't blocked by the UI, only flagged/re-prompted same as before.
+- All previously-open live-verification items (S56–S66) are still open — nothing this session touched multiplayer/sync/Firebase paths, so no change there.
 
-## Live Verification Still Needed
-- S65: NPC deep-link, CharDrawer/CharSheet roll connections, Compendium overhaul
-- S66: Combat tracker manual control, Victory button, combat card dismiss button, spell ⓘ in sidebar, undo icon in input row, dice tab reachable in combat, large text toggle, color themes, NPC ally guest join three-path flow
+---
+
+## Next Up (per workboard Priorities, deadline July 11)
+Remaining from Priority #1 (SRD gap-analysis): Cover missing entirely, Short Rest missing Hit Dice healing surfacing.
+Other open priorities: #5 Scene transition gate, #6 Rest buttons on CharSheet Vitals tab, #8 Multiplayer bundles MVP. #4 (AI DC determination) is flagged to do last — complex.
+
+---
+
+## Branch State
+`claude/workboard-sprint-deadline-ka8m7y` — this session's commit(s) not yet pushed as of writing this log (push happens immediately after). Not merged to main; user has not said "go live" this session.

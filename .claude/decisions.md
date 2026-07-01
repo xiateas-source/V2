@@ -107,6 +107,7 @@
 | TurnPrompt minimizable via dice button | During combat, dice button toggles TurnPrompt instead of QuickActions |
 | Spell info icons on combat turn card | ⓘ on spell chips → description tooltip |
 | `roll_request` code-enforced PC-only | Validation rejects non-PC targets |
+| Action economy enforced at the quick-action UI, not by re-parsing AI prose | See "Action Economy enforcement (S67)" below |
 
 ## Character Creation
 
@@ -349,6 +350,18 @@ Guest character Nyx disappeared after user tabbed out on iOS. iOS kills JS befor
 | Union-merge characters by id in `mergeCampaign()` (cloud wins per-id, local-only ids survive) | Safety net: even if a character hasn't reached Firebase yet, it won't be silently dropped on reload by a live-sync callback carrying stale cloud data. Cloud winning per-id ensures HP/stats from another device stay authoritative. Characters without ids (legacy edge case) fall back to cloud-or-local array. |
 | `forceSyncNow()` after all CharCreate commit/remove paths | Primary fix: get characters into Firebase before the user can tab out, bypassing the 3s debounce. Immediate sync here is correct — adding a character is a discrete intentional event, not a streaming field change like location or HP. |
 | No change to the general 3s sync debounce | The debounce exists for high-frequency fields (every narrative message, every HP tick in combat) — tuning it down globally would burn Firebase quota. Character changes are rare enough that immediate sync is the right exception. |
+
+## Action Economy enforcement (S67)
+
+Workboard gap: `combatState.actionsUsed` flags existed but nothing checked them — Gate 2 was pure prose-regex counting over the *whole* AI response, with no persistence across the turn.
+
+| Decision | Rationale |
+|----------|-----------|
+| Enforce economy at the point of origin — disable already-spent quick-action buttons in `TurnPrompt.jsx` — rather than trying to detect reuse by cross-referencing `actionsUsed` inside Gate 2 | Traced the actual turn lifecycle: `advanceCombatToNextPC()` resets `actionsUsed` after *every* AI response (turns always advance one-per-message in this engine), so by the time a response comes back, `actionsUsed.action` being `true` almost always just means "the tap that produced this very message" — cross-checking it post-hoc against the new response would false-positive on ordinary single use, not catch anything real. Prevention has to happen before the message is sent, not after. |
+| `TurnPrompt.jsx` buttons for an econ slot (`action`/`bonus`) get the native `disabled` attribute once `combatState.actionsUsed[econ]` is true; `take()` now bails early too | Closes the actual hole: a player could previously tap an Attack (econ: action) *and* Dash (also econ: action) in the same turn with nothing stopping it — the "spent" pill was cosmetic only. Free-typed narrative isn't touched by this — the player can still hand-type extra actions; that path stays on Gate 2's prose heuristic, unchanged in kind. |
+| `TurnPrompt.jsx`'s `take()` now calls the existing (previously dead/unused) `markActionUsed()` from `gates.js` instead of duplicating the same store write inline | One implementation of "mark this econ slot spent," not two. |
+| Gate 2's `multi_action`/`multi_bonus`/`multi_reaction` prose scan now scopes regex matching to sentences mentioning the current actor's name (`actorSentences()` helper), instead of counting matches across the entire response | Real accuracy bug: NPC/enemy turns narrated in the same response (which legitimately happen before/after the current PC's turn) were inflating the count and risked misfiring the hard re-prompt in `engine.js`'s `combatViolation()`. Also added an Extra Attack allowance (threshold 2 instead of 1) alongside the existing Action Surge bypass. |
+| Did not add a cross-message "already used" hard-reject to Gate 2 | Considered and rejected — see first row. Would need the engine to support genuinely multi-message turns (it doesn't) before that check could be sound. |
 
 ## Open Questions (not yet answered)
 
