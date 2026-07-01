@@ -411,6 +411,22 @@ The Testing Notes/export feature's first real use: user ran "Run All" on a blank
 | Added 3 tests for the `xp` mechanic: `Name+amount`, `party+amount`, and an explicit no-op assertion for a bare amount | The no-op test is a regression guard for this exact bug shape — asserts XP silently doesn't change when the target is missing, so a future test-button edit that regresses back to `xp: 75` gets caught by the suite. |
 | Did not change `applyMechanics()`'s `applied: true` semantics (still just "didn't throw," not "did something") | That's a bigger, systemic question — many DISPATCH handlers have early-return guard clauses that would report the same false "applied" status. Fixing that generally is a separate, larger audit, not something to fold into a one-off bug catch. Flagged as a known gap, not fixed here. |
 
+## Playtest audit: HP override bug + companion tracking (S71)
+
+User sent a real solo playtest transcript and asked for a gap audit, flagging their own testing isn't very comprehensive without their co-player. Traced two confirmed issues by reading source against the transcript, not guessing from the export alone.
+
+**HP override bug**: the AI emitted `damage: foot, 4, slashing` then `hp: foot=4` in the same batch, with foot at 1 HP going in. `damage:` correctly clamped to 0 (1-4, floored). The co-emitted `hp:` then ran as an independent absolute-target write, computing a "heal" of 4 to reach its stated number — silently reviving the character with zero narrative mention of healing. Verified via an Explore agent reading `damage()`/`hp()`/`applyDamage()` directly: no batch-level rule prevented this, despite `validateMechanics()` already having a precedent for exactly this shape of cross-mechanic rule (the existing `combat_start` + `hp`/`damage` rejection).
+
+**Companion tracking gap**: an NPC (a "star-fox") was gifted items, asked to join the party three times, and rested alongside the PC across ~15 exchanges, but the AI never emitted `npc_add` — the player noticed and asked in OOC why it wasn't tracked. Turns out `Cargo.jsx` already renders a "Traveling with" row for any wagon-inventory item with `type: 'companion'` — the AI's contract never mentioned this exists at all, so it was structurally invisible to the AI.
+
+| Decision | Rationale |
+|----------|-----------|
+| Added a batch-level rule in `validateMechanics()` (`mechanics.js`): reject a co-emitted `hp:` for any PC that a `damage:` mechanic in the same batch also targets | Mirrors the existing `combat_start` batch-rule pattern exactly. `damage:` already resolves PC HP correctly (with resistance/vulnerability lookups); a co-emitted `hp:` for the same PC is either redundant or an AI math error, and would otherwise silently override the correct result. |
+| Added one line to `contracts.js`'s DAMAGE TYPE ENFORCEMENT section telling the AI not to co-emit both for the same PC, and explaining the app will reject the redundant one | So the AI understands the new rejection instead of being confused by a silently-dropped mechanic. |
+| Documented the existing `companion` item type in `contracts.js` (MECHANIC KEY REFERENCE and MANDATORY EMISSIONS) — `item_add: wagon, <Name>, companion` for a recurring NPC that travels with the party | Reuses an already-built UI feature (`Cargo.jsx`'s "Traveling with" row) that the AI had zero visibility into. No new code needed for the display side. |
+| Did NOT build automatic "AI forgot npc_add" drift detection | Spec'd in `enforcement-spec.md` (Gate 5) but never implemented in the actual `runGate3`; the narrower existing pattern in `drift.js` only matches explicit self-introduction phrasing and wouldn't have caught this transcript's purely descriptive, never-formally-named creature. User explicitly chose to defer this — building a real detector is a bigger, fuzzier heuristic problem with genuine false-positive risk, better designed in its own session. |
+| Did not touch Gate 3's occasional item-drift false positives on narrative physical-contact descriptions (e.g. "vines grab your cloak") | Minor noise, not a correctness bug — consistent with the enforcement spec's own stated design principle that false positives are cheap and false negatives are expensive. |
+
 ## Open Questions (not yet answered)
 
 - **Child-friendly view target age** — 7-16 is wide. What's the actual simplification scope?
