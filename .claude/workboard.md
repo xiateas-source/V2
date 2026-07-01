@@ -33,7 +33,7 @@ The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → va
 3. **Expand classifier coverage** — contested checks got a contract-only win (S57, see decisions.md). Combat attacks and saving throws are already covered by the existing `roll_request`/`RollBar.jsx` path (saving throws) or remain the same unbuilt gap as Critical Hits above (combat attacks — needs the new attack-roll mechanic, not classifier work).
 4. **AI DC determination** — Phase 1 AI call for context-aware DCs (currently uses standard tiers)
 5. **Scene transition gate** — hold scene changes for player confirmation (Gate 2 in enforcement spec)
-6. **Rest buttons** on CharSheet Vitals tab
+6. ~~Rest buttons on CharSheet Vitals tab~~ — **already built**, not a gap. Verified S67 (user flagged this was mislisted): `CharSheet.jsx`'s `VitalsTab()` has working Short Rest / Long Rest buttons wired through a `rest-request` event (`Chat.jsx`) into the real `short_rest`/`long_rest` mechanics. What's still actually missing (folded into Priority #1's "Short Rest missing Hit Dice healing" line above): the Vitals tab shows a Hit Dice pip display but has no button to spend one — `short_rest` doesn't touch hit dice at all, and the `hit_dice_use` mechanic (which correctly fires a heal roll request) has no player-facing trigger, only AI/MechTest access.
 7. **CI: deploy database rules** — done (S58). `deploy.yml` now runs `firebase deploy --only database` alongside the hosting deploy.
 8. **Multiplayer Pass 2: bundles MVP** — publish/import/delete/replace/edit for shared content bundles (`data/bundles.js` is still a stub returning `{}`). Deferred from S58's Pass 1 (CI deploy + presence toggle + test aids, all done) — not yet started.
 
