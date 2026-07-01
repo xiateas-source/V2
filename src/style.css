@@ -2742,6 +2742,29 @@ body {
 .cs-exh-pip.filled { background: rgba(243, 156, 18, 0.2); border-color: #f39c12; color: #f39c12; }
 .cs-exh-label { font-size: 11px; color: var(--color-text-muted); margin-left: auto; }
 
+.cs-link-familiar-btn {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  background: none; border: 1px dashed var(--line-soft); border-radius: 8px;
+  padding: 8px 12px; color: var(--faint); font-size: 13px; cursor: pointer;
+  margin-bottom: 12px;
+}
+.cs-link-familiar-btn:active { opacity: 0.6; }
+.cs-familiar-form {
+  background: var(--color-surface); border: 1px solid var(--line-soft);
+  border-radius: 10px; padding: 12px; margin-bottom: 12px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.cs-familiar-form-title { font-size: 12px; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .05em; }
+.cs-fam-input { width: 100%; background: var(--color-input-bg); border: 1px solid var(--line-soft); border-radius: 8px; padding: 8px 10px; font-size: 13px; color: var(--color-text); }
+.cs-fam-input:focus { outline: none; border-color: color-mix(in srgb, var(--color-accent) 35%, transparent); }
+.cs-fam-form-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.cs-fam-form-label { display: flex; flex-direction: column; gap: 3px; font-size: 10px; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; }
+.cs-fam-num { width: 56px; background: var(--color-input-bg); border: 1px solid var(--line-soft); border-radius: 6px; padding: 6px 8px; font-size: 13px; color: var(--color-text); text-align: center; }
+.cs-fam-form-btns { display: flex; gap: 8px; }
+.cs-fam-save-btn { flex: 1; background: var(--color-accent); color: var(--color-bg); border: none; border-radius: 8px; padding: 9px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.cs-fam-save-btn:disabled { opacity: .4; }
+.cs-fam-cancel-btn { background: none; border: 1px solid var(--line-soft); border-radius: 8px; padding: 9px 16px; font-size: 13px; color: var(--color-text-muted); cursor: pointer; }
+
 .cs-familiar-card {
   background: var(--color-surface);
   border-radius: 8px;
@@ -7400,6 +7423,14 @@ body {
 .tl-ts { font-size: 9.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--color-accent-dim); margin-bottom: 2px; }
 .tl-text { font-family: var(--serif); font-size: 12.5px; line-height: 1.5; color: var(--color-text-muted); }
 .tl-item.tl-first .tl-text { color: var(--color-text); }
+.npc-edit-btn { display: flex; align-items: center; gap: 5px; background: none; border: 1px solid var(--line-soft); border-radius: 7px; padding: 5px 10px; font-size: 12px; color: var(--faint); cursor: pointer; align-self: flex-end; }
+.npc-edit-btn:active { opacity: 0.6; }
+.npc-edit-form { display: flex; flex-direction: column; gap: 7px; padding: 10px; background: var(--color-input-bg); border-radius: 8px; margin-bottom: 4px; }
+.npc-edit-input { width: 100%; background: var(--color-surface); border: 1px solid var(--line-soft); border-radius: 7px; padding: 7px 10px; font-size: 13px; color: var(--color-text); }
+.npc-edit-input:focus { outline: none; border-color: color-mix(in srgb, var(--color-accent) 35%, transparent); }
+.npc-edit-btns { display: flex; gap: 7px; }
+.npc-edit-save { flex: 1; background: var(--color-accent); color: var(--color-bg); border: none; border-radius: 7px; padding: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.npc-edit-cancel { background: none; border: 1px solid var(--line-soft); border-radius: 7px; padding: 8px 14px; font-size: 13px; color: var(--color-text-muted); cursor: pointer; }
 .disp-badge { font-size: 9.5px; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 10px; border: 1px solid transparent; }
 .disp-friendly { color: var(--color-success); border-color: color-mix(in srgb, var(--color-success) 35%, transparent); }
 .disp-friendly.disp-dot, .disp-dot.disp-friendly { background: var(--color-success); }

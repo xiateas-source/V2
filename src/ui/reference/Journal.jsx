@@ -1,5 +1,5 @@
 import { createSignal, createMemo, For, Show, lazy } from 'solid-js';
-import { store } from '../../state/index.js';
+import { store, setStore } from '../../state/index.js';
 import { extractMechanics, validateMechanics, applyMechanics } from '../../ai/mechanics.js';
 import { callProvider } from '../../ai/providers.js';
 import { DEEP_SEED_SYSTEM } from '../../ai/setupPrompts.js';
@@ -420,12 +420,31 @@ function People() {
 function NPCCard(props) {
   const n = () => props.n;
   const [open, setOpen] = createSignal(false);
+  const [editing, setEditing] = createSignal(false);
+  const [editName, setEditName] = createSignal('');
+  const [editDisp, setEditDisp] = createSignal('');
   // "who they are" one-liner for the collapsed row — role, else first clause of details.
   const who = () => n().role || (n().details || '').split(/[.,—]/)[0];
   const dossier = createMemo(() => open() ? buildDossier(n()) : null);
 
+  function startEdit() {
+    setEditName(n().name);
+    setEditDisp(n().disposition || 'Unknown');
+    setEditing(true);
+  }
+
+  function saveEdit() {
+    const idx = store.campaign.npcs.findIndex(x => x.id === n().id);
+    if (idx === -1) return;
+    setStore('campaign', 'npcs', idx, 'name', editName().trim() || n().name);
+    setStore('campaign', 'npcs', idx, 'disposition', editDisp());
+    setEditing(false);
+  }
+
+  const DISPS = ['Friendly', 'Neutral', 'Hostile', 'Unknown', 'Ally', 'Enemy'];
+
   return (
-    <div class={`npc-card ${open() ? 'npc-open' : ''}`} onClick={() => setOpen(!open())}>
+    <div class={`npc-card ${open() ? 'npc-open' : ''}`} onClick={() => !editing() && setOpen(!open())}>
       <div class="npc-top">
         <span class="npc-name">{n().name}</span>
         <span class={`disp-badge ${dispClass(n().disposition)}`}>{n().disposition || 'Unknown'}</span>
@@ -440,6 +459,18 @@ function NPCCard(props) {
           const d = dossier();
           return (
             <div class="dossier" onClick={(e) => e.stopPropagation()}>
+              <Show when={editing()}>
+                <div class="npc-edit-form" onClick={e => e.stopPropagation()}>
+                  <input class="npc-edit-input" value={editName()} onInput={e => setEditName(e.target.value)} placeholder="Name" />
+                  <select class="npc-edit-input" value={editDisp()} onInput={e => setEditDisp(e.target.value)}>
+                    <For each={DISPS}>{d => <option value={d}>{d}</option>}</For>
+                  </select>
+                  <div class="npc-edit-btns">
+                    <button class="npc-edit-save" onClick={saveEdit}>Save</button>
+                    <button class="npc-edit-cancel" onClick={() => setEditing(false)}>Cancel</button>
+                  </div>
+                </div>
+              </Show>
               <Show when={n().details}>
                 <div class="dossier-sec">
                   <div class="dossier-label">Who they are</div>
@@ -508,6 +539,9 @@ function NPCCard(props) {
                   </div>
                 </div>
               </Show>
+              <button class="npc-edit-btn" onClick={e => { e.stopPropagation(); startEdit(); }}>
+                <i class="ph ph-pencil-simple" /> Edit
+              </button>
             </div>
           );
         })()}

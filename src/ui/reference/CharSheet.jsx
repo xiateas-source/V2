@@ -51,6 +51,7 @@ export default function CharSheet(props) {
   const [changedTabs, setChangedTabs] = createSignal(new Set());
   const [expandedSpells, setExpandedSpells] = createSignal(new Set());
   const [expandedFamiliar, setExpandedFamiliar] = createSignal(false);
+  const [showFamiliarForm, setShowFamiliarForm] = createSignal(false);
   const [showOverride, setShowOverride] = createSignal(false);
   const [hpDelta, setHpDelta] = createSignal(null);
   const [showAddSpell, setShowAddSpell] = createSignal(false);
@@ -576,6 +577,16 @@ export default function CharSheet(props) {
           </For>
           <span class="cs-exh-label">{p.exhaustion || 0 > 0 ? `Level ${p.exhaustion}` : 'None'}</span>
         </div>
+
+        <Show when={!p.familiar}>
+          <Show when={showFamiliarForm()} fallback={
+            <button class="cs-link-familiar-btn" onClick={() => setShowFamiliarForm(true)}>
+              <i class="ph ph-paw-print" /> Link Familiar
+            </button>
+          }>
+            <LinkFamiliarForm pcIdx={activePC()} onDone={() => setShowFamiliarForm(false)} />
+          </Show>
+        </Show>
 
         <Show when={p.familiar}>
           <div class="cs-section-label">Familiar</div>
@@ -1205,6 +1216,58 @@ export default function CharSheet(props) {
       <Show when={showOverride()}>
         <ManualOverride />
       </Show>
+    </div>
+  );
+}
+
+function LinkFamiliarForm({ pcIdx, onDone }) {
+  const RAVEN_DEFAULTS = { name: '', species: 'Raven', hpMax: 1, ac: 12, walk: 10, fly: 50 };
+  const [form, setForm] = createSignal({ ...RAVEN_DEFAULTS });
+  const patch = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const SPECIES = ['Raven', 'Owl', 'Hawk', 'Cat', 'Snake', 'Rat', 'Frog', 'Spider', 'Other'];
+
+  function save() {
+    const f = form();
+    if (!f.name.trim()) return;
+    const familiar = {
+      name: f.name.trim(),
+      species: f.species,
+      type: 'Fey',
+      size: 'Tiny',
+      hp: parseInt(f.hpMax) || 1,
+      hpMax: parseInt(f.hpMax) || 1,
+      ac: parseInt(f.ac) || 10,
+      speeds: { walk: parseInt(f.walk) || 10, ...(f.fly ? { fly: parseInt(f.fly) } : {}) },
+      abilities: { str: 2, dex: 14, con: 8, int: 2, wis: 12, cha: 6 },
+      senses: 'Darkvision 30 ft.',
+      passivePerception: 11,
+      skills: 'Perception +3',
+      specialAbilities: [],
+      status: 'active',
+      source: 'Find Familiar',
+    };
+    setStore('campaign', 'characters', pcIdx, 'familiar', familiar);
+    onDone();
+  }
+
+  return (
+    <div class="cs-familiar-form">
+      <div class="cs-familiar-form-title">Link Familiar</div>
+      <input class="cs-fam-input" placeholder="Name (e.g. Kael)" value={form().name} onInput={e => patch('name', e.target.value)} />
+      <select class="cs-fam-input" value={form().species} onInput={e => patch('species', e.target.value)}>
+        <For each={SPECIES}>{s => <option value={s}>{s}</option>}</For>
+      </select>
+      <div class="cs-fam-form-row">
+        <label class="cs-fam-form-label">HP Max<input class="cs-fam-num" type="number" min="1" value={form().hpMax} onInput={e => patch('hpMax', e.target.value)} /></label>
+        <label class="cs-fam-form-label">AC<input class="cs-fam-num" type="number" min="1" value={form().ac} onInput={e => patch('ac', e.target.value)} /></label>
+        <label class="cs-fam-form-label">Walk<input class="cs-fam-num" type="number" min="0" value={form().walk} onInput={e => patch('walk', e.target.value)} /></label>
+        <label class="cs-fam-form-label">Fly<input class="cs-fam-num" type="number" min="0" value={form().fly} onInput={e => patch('fly', e.target.value)} /></label>
+      </div>
+      <div class="cs-fam-form-btns">
+        <button class="cs-fam-save-btn" onClick={save} disabled={!form().name.trim()}>Save</button>
+        <button class="cs-fam-cancel-btn" onClick={onDone}>Cancel</button>
+      </div>
     </div>
   );
 }
