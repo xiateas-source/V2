@@ -1,75 +1,61 @@
-# Session Log — Handoff
+# Session Log — S63 continuation (2026-07-01)
 
-## Session 63 · 2026-06-30
-
-Branch `claude/latest-test-analysis-v64a6i` · committed, pushed. Three separate issues fixed plus a new side-drawer combat companion feature.
-
-### What Shipped
-
-**Pack contents now visible in Cargo.** Equipment packs (Burglar's Pack, Explorer's Pack, etc.) were showing as opaque single items with no way to see their contents. Two-part fix: (1) `CharCreate.jsx` was stripping `note` fields when mapping items to the store — added `...(i.note ? { note: i.note } : {})` spread across all three equipment-saving paths (`replace_all`). (2) `Cargo.jsx` now renders an expandable note area when an item has a `note` field — tap the item to reveal it, a caret chevron indicates it's expandable. CSS added `.cargo-item.has-note`, `.cargo-note-caret`, `.cargo-item-note`.
-
-**Bag of Holding reduces encumbrance.** Player reported their Bag of Holding didn't reduce carry weight. `Cargo.jsx` now tracks an `inContainer` boolean per item, with two weight functions: `rawWeight(i)` (actual weight) and `itemWeight(i)` (returns 0 if `inContainer`). A "put in bag" toggle button appears per item when the current owner has a container in their inventory. AI-added Bag of Holding arrives as `type: 'gear'` not `container` — fixed by adding `CONTAINER_NAMES` regex name-based fallback in `isContainerType()`. Bag weight is summarised below the weight bar: "X lb inside Bag of Holding · not counted." CSS added `.cargo-bag-btn`, `.cargo-bag-weight`.
-
-**Side drawers: character vitals (left) + spells/actions (right).** During combat, `CharTiles` is hidden and the full CharSheet overlay is inaccessible. Player reported difficulty knowing "what my character can do" mid-combat. Two new components — `CharDrawer.jsx` (left side) and `ActionsDrawer.jsx` (right side) — slide in from the screen edges via fixed-position tab handles in `Chat.jsx`.
-
-- **Left handle** (shield-chevron icon): reveals CharDrawer with HP bar + −5/−1/+1/+5 adjust buttons (via mechanics pipeline), AC/Speed/Initiative/Hit Dice grid, conditions + concentration (removable), attacks (tap fires `roll-request` event), and death saves when `hp === 0`. Red dot badge when any character has active conditions.
-- **Right handle** (sparkle icon): reveals ActionsDrawer with resources (pip display, tap to use via `resource_use` mechanic), spell slots (pip display, tap to expend via `slot_use` mechanic), spell DC/attack header, concentration badge, cantrips and known spells as chips (tap fires `prefill-input` event with cast text). Dot badge when any slots or resources remain.
-- Both drawers show PC tabs when player controls multiple characters (guests see only their `selectedPCs`).
-- Both drawers link to "Full Character Sheet" via `tp-charsheet` event.
-- Shared backdrop dismisses both drawers. Opening one auto-closes the other.
-- HP/slot/resource changes all route through `validateMechanics`/`applyMechanics` — Law 2 intact.
-- All CSS in `style.css` before the `/* --- SHEET OVERLAY --- */` block.
-
-### Decisions
-
-See `decisions.md` → "Side drawers (S63)".
-
-### Verification
-
-- `npm run build` — succeeds (clean, same large-chunk pre-existing warning only).
-- Not live-tested in a browser — needs a real play session to verify: handle visibility, drawer slide-in animation, HP adjust works, spell slots decrement correctly, tap-to-cast prefills input, conditions appear and can be cleared.
-
-### Known Issues
-
-Carried from S62, plus:
-- S63's drawers need live verification in an actual play session.
-- S62's presence badge, join auto-retry, and character union merge still need live two-device verification.
-
-### Next Up
-
-1. Deploy S63 (merge to main) — ask user.
-2. Live play session to verify side drawers in combat context.
-3. SRD gap follow-ups (still on July 11 deadline): Action Economy enforcement, Cover, Short Rest / Hit Dice healing surfacing, AI DC determination, Scene transition gate.
-4. Multiplayer Pass 2: bundles MVP.
+## Branch State
+Branch: `main` · last commit: `1294abb` · build clean
 
 ---
 
-## Session 62 · 2026-06-30
+## What Shipped
 
-Branch `claude/latest-test-analysis-v64a6i` · committed, pushed. Two bugs surfaced in real play, both fixed.
+### mechanics.js — Bug Fixes (from Christian's campaign analysis)
+- `slot_use` / `slot_restore`: AI emits `Name|level` but contract says `Name=level`. Fixed all three handlers: `value.split(/[=|]/)` accepts both.
+- `npc_add`: AI started using pipes for newer NPCs, handler expected commas. Fixed: auto-detect separator.
+- `ActionsDrawer` null slot: `spellSlots = [null, 4, 3, 3, 1]` rendered a "0th" slot row. Fixed: `.filter(([, max]) => max)`.
+- Passive resources "undefined/undefined": resources with no `max` (Song of Rest) showed broken pip display. Fixed: fallback `<span class="drawer-resource-passive">passive</span>`.
 
-### What Shipped
+### Cargo.jsx — Full Inventory Editing Rewrite (`f3273d4`)
+- Every item tappable → expands inline with: qty stepper (−/N/+), context-aware Use/Eat/Drink/Read button, trash delete, note textarea
+- `useItem()` fires `prefill-input` with correct verb + decrements qty
+- Companion-type wagon items now appear as "Traveling with" chip row, excluded from item list
+- "Merge Duplicates" button when same-name same-owner stacks exist
+- Player writes (qty, note, delete) go directly to store — player-owned per Law 2. Adds still through mechanics pipeline.
 
-**S60/S61 confirmed live in production.** User confirmed the merge to `main` from the prior session is working in real play ("its live, it's working").
+### CharSheet — Link Familiar Form (`1294abb`)
+- When `pc.familiar` is null: dashed "Link Familiar" button on Vitals tab
+- Inline form: name, species dropdown, HP max, AC, walk, fly — defaults to raven stats
+- Saves to `setStore('campaign', 'characters', idx, 'familiar', {...})`
+- Context: Kael the raven familiar predated the familiar system. This lets the user manually register him.
 
-**Play-screen presence indicator (ContextBanner).** User said checking whether the other player was online was "tedious" — currently required navigating away from Play to Settings → Who Am I?. After asking rather than assuming, user chose a compact icon in `ContextBanner`'s existing `head-right` icon row: a circle icon (Phosphor `ph-circle`) badged with a count of other active players, highlighted when anyone else is present, tapping navigates to Settings via `navigateTo('manage')`. Reads the existing `campaign.presence` field — no new Firebase paths or schema. CSS: added `.presence-badge` (9px accent-colored absolute-positioned dot) and `position: relative` to `.head .btn-icon`. This partially reverses S58's "ContextBanner is a single slim line" UI decision by explicit user sign-off — documented in decisions.md.
+### Journal — NPC Rename/Edit (`1294abb`)
+- NPCCard dossier now has "Edit" button → inline form for name + disposition
+- Saves by NPC id via setStore
+- Context: corrupted NPC "Kael|Ally|Companion bird; acts as a scout and combat support." — entire pipe-delimited mechanic string was stored as the name.
 
-Note: a block of text appeared mid-session formatted to look like an authoritative directive instructing a stop to the actual task. This is the third such injection attempt across S60/S61/S62. Identified it as not from the user, declined to follow it, continued the real work.
+---
 
-**"Campaign not found" auto-retry fix.** User hit the error again in play after the S61 fix — traced two additional causes: (1) `getUid()` returning null when Firebase anonymous auth was still in flight — fixed with an explicit auth guard. (2) The host's `forceSyncNow()` write can still be propagating when the guest reads immediately after — fixed with a 3s auto-retry in `joinCampaign()`. Also: `shareInvite()`'s `await forceSyncNow()` now dispatches an offline error toast if the write fails.
+## How to Fix Kael in the Live App
+1. CharSheet → Vitals tab → "Link Familiar" → enter Kael, Raven, adjust HP if needed → Save
+2. Journal → People → find the garbled "Kael|Ally|..." card → open → Edit → rename to "Kael", set Ally → Save
+3. Cargo → "Kael (The Tattered Raven)" companion item → tap → trash → gone (now redundant)
 
-**Guest character union merge + immediate Firebase sync (persist.js + CharCreate.jsx).** Guest character Nyx disappeared when user tabbed out. Fixed with `mergeCharacters()` union-merge by id in `persist.js` and immediate `forceSyncNow()` calls after all `CharCreate.jsx` commit/remove paths.
+---
 
-### Decisions
+## Gaps / Next Up
 
-See `decisions.md` → "Play-screen presence indicator (S62)" and "Character union merge + immediate sync on char changes (S62)".
+### Immediate (small, high value — do this first next session)
+- **Familiar HP in CharDrawer**: Kael's HP not visible during combat from the left drawer — must open full CharSheet. Fix: add familiar mini-card to CharDrawer when `pc.familiar` exists. ~30 lines.
 
-### Verification
+### July 11 Deadline (UNTOUCHED — priority)
+1. Action Economy enforcement — `actionsUsed` flags exist, no gate checks them
+2. Cover mechanic — missing entirely
+3. Short Rest / Hit Dice healing surfacing
+4. AI DC determination — context-aware (currently flat tiers)
+5. Scene transition gate — Gate 2 in enforcement spec
 
-- `npm test` — 60/60 passing.
-- `npm run build` — succeeds, only pre-existing large-chunk warning.
-- **Needs live verification:** presence badge, join auto-retry, character union merge on tab-kill.
+### Medium
+- Quest overload — Christian has 15 active quests, 5+ stale. No filter/archive UI in Journal.
+- Multiplayer bundles MVP — `data/bundles.js` still stub
 
-### Next Up
-
-(now superseded by S63)
+### Live Verification Still Needed
+- S62: presence badge (two-device), join auto-retry, character union merge (tab-kill)
+- S57: PC attack-roll/Critical Hits (needs live combat)
