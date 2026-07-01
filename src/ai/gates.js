@@ -110,17 +110,23 @@ export function runGate2(mechanics, narrative) {
   const actionVerbs = /\b(attacks?|strikes?|slashes?|shoots?|fires?|swings?|casts?\s+\w+)\b/ig;
   const bonusVerbs = /\b(bonus\s+action|healing\s+word|misty\s+step|cunning\s+action|second\s+wind|shield\s+master|polearm\s+master|crossbow\s+expert|spiritual\s+weapon|hex|hunter'?s?\s+mark)\b/ig;
   const reactionVerbs = /\b(opportunity\s+attack|counterspell|shield\s+spell|hellish\s+rebuke|reaction)\b/ig;
-  const actionCount = [...narrative.matchAll(actionVerbs)].length;
-  const bonusCount = [...narrative.matchAll(bonusVerbs)].length;
-  const reactionCount = [...narrative.matchAll(reactionVerbs)].length;
+
+  // Scope the economy scan to sentences that actually mention the current actor —
+  // otherwise NPC/enemy turns narrated in the same response (which legitimately
+  // happen before/after the PC's turn) inflate the count and misfire this gate.
+  const actorText = actorSentences(narrative, currentActor.name);
+  const actionCount = [...actorText.matchAll(actionVerbs)].length;
+  const bonusCount = [...actorText.matchAll(bonusVerbs)].length;
+  const reactionCount = [...actorText.matchAll(reactionVerbs)].length;
 
   const pcChar = store.campaign.characters.find(c => c.name === currentActor.name);
+  const featureNames = (pcChar?.features || []).map(f => (typeof f === 'string' ? f : f.name || '').toLowerCase());
+  const hasExtraAttack = featureNames.some(f => f.includes('extra attack'));
+  const hasActionSurge = featureNames.some(f => f.includes('action surge'));
 
-  if (actionCount > 2 && currentActor.type === 'pc') {
-    const hasActionSurge = pcChar?.features?.some(f =>
-      (typeof f === 'string' ? f : f.name || '').toLowerCase().includes('action surge')
-    );
-    if (!hasActionSurge) {
+  if (currentActor.type === 'pc' && !hasActionSurge) {
+    const actionThreshold = hasExtraAttack ? 2 : 1;
+    if (actionCount > actionThreshold) {
       flags.push({
         gate: 2,
         type: 'multi_action',
@@ -440,4 +446,12 @@ export function markActionUsed(type) {
 
 function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Sentences mentioning `name`, joined — used to scope narrative regex scans to a
+// single actor instead of counting matches across the whole response.
+function actorSentences(narrative, name) {
+  const sentences = narrative.match(/[^.!?]+[.!?]*/g) || [narrative];
+  const pattern = new RegExp(`\\b${escapeRegex(name)}\\b`, 'i');
+  return sentences.filter(s => pattern.test(s)).join(' ');
 }

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { store, setStore, aiSet, systemSet, playerSet, OwnershipError } from '../src/state/store.js';
 import { extractMechanics, validateMechanics, applyMechanics } from '../src/ai/mechanics.js';
-import { runGate4, runGate5 } from '../src/ai/gates.js';
+import { runGate2, runGate4, runGate5 } from '../src/ai/gates.js';
 import { isPlayMsg, msgToRole, createNarrativeMsg, migrateMsg } from '../src/ai/messages.js';
 
 function loadTestCharacters() {
@@ -298,6 +298,74 @@ describe('Gate Firing', () => {
     const narrative = 'Ivy sneaks ahead.';
     const playerMessage = 'I sneak ahead.';
     const flags = runGate5(narrative, [], playerMessage);
+    expect(flags.length).toBe(0);
+  });
+});
+
+describe('Gate 2 — Action Economy', () => {
+  beforeEach(() => {
+    loadTestCharacters();
+    setStore('campaign', 'combatState', {
+      active: true, round: 1,
+      initiative: [
+        { name: 'Ivy', type: 'pc', hp: 31 },
+        { name: 'Goblin', type: 'npc', hp: 7 },
+        { name: 'Thorn', type: 'pc', hp: 27 },
+      ],
+      currentTurn: 0,
+      actionsUsed: { action: false, bonus: false, reaction: false, movement: false },
+      zones: {},
+    });
+  });
+
+  it('flags multi_action when the current actor attacks twice in one response', () => {
+    const narrative = 'Ivy attacks the goblin with her dagger, then attacks again with her second dagger.';
+    const flags = runGate2([], narrative);
+    expect(flags.some(f => f.type === 'multi_action')).toBe(true);
+  });
+
+  it('does not flag a single action for the current actor', () => {
+    const narrative = 'Ivy attacks the goblin with her dagger, striking true.';
+    const flags = runGate2([], narrative);
+    expect(flags.some(f => f.type === 'multi_action')).toBe(false);
+  });
+
+  it('does not flag when the second attack belongs to an NPC, not the current actor', () => {
+    const narrative = 'Ivy attacks the goblin with her dagger. The goblin snarls and attacks back with its scimitar.';
+    const flags = runGate2([], narrative);
+    expect(flags.some(f => f.type === 'multi_action')).toBe(false);
+  });
+
+  it('allows two attacks for a PC with Extra Attack', () => {
+    setStore('campaign', 'characters', 0, 'features', ['Extra Attack']);
+    const narrative = 'Ivy attacks the goblin with her dagger, then attacks a second time with her other dagger.';
+    const flags = runGate2([], narrative);
+    expect(flags.some(f => f.type === 'multi_action')).toBe(false);
+  });
+
+  it('does not flag any action count for a PC with Action Surge', () => {
+    setStore('campaign', 'characters', 0, 'features', ['Action Surge']);
+    const narrative = 'Ivy attacks, attacks again, and attacks a third time in a flurry of blows.';
+    const flags = runGate2([], narrative);
+    expect(flags.some(f => f.type === 'multi_action')).toBe(false);
+  });
+
+  it('flags multi_bonus when the current actor uses two bonus actions', () => {
+    const narrative = 'Ivy uses her Cunning Action to Dash, then uses Second Wind to catch her breath.';
+    const flags = runGate2([], narrative);
+    expect(flags.some(f => f.type === 'multi_bonus')).toBe(true);
+  });
+
+  it('flags wrong_turn when the AI narrates a non-current PC acting', () => {
+    const narrative = 'Thorn casts Thunderwave at the approaching enemies.';
+    const flags = runGate2([], narrative);
+    expect(flags.some(f => f.type === 'wrong_turn')).toBe(true);
+  });
+
+  it('returns no flags when combat is not active', () => {
+    setStore('campaign', 'combatState', 'active', false);
+    const narrative = 'Ivy attacks the goblin, then attacks again, then a third time.';
+    const flags = runGate2([], narrative);
     expect(flags.length).toBe(0);
   });
 });

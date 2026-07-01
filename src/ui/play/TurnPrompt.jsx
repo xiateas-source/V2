@@ -1,6 +1,7 @@
 import { Show, For, createSignal, createMemo } from 'solid-js';
-import { store, setStore } from '../../state/index.js';
+import { store } from '../../state/index.js';
 import { isSending } from '../../ai/engine.js';
+import { markActionUsed } from '../../ai/gates.js';
 
 const GENERIC = [
   { label: 'Dash', econ: 'action', text: ' takes the Dash action (move up to double speed).' },
@@ -55,9 +56,8 @@ export default function TurnPrompt() {
   });
 
   function take(qa) {
-    const u = { ...(combat().actionsUsed || {}) };
-    u[qa.econ] = true;
-    setStore('campaign', 'combatState', 'actionsUsed', u);
+    if (used()[qa.econ]) return;
+    markActionUsed(qa.econ);
     window.dispatchEvent(new CustomEvent('prefill-input', { detail: { text: qa.text } }));
   }
 
@@ -84,13 +84,13 @@ export default function TurnPrompt() {
 
           <div class="turn-prompt-actions">
             <For each={attacks()}>
-              {(qa) => <button class="turn-action-btn ta-atk" onClick={() => take(qa)}><i class="ph ph-sword" />{qa.label}</button>}
+              {(qa) => <button class="turn-action-btn ta-atk" disabled={used().action} onClick={() => take(qa)}><i class="ph ph-sword" />{qa.label}</button>}
             </For>
             <For each={bonus()}>
-              {(qa) => <button class="turn-action-btn ta-bonus" onClick={() => take(qa)}><i class="ph ph-lightning" />{qa.label}</button>}
+              {(qa) => <button class="turn-action-btn ta-bonus" disabled={used().bonus} onClick={() => take(qa)}><i class="ph ph-lightning" />{qa.label}</button>}
             </For>
             <For each={GENERIC}>
-              {(g) => <button class="turn-action-btn ta-gen" onClick={() => take({ ...g, text: `${pc()?.name || ''}${g.text}` })}>{g.label}</button>}
+              {(g) => <button class="turn-action-btn ta-gen" disabled={used().action} onClick={() => take({ ...g, text: `${pc()?.name || ''}${g.text}` })}>{g.label}</button>}
             </For>
           </div>
         </div>

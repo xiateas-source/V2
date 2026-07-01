@@ -7874,6 +7874,8 @@ body {
 .turn-action-btn.ta-spell { border-color: color-mix(in srgb, var(--color-accent) 35%, transparent); }
 .turn-action-btn.ta-bonus { border-color: color-mix(in srgb, var(--color-warning) 40%, transparent); color: var(--color-warning); }
 .turn-action-btn:active { background: var(--color-accent); color: var(--color-bg); }
+.turn-action-btn:disabled { opacity: .35; cursor: default; }
+.turn-action-btn:disabled:active { background: var(--color-surface); color: var(--color-text); }
 .ta-spell-info {
   display: inline-flex; align-items: center; justify-content: center;
   width: 20px; height: 20px; margin-left: 2px;
