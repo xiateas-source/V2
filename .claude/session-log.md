@@ -1,46 +1,44 @@
-# Session Log — S73 (2026-07-01)
+# Session Log — S74 (2026-07-01)
 
 ## Branch / Build
-Branch: `claude/workboard-sprint-deadline-ka8m7y` · S72 merged to main this session · S73 not yet merged · build clean, 84/84 tests passing
+Branch: `claude/workboard-sprint-deadline-ka8m7y` · S73 not yet merged to main as of this session's start · S74 not yet merged · build clean, 88/88 tests passing
 
 ---
 
 ## What Shipped This Session
 
-### Four fixes from a real deployed-app playtest
-User played the live app using the S72 scenario buttons, then sent an export with real Testing Notes — the very first use of that feature, which immediately surfaced a bug in itself. Researched all four findings with parallel Explore agents before touching code, then verified the key claims directly (one research pass initially pointed at the wrong drawer for the spell-navigation bug — the user said "side tab," which is the right-side `ActionsDrawer.jsx`, not `CharDrawer.jsx` where the first pass looked; caught and corrected this by reading the actual code myself before writing the fix).
+### Combat turn desync + pre-resolved roll outcome — core loop fix
 
-1. **"My testing notes dont persist."** `testerNotes` in `MechTest.jsx` was a local `createSignal('')` — the testing tab fully unmounts when its drawer closes, destroying local component state. Moved to `store.system.testerNotes` (new `DEFAULT_SYSTEM` field), persisted the same way `largeText`/`theme` already are (`persist.js`'s `snapshot()`/`restoreSession()`). Confirmed `system` fields don't sync to Firebase and survive `resetCampaign()` (only touches `campaign`), so notes now survive closing the tab, reloading, and New Campaign.
+User reported the turn indicator skipping mid-combat, in their own words: "Because thorn rolled for his vicious mockery after the DM narration my turn got skipped. Current card is showing it's thorns turn." This is a bug in the "sacred" core combat loop itself (Law 1), not a UI issue like recent sessions' fixes — treated it accordingly: traced with an Explore agent against the actual transcript first, then had a Plan agent pressure-test the fix design before writing any code, since a mistake here has real blast radius.
 
-2. **"Spell compendium from side tab takes to journal, not spells."** The right-side "Spells & actions" drawer's spell ⓘ buttons dispatch `spell-tooltip`, handled in `Chat.jsx`'s `showSpellTooltip()` (two call sites) — both built a tooltip action with `mode: 'journal'`, routed through the generic `navigateTo()`, landing on Journal instead of the Compendium's Spells sub-tab. Fixed both call sites to use `compendium: 'spells'`, added a branch in the tooltip's click handler to call the already-existing, already-correct `navigateToCompendium('spells')` (used properly elsewhere in `CharSheet.jsx`).
+**Bug A — turn pointer double-advance.** `sendNarrative()` (`engine.js`) advanced the turn pointer unconditionally at the end of every response while combat was active, guarded only by `isAwaitingInitiative()` (initiative rolls only — not mid-combat `roll_request`s). So: AI asks for an attack roll → turn pointer advances immediately, before the player has even rolled. Player's roll then comes back through the *same* `sendNarrative()` pipeline → turn pointer advances *again*. Net: every turn involving a roll advanced the pointer twice, which is exactly what desynced the indicator in the transcript.
 
-3. **"Its thorns turn but my side tab is for ivy."** The left "Character vitals" drawer (`CharDrawer.jsx`) picked its displayed PC once on open and never re-synced to whoever's combat turn it was. Added a `currentActorIdx()` helper mirroring `TurnPrompt.jsx`'s existing correct actor-derivation, used both in the drawer's initial PC selection and a new `createEffect` that re-syncs on every turn change. Manual tab-switching still works in between turns — the effect only fires on an actual turn change.
+Fixed by tracking whether the *current actor's* roll is still pending, and skipping the non-kickoff advance when it is. Two real gaps in my first draft, both caught by the Plan agent before implementation: (1) the check needs to be scoped to the current actor specifically, not "any roll_request present" — otherwise a forced roll for a *different* PC (e.g. a reaction save) would incorrectly hold the current actor's turn open; (2) it needs to be computed *after* the concentration-save `roll_request` gets injected into `applied`, not before — computing it earlier silently misses concentration-save-triggered holds entirely. Combat kickoff (`inclusive: true`) is explicitly exempted — it establishes whose turn it is for the first time, it isn't confirming a resolution, so a pending roll shouldn't block it.
 
-4. **"Sometimes i want to send a message with my roll."** Confirmed two distinct roll-submission paths in `RollBar.jsx`. The classifier pre-send path already carries the player's typed action forward as their message (`engine.js`'s `resumeAfterRolls()`); the AI-initiated `roll_request` path (mid-combat rolls the AI asks for) had zero room for player text. Added an optional textarea shown only for that path (`!isPreSendRoll()`, already existed as a helper), prepended to the roll result in `submitAll()` if filled in.
+**Bug B — HP resolved before its own roll.** Same transcript: the AI emitted `roll_request: Attack|13|Thorn|normal|Kobold` (asking for the roll) and `hp: Kobold=4` (already resolving a hit) in the same mechanics batch. When the player's roll came back a miss, the kobold's HP was never corrected — stayed at the pre-resolved value, with no code path to catch it. (`runGate1`'s Roll Confirmation gate only regex-scans narrative prose for phrasing like "X rolls a NN" — it never inspects the mechanics block for this shape of problem.)
 
-Files: `src/state/system.js`, `src/data/persist.js`, `src/ui/manage/MechTest.jsx`, `src/ui/play/Chat.jsx`, `src/ui/play/CharDrawer.jsx`, `src/ui/play/RollBar.jsx`, `src/style.css`. 84/84 tests passing (no new tests — all four are UI/persistence-plumbing changes with no new testable pure logic; `persist.js`'s `snapshot()`/`restoreSession()` aren't exported and this suite has no IndexedDB-mocking precedent). Build clean.
+Fixed with a batch-level rule in `validateMechanics()` (`mechanics.js`), mirroring the existing S73 same-PC damage+hp rule exactly: collect the `TargetName` (5th field) from any `roll_request` mechanics in the batch, then reject any `hp:`/`damage:` mechanic naming that same target in the same batch. Plain skill-check `roll_request`s (no 5th field) are naturally excluded. Accepted trade-off, consistent with this codebase's existing philosophy for this rule class: a genuinely unrelated hp change to a same-named target that happens to share a message with an unrelated roll_request would also get rejected — rare, and preferred over silently letting a fabricated combat outcome through.
 
-### Also confirmed from the same export (no code changes, just verification)
-- **S69's Cover fix is live and working** — the export showed an attack against a Kobold with `cover: Kobold=half` resolving against AC 15 (13 base + 2 cover), not the AI's raw reported 13, exactly as designed.
-- **S70's scroll fix and XP-format fix are reasonably confirmed** — the user used the testing tab extensively (scenarios, notes, export) without a scroll complaint, and the mass-test XP mechanic showed the corrected `Name+amount` format applying successfully.
+Files: `src/ai/engine.js`, `src/ai/mechanics.js`. 4 new tests in `tests/foundations.test.js` (co-emitted hp/damage rejected for the exact roll_request target; regression checks that a different target, or a plain skill-check roll_request, doesn't get caught). 88/88 tests passing (up from 84), build clean.
 
 ---
 
 ## Decisions Made
-See `.claude/decisions.md` → "Four fixes from a live playtest export (S73)" for the full root-cause trace on all four, including the correction on which drawer had the spell-nav bug.
+See `.claude/decisions.md` → "Combat turn desync + pre-resolved roll outcome (S74) — core loop fix" for the full writeup, including the two design flaws the Plan agent caught and the reasoning for each fix.
 
 ---
 
 ## Known Issues / Follow-ups
-- S73's four fixes need a real phone check: reopen the testing tab after closing it (notes should persist), tap a spell's ⓘ in the right drawer and confirm it lands on Spells not just Journal, watch the left drawer during a multi-PC combat sequence, and try adding a note to a `roll_request`-triggered roll.
-- The user is now in an active playtest-and-report loop using the S70/S72 tooling (Testing Notes + scenario buttons + export). Expect more findings of this shape going forward — this has become a real, working feedback channel, not just a one-off.
+- **This is the highest-stakes unverified fix of the sprint.** Cannot live-verify in this sandbox (Firebase boot hangs before render, as with every prior session). Needs a real multi-round combat encounter with at least one attack roll to confirm: the turn indicator advances exactly once per turn (not twice, not skipped), and a missed attack roll no longer leaves stale pre-resolved damage on the target. Flag this clearly to the user before considering it fully closed — the test suite and Plan-agent review give high confidence, but this touches the core loop directly and deserves a real playtest before being trusted blind.
+- Fix A (`engine.js`) has no automated test — this suite has no precedent for testing `sendNarrative()` itself (would require mocking a live AI provider call), consistent with how other `engine.js` changes this sprint (e.g. S67's Action Economy) were also verified by trace + review rather than direct unit test.
+- The user directly asked, mid-review, whether this touches "the three pass loop" (the classify → roll bar → narrate architecture) — worth keeping in mind for the next session that the user is starting to track the architecture's shape, not just symptoms, and plain-language explanations of *why* a fix works are landing well.
 
 ---
 
 ## Next Up (per workboard Priorities, deadline July 11)
-Priority #1 (SRD gap-analysis) closed as of S69. Remaining: #4 AI DC determination (deliberately last, complex), #5 Scene transition gate, #8 Multiplayer bundles MVP. Playtest-driven fixes (like this session's four) are proving to be a steady, valuable parallel stream alongside the priority list — worth continuing to prioritize alongside scheduled work, not after it.
+Priority #1 (SRD gap-analysis) closed as of S69. Remaining: #4 AI DC determination (deliberately last, complex), #5 Scene transition gate, #8 Multiplayer bundles MVP. This session's fix came from the same playtest-and-report loop as recent sessions (S70-S73) — expect that to keep being the primary source of work, alongside the scheduled priority list.
 
 ---
 
 ## Branch State
-`claude/workboard-sprint-deadline-ka8m7y` has this session's commits (pending push as of writing). S72 was merged to `main` this session ("make it live" / deploy confirmed via GitHub Actions). S73 has not been merged — user has not said so yet this segment.
+`claude/workboard-sprint-deadline-ka8m7y` has this session's commits (code + docs, pushed by end of session). Not merged to `main` — the user's most recent message ("you're good to go ahead") authorized *implementing* this fix, not a production deploy. Wait for an explicit "go live" before merging S74 to main.

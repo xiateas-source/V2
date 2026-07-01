@@ -452,6 +452,23 @@ User played the deployed app (using the S72 scenario buttons) and sent an export
 
 No new tests: all four are UI/persistence-plumbing changes with no new testable pure logic — `persist.js`'s `snapshot()`/`restoreSession()` aren't exported and this suite has no IndexedDB-mocking precedent to test them meaningfully (consistent with why the S70 export/notes feature itself wasn't unit-tested either).
 
+## Combat turn desync + pre-resolved roll outcome (S74) — core loop fix
+
+Another export from the same playtest, sent minutes after S73 shipped, surfaced a genuinely serious bug — not a cosmetic UI issue like the recent run of fixes, but a desync in the combat turn loop itself. Player: "Because thorn rolled for his vicious mockery after the DM narration my turn got skipped. Current card is showing it's thorns turn." Given the stakes (Law 1: "the core loop is sacred"), this got the most rigor of any fix this sprint: an Explore agent to verify the root cause against source, then — because the user (who doesn't code and said so directly) needed to trust this one on the strength of the process, not the code — a Plan agent specifically tasked with finding holes in the first draft before writing anything. It found two real ones.
+
+**Bug A** — `sendNarrative()` (`engine.js`) called `advanceCombatToNextPC()` unconditionally at the end of every response when combat was active, guarded only by `isAwaitingInitiative()` (initiative rolls only — not mid-combat `roll_request`s). So the turn advanced the moment the AI asked for a roll, before the player had even rolled — then advanced *again* when the roll's result came back through the same function. Any turn involving a roll doubled up on advancement.
+
+**Bug B** — in the same transcript, one AI response emitted both `roll_request: Attack|13|Thorn|normal|Kobold` and `hp: Kobold=4` in the same batch — resolving a hit before the roll came back. The roll then missed, and the kobold's HP was never corrected. `runGate1` (the gate meant to catch exactly this) only scans narrative prose for "X rolls a NN"-style patterns — it never inspected the mechanics block itself for this shape of violation.
+
+| Decision | Rationale |
+|----------|-----------|
+| Fix A: compute `hasPendingRoll` (does the *current actor* have an applied, unresolved `roll_request` in this response) and only suppress the non-kickoff turn advance when true | First draft checked "any roll_request present," not scoped to the current actor — Plan-agent review caught that a forced roll for a *different* PC (e.g. a reaction save) would incorrectly hold the turn open even though the current actor's turn was genuinely over. |
+| Compute `hasPendingRoll` *after* the concentration-save `roll_request` gets injected into `applied` (engine.js ~line 250-253), not before | Plan-agent review caught this ordering bug directly: computing it earlier, as originally drafted, would silently miss concentration-save rolls, since that injection happens after `applyMechanics()` returns. |
+| Kickoff's `inclusive: true` placement is never held back by `hasPendingRoll` — only the normal advance is gated (`!(hasPendingRoll && !combatKickoff)`) | Plan-agent review flagged that kickoff establishes *whose* turn it is for the first time, it doesn't confirm a resolution — gating it the same way as the normal advance risked leaving the turn pointer stuck at whatever `combat_start` initialized it to, never landing on the first living PC. |
+| Fix B: reject `hp:`/`damage:` for the exact TargetName of an Attack-type `roll_request` in the same batch | Mirrors the existing same-PC `damage:`+`hp:` batch rule (S73) exactly — same shape of "second mechanic silently overrides/pre-empts the first" bug, just triggered by a different pairing. Only Attack rolls carry a TargetName field, so plain skill-check `roll_request`s are unaffected — no extra type check needed. |
+| Accepted false-positive risk in Fix B: a genuinely unrelated hp change to a same-named target coinciding with an unrelated roll_request in one message would also get rejected | Same trade-off already accepted for the same-PC rule — over-rejecting a rare coincidence beats silently letting a fabricated combat outcome through. |
+| No test for Fix A (`engine.js`) | `sendNarrative()` requires a live/mocked AI provider call this suite has no precedent for testing — same limitation as every other `engine.js` change this sprint (e.g. S67's Action Economy). Fix B (`mechanics.js`, pure function) got 4 tests, same pattern as S73's same-PC rule tests. |
+
 ## Open Questions (not yet answered)
 
 - **Child-friendly view target age** — 7-16 is wide. What's the actual simplification scope?
