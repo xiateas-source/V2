@@ -1045,12 +1045,21 @@ const DISPATCH = {
   },
 
   cover(value) {
-    // cover: Name=half|three-quarters|total|none
+    // cover: Name=half|three-quarters|total|none — Name may be a PC (coverBonus
+    // stored on the character) or an enemy already tracked in combatState.initiative
+    // via zone_add_enemy (coverBonus stored on the initiative entry). RollBar.jsx's
+    // Attack roll resolution reads the initiative-side value to enforce it in code.
     const [name, level] = value.split('=').map(s => s.trim().toLowerCase());
     const bonus = level === 'half' ? 2 : level === 'three-quarters' ? 5 : 0;
     const idx = findPCIndex(name);
-    if (idx === -1) return;
-    aiSet(`characters.${idx}.coverBonus`, bonus);
+    if (idx !== -1) {
+      aiSet(`characters.${idx}.coverBonus`, bonus);
+      return;
+    }
+    const initIdx = store.campaign.combatState.initiative.findIndex(c => c.name.toLowerCase() === name);
+    if (initIdx !== -1) {
+      aiSet(`combatState.initiative.${initIdx}.coverBonus`, bonus);
+    }
   },
 
   save_game() {},

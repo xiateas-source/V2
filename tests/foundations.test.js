@@ -302,6 +302,54 @@ describe('Gate Firing', () => {
   });
 });
 
+describe('cover mechanic — PCs and enemies', () => {
+  beforeEach(() => {
+    loadTestCharacters();
+    setStore('campaign', 'combatState', {
+      active: true, round: 1,
+      initiative: [
+        { name: 'Ivy', type: 'pc', hp: 31 },
+        { name: 'Goblin', type: 'npc', hp: 7, ac: 15 },
+      ],
+      currentTurn: 0,
+      actionsUsed: { action: false, bonus: false, reaction: false, movement: false },
+      zones: {},
+    });
+  });
+
+  it('sets coverBonus on a PC', () => {
+    const { valid } = validateMechanics([{ key: 'cover', value: 'Ivy=half', target: '', applied: false }]);
+    applyMechanics(valid);
+    expect(store.campaign.characters[0].coverBonus).toBe(2);
+  });
+
+  it('sets coverBonus on an enemy already in initiative', () => {
+    const { valid } = validateMechanics([{ key: 'cover', value: 'Goblin=three-quarters', target: '', applied: false }]);
+    applyMechanics(valid);
+    expect(store.campaign.combatState.initiative[1].coverBonus).toBe(5);
+  });
+
+  it('matches enemy names case-insensitively', () => {
+    const { valid } = validateMechanics([{ key: 'cover', value: 'goblin=half', target: '', applied: false }]);
+    applyMechanics(valid);
+    expect(store.campaign.combatState.initiative[1].coverBonus).toBe(2);
+  });
+
+  it('clears coverBonus with "none"', () => {
+    setStore('campaign', 'combatState', 'initiative', 1, 'coverBonus', 5);
+    const { valid } = validateMechanics([{ key: 'cover', value: 'Goblin=none', target: '', applied: false }]);
+    applyMechanics(valid);
+    expect(store.campaign.combatState.initiative[1].coverBonus).toBe(0);
+  });
+
+  it('is a no-op for a name matching neither a PC nor an enemy', () => {
+    const { valid } = validateMechanics([{ key: 'cover', value: 'Nobody=half', target: '', applied: false }]);
+    applyMechanics(valid);
+    expect(store.campaign.characters[0].coverBonus).toBeUndefined();
+    expect(store.campaign.combatState.initiative[1].coverBonus).toBeUndefined();
+  });
+});
+
 describe('hit_dice_use — Short Rest healing', () => {
   beforeEach(loadTestCharacters);
 

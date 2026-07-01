@@ -81,6 +81,17 @@ function isAttackRoll(skill) {
   return lower === 'attackroll' || lower === 'attack';
 }
 
+// Code-enforced Cover (Law 2): looks up the attack's target in combatState.initiative
+// (populated by zone_add_enemy) and returns its coverBonus, so an AI-reported AC that
+// omits cover still gets the bonus applied deterministically, instead of trusting the
+// AI to have baked it into the AC number itself.
+function getCoverBonus(targetName) {
+  if (!targetName) return 0;
+  const lower = targetName.toLowerCase();
+  const target = store.campaign.combatState.initiative?.find(c => c.name.toLowerCase() === lower);
+  return target?.coverBonus || 0;
+}
+
 // Parses a stored attack damage formula like "1d8+3" or "2d6" (leading
 // dice notation; trailing text such as a damage-type word is ignored).
 function parseDamageFormula(formula) {
@@ -232,6 +243,7 @@ export default function RollBar() {
             const dcStr = parts[1];
             const rawName = parts[2];
             const mod = (parts[3] || '').toLowerCase();
+            const targetName = isAttackRoll(skill) ? (parts[4] || '') : '';
             const pcName = (rawName || 'Unknown').replace(/\s*\(.*\)$/, '');
             let advState = 'normal';
             if (mod === 'advantage') advState = 'advantage';
@@ -239,10 +251,14 @@ export default function RollBar() {
             const foundPC = findPC(pcName);
             advState = applyConditions(advState, foundPC, skill);
             const autoFailReason = autoFailInfo(foundPC, skill);
+            const baseDc = dcStr === 'none' ? null : (parseInt(dcStr, 10) || null);
+            const coverBonus = isAttackRoll(skill) ? getCoverBonus(targetName) : 0;
             return {
               id: `${i}-${idx}`,
               skill,
-              dc: dcStr === 'none' ? null : (parseInt(dcStr, 10) || null),
+              dc: baseDc === null ? null : baseDc + coverBonus,
+              targetName,
+              coverBonus,
               pcName,
               isPC: isPlayerChar(pcName),
               advState,
@@ -496,6 +512,9 @@ export default function RollBar() {
             <span class="roll-pc">{currentRoll()?.pcName}</span>
             <Show when={currentRoll()?.dc}>
               <span class="roll-dc">{isAttackRoll(currentRoll()?.skill) ? 'AC' : 'DC'} {currentRoll()?.dc}</span>
+            </Show>
+            <Show when={currentRoll()?.coverBonus}>
+              <span class="roll-cover" title={`Target has cover: +${currentRoll()?.coverBonus} AC`}>COVER +{currentRoll()?.coverBonus}</span>
             </Show>
             <Show when={currentRoll()?.autoFail}>
               <span class="roll-dis" title={currentRoll()?.autoFailReason}>AUTO-FAIL</span>

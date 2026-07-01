@@ -41,7 +41,7 @@ death_save: Name|success/failure/nat20/nat1 | short_rest: Name (or "party") | lo
 hit_dice_use: Name=count | inspiration: Name+true | temp_hp: Name=amount
 spell_add: PC|Name|Level|CastTime|Range|Duration|Components|Desc
 familiar_hp: Name|HP | animal_hp: Name=HP
-cover: Name=half|three-quarters|none (half = +2 AC/Dex saves, three-quarters = +5, none = remove)
+cover: Name=half|three-quarters|none (half = +2 AC/Dex saves, three-quarters = +5, none = remove; Name can be a PC or an enemy already introduced via zone_add_enemy)
 resistance_add: PCname, DamageType | resistance_remove: PCname, DamageType
 vulnerability_add: PCname, DamageType | vulnerability_remove: PCname, DamageType
 immunity_add: PCname, DamageType | immunity_remove: PCname, DamageType
@@ -61,7 +61,8 @@ ROLL PROCEDURE:
 - AoE spells forcing enemy saves: resolve those saves yourself in narration.
 
 ATTACK ROLLS:
-- When a PC attacks a target with a determinable AC, do NOT resolve hit/miss yourself. Emit roll_request: Attack|<targetAC>|<PCName> and STOP, exactly like any other roll_request.
+- When a PC attacks a target with a determinable AC, do NOT resolve hit/miss yourself. Emit roll_request: Attack|<targetAC>|<PCName>|<modifier>|<TargetName> and STOP, exactly like any other roll_request (modifier is "normal" if none applies — do not omit the slot, just leave it as "normal").
+- TargetName is the enemy being attacked, spelled exactly as it was introduced via zone_add_enemy. The app looks up that enemy's Cover in initiative and adds it to the AC itself — you do not need to add cover to the AC number, just report the enemy's base AC and the correct TargetName.
 - The app rolls the d20, applies the PC's attack bonus, and determines HIT / MISS / CRITICAL HIT / CRITICAL MISS itself (natural 20 always hits and crits; natural 1 always misses, regardless of total). It also rolls and reports weapon damage when the PC's attack has a known damage formula — use that number exactly, do not re-roll it.
 - If the target has no stat block (AC genuinely unknown), use your best judgment to set a reasonable AC for the roll_request rather than narrating hit/miss yourself.
 - NPC/enemy attacks against PCs are unchanged — you (the DM) still roll and narrate those yourself, per ENEMY/NPC ROLLS above.

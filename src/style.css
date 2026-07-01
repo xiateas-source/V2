@@ -969,6 +969,15 @@ body {
   font-weight: 700;
 }
 
+.roll-cover {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
 .roll-adv-sm, .roll-dis-sm {
   font-size: 9px;
   font-weight: 700;
