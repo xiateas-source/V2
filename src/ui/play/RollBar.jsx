@@ -181,6 +181,7 @@ function applyConditions(advState, foundPC, skill) {
 export default function RollBar() {
   const [rollResults, setRollResults] = createSignal({});
   const [submitted, setSubmitted] = createSignal(new Set());
+  const [rollNote, setRollNote] = createSignal('');
 
   // Initiative rolls are derived straight from combatState (the PCs still
   // flagged rollPending), not from the message/mechanics path — combat_start
@@ -469,8 +470,10 @@ export default function RollBar() {
     if (isPreSend) {
       resumeAfterRolls(rollData);
     } else {
-      const msg = lines.join('\n');
+      const note = rollNote().trim();
+      const msg = note ? `${note}\n\n${lines.join('\n')}` : lines.join('\n');
       sendMsg(msg, { tab: 'narrative' });
+      setRollNote('');
     }
   }
 
@@ -605,6 +608,15 @@ export default function RollBar() {
               }}
             </For>
           </div>
+          <Show when={!isPreSendRoll()}>
+            <textarea
+              class="roll-note-input"
+              placeholder="Add a message with this roll (optional)"
+              value={rollNote()}
+              onInput={(e) => setRollNote(e.target.value)}
+              rows="2"
+            />
+          </Show>
           <button class="btn-roll btn-roll-submit" onClick={submitAll} disabled={isSending()}>
             Send All
           </button>

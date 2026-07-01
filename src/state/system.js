@@ -35,4 +35,8 @@ export const DEFAULT_SYSTEM = {
   },
 
   activeCampaignId: '',
+
+  // Dev/QA scratch space (MechTest.jsx's Testing Notes) — local-only, not
+  // campaign data, survives closing the testing tab and New Campaign resets.
+  testerNotes: '',
 };

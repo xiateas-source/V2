@@ -1057,6 +1057,19 @@ body {
   color: var(--color-text-muted);
 }
 
+.roll-note-input {
+  width: 100%;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  resize: none;
+  margin-top: var(--space-xs);
+}
+.roll-note-input:focus { outline: none; border-color: color-mix(in srgb, var(--color-accent) 35%, transparent); }
+
 /* --- INPUT BAR --- */
 
 .input-bar {

@@ -84,6 +84,7 @@ function snapshot() {
     multiplay: plain(store.system.multiplay),
     theme: store.system.settings.theme,
     largeText: store.system.settings.largeText,
+    testerNotes: store.system.testerNotes || '',
     ts: Date.now(),
   };
 }
@@ -242,6 +243,7 @@ export async function restoreSession() {
       setStore('system', 'settings', 'largeText', true);
       document.documentElement.style.fontSize = '20px';
     }
+    if (snap.testerNotes) setStore('system', 'testerNotes', snap.testerNotes);
     return true;
   }
   return false;

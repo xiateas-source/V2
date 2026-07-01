@@ -1,4 +1,4 @@
-import { createSignal, For, Show, createMemo } from 'solid-js';
+import { createSignal, createEffect, For, Show, createMemo } from 'solid-js';
 import { store, setStore } from '../../state/index.js';
 import { validateMechanics, applyMechanics } from '../../ai/mechanics.js';
 
@@ -6,7 +6,19 @@ export default function CharDrawer({ onClose }) {
   const characters = () => store.campaign.characters;
   const selectedPCs = () => store.system.playerIdentity?.selectedPCs || [];
 
+  // Whoever's turn it currently is, in combat — mirrors TurnPrompt.jsx's actor
+  // derivation, so this drawer doesn't default to/stay on a stale PC.
+  const currentActorIdx = () => {
+    const cs = store.campaign.combatState;
+    if (!cs.active) return -1;
+    const actor = cs.initiative[cs.currentTurn];
+    if (!actor || actor.type !== 'pc') return -1;
+    return characters().findIndex(c => c.name === actor.name);
+  };
+
   const defaultIdx = () => {
+    const active = currentActorIdx();
+    if (active >= 0) return active;
     if (selectedPCs().length > 0) {
       const idx = characters().findIndex(c => selectedPCs().includes(c.name));
       return idx >= 0 ? idx : 0;
@@ -16,6 +28,14 @@ export default function CharDrawer({ onClose }) {
 
   const [pcIdx, setPcIdx] = createSignal(defaultIdx());
   const pc = () => characters()[pcIdx()] || null;
+
+  // Re-sync to whoever's turn it is whenever the turn changes while the
+  // drawer stays open. Manual tab taps still work in between — this only
+  // re-fires on an actual turn change, not every render.
+  createEffect(() => {
+    const idx = currentActorIdx();
+    if (idx >= 0) setPcIdx(idx);
+  });
 
   const hpPct = () => {
     const p = pc();

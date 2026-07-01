@@ -62,7 +62,10 @@ export default function MechTest(props) {
   const [audit, setAudit] = createSignal(null);
   const [massLog, setMassLog] = createSignal(null);
   const [running, setRunning] = createSignal(false);
-  const [testerNotes, setTesterNotes] = createSignal('');
+  // Backed by store.system (not a local signal) so notes survive closing this
+  // tab, reloading the page, and New Campaign resets — see system.js.
+  const testerNotes = () => store.system.testerNotes;
+  const setTesterNotes = (v) => setStore('system', 'testerNotes', v);
 
   const firstPC = () => store.campaign.characters[0]?.name || 'the party';
 

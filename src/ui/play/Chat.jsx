@@ -15,7 +15,7 @@ import CharDrawer from './CharDrawer.jsx';
 import ActionsDrawer from './ActionsDrawer.jsx';
 import { autoRead, speak } from '../../audio/browserTTS.js';
 import MechPill from '../shared/MechPill.jsx';
-import { navigateTo, navigateToNPC } from '../shared/sourceBus.js';
+import { navigateTo, navigateToNPC, navigateToCompendium } from '../shared/sourceBus.js';
 import { validateMechanics, applyMechanics } from '../../ai/mechanics.js';
 
 const [glossaryTerms, setGlossaryTerms] = createSignal([]);
@@ -49,7 +49,7 @@ export default function Chat() {
     if (sp) {
       const meta = [sp.level ? `Level ${sp.level}` : 'Cantrip', sp.school].filter(Boolean).join(' · ');
       const stats = [sp.castingTime && `Cast ${sp.castingTime}`, sp.range && `Range ${sp.range}`, sp.duration && `Duration ${sp.duration}`].filter(Boolean).join(' · ');
-      setTooltip({ title: sp.name, body: `${meta}\n${stats}\n\n${sp.description || sp.content || ''}`.trim(), action: { label: 'Open Compendium', mode: 'journal' } });
+      setTooltip({ title: sp.name, body: `${meta}\n${stats}\n\n${sp.description || sp.content || ''}`.trim(), action: { label: 'Open Compendium', compendium: 'spells' } });
     }
   }
 
@@ -114,7 +114,7 @@ export default function Chat() {
       if (sp) {
         const meta = [sp.level ? `Level ${sp.level}` : 'Cantrip', sp.school].filter(Boolean).join(' · ');
         const stats = [sp.castingTime && `Cast ${sp.castingTime}`, sp.range && `Range ${sp.range}`, sp.duration && `Duration ${sp.duration}`].filter(Boolean).join(' · ');
-        setTooltip({ title: sp.name, body: `${meta}\n${stats}\n\n${sp.description || sp.content || ''}`.trim(), action: { label: 'Open Compendium', mode: 'journal' } });
+        setTooltip({ title: sp.name, body: `${meta}\n${stats}\n\n${sp.description || sp.content || ''}`.trim(), action: { label: 'Open Compendium', compendium: 'spells' } });
       }
     }
   }
@@ -227,6 +227,7 @@ export default function Chat() {
               <button class="tooltip-action" onClick={() => {
                 const a = tooltip().action;
                 if (a.npc) navigateToNPC(a.npc);
+                else if (a.compendium) navigateToCompendium(a.compendium);
                 else navigateTo(a.mode);
                 setTooltip(null);
               }}>
