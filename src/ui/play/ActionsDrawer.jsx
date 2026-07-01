@@ -181,7 +181,10 @@ export default function ActionsDrawer({ onClose }) {
             <div class="drawer-spell-chips">
               <For each={pc().cantrips}>
                 {(s) => (
-                  <button class="drawer-spell-chip" onClick={() => castSpell(s)}>{s}</button>
+                  <div class="drawer-spell-chip-row">
+                    <button class="drawer-spell-chip" onClick={() => castSpell(s)}>{s}</button>
+                    <button class="drawer-spell-info" onClick={() => window.dispatchEvent(new CustomEvent('spell-tooltip', { detail: { name: s } }))} title="Read spell">ⓘ</button>
+                  </div>
                 )}
               </For>
             </div>
@@ -189,11 +192,14 @@ export default function ActionsDrawer({ onClose }) {
 
           {/* Known spells */}
           <Show when={pc().knownSpells?.length > 0}>
-            <div class="drawer-section-label">Spells <span class="drawer-hint">tap to cast</span></div>
+            <div class="drawer-section-label">Spells <span class="drawer-hint">tap name to cast · ⓘ to read</span></div>
             <div class="drawer-spell-chips">
               <For each={pc().knownSpells}>
                 {(s) => (
-                  <button class="drawer-spell-chip" onClick={() => castSpell(s)}>{s}</button>
+                  <div class="drawer-spell-chip-row">
+                    <button class="drawer-spell-chip" onClick={() => castSpell(s)}>{s}</button>
+                    <button class="drawer-spell-info" onClick={() => window.dispatchEvent(new CustomEvent('spell-tooltip', { detail: { name: s } }))} title="Read spell">ⓘ</button>
+                  </div>
                 )}
               </For>
             </div>
