@@ -51,9 +51,10 @@ On-demand reference (read when relevant, not every session):
 1. Commit all changes, push the feature branch
 2. Update `.claude/workboard.md` — mark completed items, add new items
 3. Update `.claude/decisions.md` — if design choices were made
-4. Write `.claude/session-log.md` — overwrite with fresh handoff (what shipped, decisions, known issues, next up, branch state)
-5. Commit and push doc updates
-6. If user says "go live": merge to main and push
+4. If the session touched a gate, mechanic, or enforcement behavior: check `.claude/ai-failures.md` for a matching line to mark ✅ or a new failure mode to add — this doc only stays true if every session that touches Law 2 loops back to it, not just `decisions.md`
+5. Write `.claude/session-log.md` — overwrite with fresh handoff (what shipped, decisions, known issues, next up, branch state)
+6. Commit and push doc updates
+7. If user says "go live": merge to main and push
 
 ---
 

@@ -32,6 +32,26 @@ AI response arrives
 
 ---
 
+## Gate numbering — spec vs. implementation (corrected S77)
+
+The gate numbers below are this doc's original design order. As gates got built, they landed in `src/ai/gates.js` as `runGate1`...`runGate9` in build order, not spec order — the two numbering schemes drifted apart and were never reconciled until an independent agent audit in S77. Only Gate 1 and Gate 9 still line up. Use this table, not the header numbers alone, when tracing a gate to its code:
+
+| This doc's gate # | Gate name | Actual function in `gates.js` |
+|---|---|---|
+| Gate 1 | Roll Confirmation | `runGate1` — matches |
+| Gate 2 | Scene Transition | `runGate4` |
+| Gate 3 | Unmentioned PC Actions | `runGate5` |
+| Gate 4 | Spell Validation | `runGate6` |
+| Gate 5 | Drift Detectors | `runGate3` |
+| Gate 6 | Combat Turn Enforcement | `runGate2` |
+| Gate 7 | XP Audit | `runGate8` |
+| Gate 8 | Skill Check Requirement | `runGate7` |
+| Gate 9 | Income/Loot Reconciliation | `runGate9` — matches |
+
+Also, Gate 4 (Spell Validation / `runGate6`) is known incomplete as of S77: it checks that a cast spell is known and has slots, but nothing validates that a `roll_request` attached to that spell actually matches how the spell resolves per its real mechanic (attack roll / target-saves / caster-check) — see `.claude/ai-failures.md`'s "Roll_request type doesn't match the spell's actual mechanic" entry.
+
+---
+
 ## Gate 1: Roll Confirmation
 
 **Contract clause it replaces:** *"state check type and DC, wait. Do not narrate outcome until roll arrives"*
