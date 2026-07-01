@@ -427,6 +427,18 @@ User sent a real solo playtest transcript and asked for a gap audit, flagging th
 | Did NOT build automatic "AI forgot npc_add" drift detection | Spec'd in `enforcement-spec.md` (Gate 5) but never implemented in the actual `runGate3`; the narrower existing pattern in `drift.js` only matches explicit self-introduction phrasing and wouldn't have caught this transcript's purely descriptive, never-formally-named creature. User explicitly chose to defer this — building a real detector is a bigger, fuzzier heuristic problem with genuine false-positive risk, better designed in its own session. |
 | Did not touch Gate 3's occasional item-drift false positives on narrative physical-contact descriptions (e.g. "vines grab your cloak") | Minor noise, not a correctness bug — consistent with the enforcement spec's own stated design principle that false positives are cheap and false negatives are expensive. |
 
+## Scenario buttons in the testing tab (S72)
+
+User's follow-up to the S71 audit: solo playtesting is fine for freeform play, but hard for *deliberately* exercising one specific mechanic — that usually comes from a second person prompting "now try X." Existing testing-tab tools (Quick Fire, Mass Test) only inject raw mechanics data; they don't drop the player into a live, playable moment.
+
+| Decision | Rationale |
+|----------|-----------|
+| Added a "Scenarios" section to `MechTest.jsx` with 3 one-tap buttons (Covered Enemy → tests S69 Cover, Low HP + Rest → tests S68 Hit Dice, Mid-Combat Turn → tests S67 Action Economy), each landing the player in a real, playable situation (actual combat state, actual dice, actual UI) rather than just writing data | User confirmed this shape directly over a written-checklist alternative — a tap that gets you into the moment beats a doc telling you what to type. |
+| Curated per session, not auto-generated from the workboard's live-verification list | User confirmed this over building a real tracking/generation system. Simpler: I add a scenario when something new ships that needs a live check, remove it once confirmed working, next session. A comment in `MechTest.jsx` above the scenario functions documents this convention so it doesn't get forgotten. |
+| Only 3 scenarios shipped, not one for every unverified item (S56 onward) or for S70/S71's changes | Scoped to what's actually testable via a deterministic state setup. S70 (testing tab itself) doesn't need a scenario — it's what you're already using. S71's damage/hp co-emission fix and companion contract nudge both depend on the AI's own narrative behavior, not a state you can force into — no good deterministic "scenario" fits those; they can only be confirmed by playing normally and watching for the (absence of the) old behavior. |
+| "Covered Enemy" requires one initiative roll before the PC can act (via the normal `combat_start` rollPending flow) rather than skipping straight to an active turn | Kept authentic to the real combat-kickoff flow rather than over-simulating — incidentally re-exercises initiative/TurnPrompt too. |
+| "Mid-Combat Turn" bypasses the mechanics pipeline and writes `combatState` directly (`aiSet`), unlike the other two scenarios which use the normal `run()`/`fire()` mechanic path | There's no single mechanic that starts combat with a PC's turn already active and un-rolled — direct state construction is the only way to reach that exact test setup, matching the existing style of `newCampaign()`/`clearNarrative()` in the same file. |
+
 ## Open Questions (not yet answered)
 
 - **Child-friendly view target age** — 7-16 is wide. What's the actual simplification scope?
