@@ -1,61 +1,93 @@
-# Session Log — S63 continuation (2026-07-01)
+# Session Log — S65 (2026-07-01)
 
-## Branch State
-Branch: `main` · last commit: `1294abb` · build clean
-
----
-
-## What Shipped
-
-### mechanics.js — Bug Fixes (from Christian's campaign analysis)
-- `slot_use` / `slot_restore`: AI emits `Name|level` but contract says `Name=level`. Fixed all three handlers: `value.split(/[=|]/)` accepts both.
-- `npc_add`: AI started using pipes for newer NPCs, handler expected commas. Fixed: auto-detect separator.
-- `ActionsDrawer` null slot: `spellSlots = [null, 4, 3, 3, 1]` rendered a "0th" slot row. Fixed: `.filter(([, max]) => max)`.
-- Passive resources "undefined/undefined": resources with no `max` (Song of Rest) showed broken pip display. Fixed: fallback `<span class="drawer-resource-passive">passive</span>`.
-
-### Cargo.jsx — Full Inventory Editing Rewrite (`f3273d4`)
-- Every item tappable → expands inline with: qty stepper (−/N/+), context-aware Use/Eat/Drink/Read button, trash delete, note textarea
-- `useItem()` fires `prefill-input` with correct verb + decrements qty
-- Companion-type wagon items now appear as "Traveling with" chip row, excluded from item list
-- "Merge Duplicates" button when same-name same-owner stacks exist
-- Player writes (qty, note, delete) go directly to store — player-owned per Law 2. Adds still through mechanics pipeline.
-
-### CharSheet — Link Familiar Form (`1294abb`)
-- When `pc.familiar` is null: dashed "Link Familiar" button on Vitals tab
-- Inline form: name, species dropdown, HP max, AC, walk, fly — defaults to raven stats
-- Saves to `setStore('campaign', 'characters', idx, 'familiar', {...})`
-- Context: Kael the raven familiar predated the familiar system. This lets the user manually register him.
-
-### Journal — NPC Rename/Edit (`1294abb`)
-- NPCCard dossier now has "Edit" button → inline form for name + disposition
-- Saves by NPC id via setStore
-- Context: corrupted NPC "Kael|Ally|Companion bird; acts as a scout and combat support." — entire pipe-delimited mechanic string was stored as the name.
+## Branch / Build
+Branch: `claude/latest-test-analysis-v64a6i` · last commit: `96f8737` · build clean · 60/60 tests
 
 ---
 
-## How to Fix Kael in the Live App
-1. CharSheet → Vitals tab → "Link Familiar" → enter Kael, Raven, adjust HP if needed → Save
-2. Journal → People → find the garbled "Kael|Ally|..." card → open → Edit → rename to "Kael", set Ally → Save
-3. Cargo → "Kael (The Tattered Raven)" companion item → tap → trash → gone (now redundant)
+## What Shipped This Session
+
+### Gate 3 drift_hp false positive fix (`b3c3e90`)
+- Gate 3 was flagging every combat turn as "HP change narrated without mechanic"
+- Root cause: PC damage uses `damage:` mechanic, not `hp:`. Gate 3 only checked for `hp:`
+- Fix: added `&& !mechanicKeys.has('damage') && !mechanicKeys.has('temp_hp')` to the condition
+- File: `src/ai/gates.js`
+
+### NPC deep-link in Journal (`b3c3e90`)
+- Tapping "View in Journal" on an NPC tooltip in chat now navigates to Journal → People and auto-opens the matching NPCCard, scrolling it into view
+- New: `pendingNpcFocus` signal + `navigateToNPC()` function in `sourceBus.js`
+- Chat.jsx: NPC tooltip action uses `navigateToNPC(a.npc)` instead of `navigateTo('journal')`
+- Journal.jsx: NPCCard has deep-link `createEffect` that matches name, opens card, scrolls
+- Files: `src/ui/shared/sourceBus.js`, `src/ui/play/Chat.jsx`, `src/ui/reference/Journal.jsx`
+
+### Gate 8 tappable XP request (`b3c3e90`)
+- `missing_xp` gate flag was static text — no click handler
+- Now renders as a `<button>` that pre-fills the input with an XP request
+- File: `src/ui/play/Chat.jsx`
+
+### CharDrawer + CharSheet: dead `roll-request` events connected (`1612871`)
+- ALL `roll-request` CustomEvent dispatches in CharDrawer and CharSheet were firing into void — no listener
+- Fixed by routing to `prefill-input` instead (consistent with ActionsDrawer's spell flow)
+- CharDrawer: attack tap → `prefill-input: "${name} attacks with ${weapon}."` + closes drawer
+- CharSheet abilities/saves/skills/attacks/initiative/spell attack → all now use `prefill-input`
+- Files: `src/ui/play/CharDrawer.jsx`, `src/ui/reference/CharSheet.jsx`
+
+### Browse Compendium button on CharSheet (`76c70d3`)
+- Christian's V1 design: a "Browse Compendium" button on the Spells tab between concentration tracker and spell slots
+- Button taps navigate to Journal → Compendium, pre-filtered to the PC's class
+- New: `pendingCompendium` signal + `navigateToCompendium(tab, classFilter)` in `sourceBus.js`
+- Journal.jsx already had a `createEffect` watching `pendingCompendium` to flip to lookup view
+- Files: `src/ui/reference/CharSheet.jsx`, `src/ui/shared/sourceBus.js`
+
+### Compendium spell UI overhaul — Christian's V1 design restored (`96f8737`)
+**Problem:** Flat unfiltered list of 50 spells, every tap navigated to a new page — friction and ugly. No class or level filtering.
+
+**Solution:** Full rewrite of `Compendium.jsx` spells tab to match V1 screenshots:
+- **Class filter chip row** — All / Bard / Cleric / Druid / Paladin / Ranger / Sorcerer / Warlock / Wizard. Horizontally scrollable, single-tap to select/deselect.
+- **Level filter chip row** — All Levels / Cantrips / 1st–9th. Same pattern.
+- **Section grouping with counts** — "CANTRIPS (22)", "1ST LEVEL (X)" etc., sorted A–Z within each level.
+- **Inline accordion** — tap a spell card to expand description, cast stats, class list in-place. No page navigation.
+- **Spell card** — name + school + Ritual (R) / Concentration (C) badges + caret. Expanded: cast/range/duration/components grid + class list + full description.
+- **Auto-filter from CharSheet** — `navigateToCompendium('spells', p.class)` sets a new `compendiumFilter` signal (separate from `pendingCompendium` so Journal doesn't consume it). Compendium reads it on `onMount` and pre-selects the PC's class chip.
+- Rules / Glossary / Feats tabs: unchanged, keep list → detail-page behaviour.
+- Files: `src/ui/reference/Compendium.jsx`, `src/ui/shared/sourceBus.js`, `src/ui/reference/CharSheet.jsx`, `src/style.css`
 
 ---
 
-## Gaps / Next Up
+## Git Note
+Session had SSH signing configured via `/tmp/code-sign` (environment-manager). Commits show `N` in `git log --format="%G?"` locally because `gpg.ssh.allowedSignersFile` isn't configured in this environment, but `git cat-file -p HEAD` confirms valid `gpgsig` blocks exist — GitHub verifies them correctly. Fast-forward cherry-pick push resolved the history divergence from the prior session's author-fix rebase without needing a force push.
 
-### Immediate (small, high value — do this first next session)
-- **Familiar HP in CharDrawer**: Kael's HP not visible during combat from the left drawer — must open full CharSheet. Fix: add familiar mini-card to CharDrawer when `pc.familiar` exists. ~30 lines.
+---
 
-### July 11 Deadline (UNTOUCHED — priority)
-1. Action Economy enforcement — `actionsUsed` flags exist, no gate checks them
-2. Cover mechanic — missing entirely
-3. Short Rest / Hit Dice healing surfacing
-4. AI DC determination — context-aware (currently flat tiers)
-5. Scene transition gate — Gate 2 in enforcement spec
+## Phase Status
 
-### Medium
-- Quest overload — Christian has 15 active quests, 5+ stale. No filter/archive UI in Journal.
-- Multiplayer bundles MVP — `data/bundles.js` still stub
+### Phase 1 — No broken mechanics (COMPLETE)
+- ✅ Gate 3 false positives in combat — fixed S65
+- ✅ Gate 8 XP flag — now tappable/actionable (S65)
 
-### Live Verification Still Needed
-- S62: presence badge (two-device), join auto-retry, character union merge (tab-kill)
+### Phase 2 — Christian's active experience (COMPLETE)
+- ✅ Spell DB expansion past L2 — already had L0-L9, 339 spells
+- ✅ Inline NPC name linking — Journal deep-link (S65)
+- ✅ Quest log UX — search + ✓ button (S64)
+- ✅ CharDrawer/CharSheet rollable elements — prefill-input (S65)
+- ✅ Browse Compendium button on CharSheet Spells tab (S65)
+- ✅ Compendium: class/level filters, inline accordion, section counts (S65)
+
+### Phase 3 — Second player ready
+- Nyx's player joining cleanly
+- Guest experience audit
+
+### Phase 4 — July 11 deadline
+- [ ] AI DC determination (complex, do last)
+
+---
+
+## Known Gaps Still Unbuilt
+- AI DC determination (Phase 4)
+- Multiplayer bundles MVP (data/bundles.js stub)
+- `dbWrite()` still never surfaces write failures (cosmetic, flagged S61)
+
+## Live Verification Still Needed
+- S62: presence badge two-device, join auto-retry, tab-kill character merge
 - S57: PC attack-roll/Critical Hits (needs live combat)
+- S65: NPC deep-link, Gate 8 tap, CharDrawer/CharSheet roll connections, Compendium overhaul

@@ -3,6 +3,7 @@ import { store, setStore, playerSet, systemSet } from '../../state/index.js';
 import { composePersonality } from '../../data/quickBuild.js';
 import { getByIndex, getAll } from '../../data/local.js';
 import { validateMechanics, applyMechanics } from '../../ai/mechanics.js';
+import { navigateToCompendium } from '../shared/sourceBus.js';
 
 const TIBF_FIELDS = [
   { key: 'trait', label: 'Personality Trait', placeholder: 'A distinctive habit, quirk, or attitude…' },
@@ -373,7 +374,7 @@ export default function CharSheet(props) {
         <div class="cs-ability-grid">
           <For each={ABILITY_NAMES}>
             {(key) => (
-              <div class="cs-ability-box" onClick={() => window.dispatchEvent(new CustomEvent('roll-request', { detail: { type: 'ability', ability: key, pc: p.name } }))}>
+              <div class="cs-ability-box" onClick={() => window.dispatchEvent(new CustomEvent('prefill-input', { detail: { text: `${p.name} makes a ${ABILITY_FULL[key]} ability check.` } }))}>
                 <div class="cs-ab-abbr">{key.toUpperCase()}</div>
                 <div class="cs-ab-score">{scores[key] || 10}</div>
                 <div class="cs-ab-mod">{formatMod(mod(scores[key] || 10))}</div>
@@ -385,7 +386,7 @@ export default function CharSheet(props) {
         <div class="cs-section-label">Saving Throws</div>
         <For each={ABILITY_NAMES}>
           {(key) => (
-            <div class="cs-skill-row" onClick={() => window.dispatchEvent(new CustomEvent('roll-request', { detail: { type: 'save', ability: key, pc: p.name } }))}>
+            <div class="cs-skill-row" onClick={() => window.dispatchEvent(new CustomEvent('prefill-input', { detail: { text: `${p.name} makes a ${ABILITY_FULL[key]} saving throw.` } }))}>
               <div class={`cs-prof-dot ${p.savingThrows?.includes(key) ? 'proficient' : ''}`} />
               <span class="cs-skill-name">{ABILITY_FULL[key]}</span>
               <span class="cs-skill-bonus">{formatMod(savingThrowBonus(key))}</span>
@@ -396,7 +397,7 @@ export default function CharSheet(props) {
         <div class="cs-section-label">Skills</div>
         <For each={Object.keys(SKILL_ABILITY).sort()}>
           {(skill) => (
-            <div class="cs-skill-row" onClick={() => window.dispatchEvent(new CustomEvent('roll-request', { detail: { type: 'skill', skill, pc: p.name } }))}>
+            <div class="cs-skill-row" onClick={() => window.dispatchEvent(new CustomEvent('prefill-input', { detail: { text: `${p.name} makes a ${skill.charAt(0).toUpperCase() + skill.slice(1)} check.` } }))}>
               <div class={`cs-prof-dot ${isSkillProficient(skill) ? 'proficient' : ''}`} />
               <span class="cs-skill-name">{skill.charAt(0).toUpperCase() + skill.slice(1)}</span>
               <span class="cs-skill-ability-tag">{SKILL_ABILITY[skill].toUpperCase()}</span>
@@ -406,7 +407,7 @@ export default function CharSheet(props) {
         </For>
 
         <div class="cs-section-label">Quick Reference</div>
-        <div class="cs-stat-row rollable" onClick={() => window.dispatchEvent(new CustomEvent('roll-request', { detail: { type: 'initiative', pc: p.name } }))}>
+        <div class="cs-stat-row rollable" onClick={() => window.dispatchEvent(new CustomEvent('prefill-input', { detail: { text: `Roll initiative for ${p.name}.` } }))}>
           <span class="cs-stat-label">Initiative</span>
           <span class="cs-stat-value accent">{formatMod(abilityMod('dex'))}</span>
         </div>
@@ -462,10 +463,13 @@ export default function CharSheet(props) {
         </div>
 
         <Show when={p.attacks?.length > 0}>
-          <div class="cs-section-label">Attacks <span class="cs-hint">tap to roll</span></div>
+          <div class="cs-section-label">Attacks <span class="cs-hint">tap to attack</span></div>
           <For each={p.attacks}>
             {(a) => (
-              <div class="cs-attack-card" onClick={() => window.dispatchEvent(new CustomEvent('roll-request', { detail: { type: 'attack', attack: a.name, pc: p.name } }))}>
+              <div class="cs-attack-card" onClick={() => {
+                window.dispatchEvent(new CustomEvent('prefill-input', { detail: { text: `${p.name} attacks with ${a.name}.` } }));
+                window.dispatchEvent(new CustomEvent('tp-navigate', { detail: { mode: 'play' } }));
+              }}>
                 <div class="cs-attack-info">
                   <div class="cs-attack-name">{a.name}</div>
                   <div class="cs-attack-stats"><span class="accent">+{a.bonus}</span> to hit | <span class="accent">{a.damage}</span></div>
@@ -744,7 +748,7 @@ export default function CharSheet(props) {
             <div class="cs-sc-label">Spell DC</div>
             <div class="cs-sc-value">{spellSaveDC()}</div>
           </div>
-          <div class="cs-sc-stat rollable" onClick={() => window.dispatchEvent(new CustomEvent('roll-request', { detail: { type: 'spellAttack', pc: p.name } }))}>
+          <div class="cs-sc-stat rollable" onClick={() => window.dispatchEvent(new CustomEvent('prefill-input', { detail: { text: `${p.name} makes a spell attack.` } }))}>
             <div class="cs-sc-label">Spell Atk</div>
             <div class="cs-sc-value accent">{formatMod(spellAttackBonus())}</div>
           </div>
@@ -764,6 +768,10 @@ export default function CharSheet(props) {
             <button class="cs-conc-end" onClick={() => setStore('campaign', 'characters', activePC(), 'concentration', null)}>End</button>
           </div>
         </Show>
+
+        <button class="cs-browse-compendium" onClick={() => navigateToCompendium('spells', p.class)}>
+          <i class="ph ph-books" /> Browse Compendium
+        </button>
 
         <Show when={slotEntries().length > 0}>
           <div class="cs-section-label">Spell Slots</div>

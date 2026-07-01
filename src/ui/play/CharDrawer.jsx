@@ -44,8 +44,8 @@ export default function CharDrawer({ onClose }) {
   function rollAttack(attackName) {
     const p = pc();
     if (!p) return;
-    window.dispatchEvent(new CustomEvent('roll-request', {
-      detail: { type: 'attack', attack: attackName, pc: p.name }
+    window.dispatchEvent(new CustomEvent('prefill-input', {
+      detail: { text: `${p.name} attacks with ${attackName}.` }
     }));
     onClose();
   }
@@ -191,7 +191,7 @@ export default function CharDrawer({ onClose }) {
 
           {/* Attacks */}
           <Show when={pc().attacks?.length > 0}>
-            <div class="drawer-section-label">Attacks <span class="drawer-hint">tap to roll</span></div>
+            <div class="drawer-section-label">Attacks <span class="drawer-hint">tap to attack</span></div>
             <For each={pc().attacks}>
               {(a) => (
                 <button class="drawer-attack" onClick={() => rollAttack(a.name)}>
