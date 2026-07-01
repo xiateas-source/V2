@@ -1,7 +1,7 @@
 # Session Log — S65 (2026-07-01)
 
 ## Branch / Build
-Branch: `claude/latest-test-analysis-v64a6i` · last commit: see below · build clean · 60/60 tests
+Branch: `claude/latest-test-analysis-v64a6i` · last commit: `96f8737` · build clean · 60/60 tests
 
 ---
 
@@ -17,7 +17,7 @@ Branch: `claude/latest-test-analysis-v64a6i` · last commit: see below · build 
 - Tapping "View in Journal" on an NPC tooltip in chat now navigates to Journal → People and auto-opens the matching NPCCard, scrolling it into view
 - New: `pendingNpcFocus` signal + `navigateToNPC()` function in `sourceBus.js`
 - Chat.jsx: NPC tooltip action uses `navigateToNPC(a.npc)` instead of `navigateTo('journal')`
-- Journal.jsx: Section reactive to `props.open`; NPCCard has deep-link `createEffect` that matches name, opens card, scrolls
+- Journal.jsx: NPCCard has deep-link `createEffect` that matches name, opens card, scrolls
 - Files: `src/ui/shared/sourceBus.js`, `src/ui/play/Chat.jsx`, `src/ui/reference/Journal.jsx`
 
 ### Gate 8 tappable XP request (`b3c3e90`)
@@ -25,36 +25,53 @@ Branch: `claude/latest-test-analysis-v64a6i` · last commit: see below · build 
 - Now renders as a `<button>` that pre-fills the input with an XP request
 - File: `src/ui/play/Chat.jsx`
 
-### style.css: gate-tap button styles (`b3c3e90`)
-- Added `.gate-flag.gate-tap` and `.gate-flag.gate-tap:active` styles
-
-### CharDrawer + CharSheet: dead `roll-request` events connected (`HEAD`)
+### CharDrawer + CharSheet: dead `roll-request` events connected (`1612871`)
 - ALL `roll-request` CustomEvent dispatches in CharDrawer and CharSheet were firing into void — no listener
 - Fixed by routing to `prefill-input` instead (consistent with ActionsDrawer's spell flow)
 - CharDrawer: attack tap → `prefill-input: "${name} attacks with ${weapon}."` + closes drawer
-- CharSheet abilities: tap → `prefill-input: "${name} makes a Strength ability check."`
-- CharSheet saves: tap → `prefill-input: "${name} makes a Strength saving throw."`
-- CharSheet skills: tap → `prefill-input: "${name} makes an Acrobatics check."`
-- CharSheet attacks: tap → `prefill-input: "${name} attacks with ${weapon}."` + navigate to play
-- CharSheet initiative: tap → `prefill-input: "Roll initiative for ${name}."`
-- CharSheet spell attack: tap → `prefill-input: "${name} makes a spell attack."`
+- CharSheet abilities/saves/skills/attacks/initiative/spell attack → all now use `prefill-input`
 - Files: `src/ui/play/CharDrawer.jsx`, `src/ui/reference/CharSheet.jsx`
+
+### Browse Compendium button on CharSheet (`76c70d3`)
+- Christian's V1 design: a "Browse Compendium" button on the Spells tab between concentration tracker and spell slots
+- Button taps navigate to Journal → Compendium, pre-filtered to the PC's class
+- New: `pendingCompendium` signal + `navigateToCompendium(tab, classFilter)` in `sourceBus.js`
+- Journal.jsx already had a `createEffect` watching `pendingCompendium` to flip to lookup view
+- Files: `src/ui/reference/CharSheet.jsx`, `src/ui/shared/sourceBus.js`
+
+### Compendium spell UI overhaul — Christian's V1 design restored (`96f8737`)
+**Problem:** Flat unfiltered list of 50 spells, every tap navigated to a new page — friction and ugly. No class or level filtering.
+
+**Solution:** Full rewrite of `Compendium.jsx` spells tab to match V1 screenshots:
+- **Class filter chip row** — All / Bard / Cleric / Druid / Paladin / Ranger / Sorcerer / Warlock / Wizard. Horizontally scrollable, single-tap to select/deselect.
+- **Level filter chip row** — All Levels / Cantrips / 1st–9th. Same pattern.
+- **Section grouping with counts** — "CANTRIPS (22)", "1ST LEVEL (X)" etc., sorted A–Z within each level.
+- **Inline accordion** — tap a spell card to expand description, cast stats, class list in-place. No page navigation.
+- **Spell card** — name + school + Ritual (R) / Concentration (C) badges + caret. Expanded: cast/range/duration/components grid + class list + full description.
+- **Auto-filter from CharSheet** — `navigateToCompendium('spells', p.class)` sets a new `compendiumFilter` signal (separate from `pendingCompendium` so Journal doesn't consume it). Compendium reads it on `onMount` and pre-selects the PC's class chip.
+- Rules / Glossary / Feats tabs: unchanged, keep list → detail-page behaviour.
+- Files: `src/ui/reference/Compendium.jsx`, `src/ui/shared/sourceBus.js`, `src/ui/reference/CharSheet.jsx`, `src/style.css`
+
+---
+
+## Git Note
+Session had SSH signing configured via `/tmp/code-sign` (environment-manager). Commits show `N` in `git log --format="%G?"` locally because `gpg.ssh.allowedSignersFile` isn't configured in this environment, but `git cat-file -p HEAD` confirms valid `gpgsig` blocks exist — GitHub verifies them correctly. Fast-forward cherry-pick push resolved the history divergence from the prior session's author-fix rebase without needing a force push.
 
 ---
 
 ## Phase Status
 
 ### Phase 1 — No broken mechanics (COMPLETE)
-- ✅ Action Economy enforcement — Gate 2 does this via prose scanning
-- ✅ Scene Transition gate — pendingLocation + ContextBanner "Go/Stay" already built
-- ✅ Gate 3 false positives in combat — fixed this session
-- ✅ Gate 8 XP flag — now tappable/actionable
+- ✅ Gate 3 false positives in combat — fixed S65
+- ✅ Gate 8 XP flag — now tappable/actionable (S65)
 
 ### Phase 2 — Christian's active experience (COMPLETE)
-- ✅ Spell DB expansion past L2 — already had L0-L9 for all classes (339 spells)
-- ✅ Inline NPC name linking — already built; now with Journal deep-link
-- ✅ Quest log UX — search + ✓ button already shipped S64
-- ✅ CharDrawer/CharSheet rollable elements — now connected to prefill-input
+- ✅ Spell DB expansion past L2 — already had L0-L9, 339 spells
+- ✅ Inline NPC name linking — Journal deep-link (S65)
+- ✅ Quest log UX — search + ✓ button (S64)
+- ✅ CharDrawer/CharSheet rollable elements — prefill-input (S65)
+- ✅ Browse Compendium button on CharSheet Spells tab (S65)
+- ✅ Compendium: class/level filters, inline accordion, section counts (S65)
 
 ### Phase 3 — Second player ready
 - Nyx's player joining cleanly
@@ -65,29 +82,12 @@ Branch: `claude/latest-test-analysis-v64a6i` · last commit: see below · build 
 
 ---
 
-## All Player-Requests (player-requests-v2.md) Status
-- ✅ SPELL_DB expansion past L2 — already done
-- ✅ Pre-built class progression downloads — already done (all 12 classes in data/level-up-*.json, seeded via seed.js)
-- ✅ Inline NPC name linking — done (deep-link added this session)
-- ✅ Quest log UX refresh — search + archive button shipped S64
-- CharWizard supports all 12 classes (AVAILABLE_CLASSES = Object.keys(CLASS_DATA))
-
----
-
-## Autonomy Rules
-- **Safe to build fast:** UI, CSS, new mechanic handlers, contracts, Journal/Cargo/drawer improvements
-- **Flag before touching:** engine.js pipeline, mechanics.js enforcement logic, Firebase schema, state ownership
-
----
-
 ## Known Gaps Still Unbuilt
-- AI DC determination (Phase 4 — complex)
+- AI DC determination (Phase 4)
 - Multiplayer bundles MVP (data/bundles.js stub)
-- `dbWrite()` still never surfaces write failures to callers (cosmetic, flagged S61)
-- S62 features need live two-device verification
+- `dbWrite()` still never surfaces write failures (cosmetic, flagged S61)
 
 ## Live Verification Still Needed
 - S62: presence badge two-device, join auto-retry, tab-kill character merge
 - S57: PC attack-roll/Critical Hits (needs live combat)
-- All S64 features (need real play session with Christian)
-- This session: NPC deep-link, Gate 8 tap, CharDrawer/CharSheet roll connections
+- S65: NPC deep-link, Gate 8 tap, CharDrawer/CharSheet roll connections, Compendium overhaul
