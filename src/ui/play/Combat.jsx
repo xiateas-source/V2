@@ -1,4 +1,4 @@
-import { For, Show, createMemo, createSignal, createEffect, on } from 'solid-js';
+import { For, Show, createMemo, createSignal } from 'solid-js';
 import { store, setStore } from '../../state/index.js';
 import { validateMechanics, applyMechanics } from '../../ai/mechanics.js';
 import { createNarrativeMsg } from '../../ai/messages.js';
@@ -8,15 +8,6 @@ export default function Combat() {
   const combat = () => store.campaign.combatState;
   const active = () => combat().active;
   const [minimized, setMinimized] = createSignal(false);
-
-  // Only auto-minimize on actual turn changes, not on every state update.
-  // Using on() prevents re-triggering when HP/conditions change mid-turn.
-  const currentTurnIdx = () => combat().currentTurn;
-  createEffect(on(currentTurnIdx, (idx) => {
-    if (!active()) return;
-    const cur = (combat().initiative || [])[idx];
-    if (cur) setMinimized(cur.type === 'pc' && cur.hp > 0);
-  }, { defer: true }));
 
   // Initiative is stored sorted (highest first); currentTurn indexes it directly.
   const order = createMemo(() => (active() ? (combat().initiative || []) : []));

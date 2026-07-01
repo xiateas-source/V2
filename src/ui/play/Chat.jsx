@@ -297,8 +297,8 @@ export default function Chat() {
 
       <TurnPrompt />
       <RollBar />
+      <Rewind />
       <div class="input-area">
-        <Rewind />
         <InputBar tab={tab()} />
       </div>
     </div>
@@ -387,8 +387,8 @@ function formatMsg(text, npcNames = []) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 
-  html = html.replace(/---MECHANICS---[\s\S]*?---END---/g, '');
-  html = html.replace(/MECHANICS BLOCK:[\s\S]*?---END---/g, '');
+  html = html.replace(/---MECHANICS---[\s\S]*?(?:---END---|\n---(?:\n|$))/g, '');
+  html = html.replace(/MECHANICS BLOCK:[\s\S]*?(?:---END---|\n---(?:\n|$))/g, '');
 
   html = html.replace(/\*\*\*\n?/g, '<hr class="campaign-break">');
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
