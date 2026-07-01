@@ -62,6 +62,7 @@ export default function MechTest(props) {
   const [audit, setAudit] = createSignal(null);
   const [massLog, setMassLog] = createSignal(null);
   const [running, setRunning] = createSignal(false);
+  const [testerNotes, setTesterNotes] = createSignal('');
 
   const firstPC = () => store.campaign.characters[0]?.name || 'the party';
 
@@ -124,7 +125,7 @@ export default function MechTest(props) {
   }
 
   async function copyExport() {
-    const json = JSON.stringify(exportSnapshot(), null, 2);
+    const json = JSON.stringify(exportSnapshot(testerNotes()), null, 2);
     try {
       await navigator.clipboard.writeText(json);
       setCopied('Copied!');
@@ -155,7 +156,7 @@ export default function MechTest(props) {
   }
 
   function downloadExport() {
-    const json = JSON.stringify(exportSnapshot(), null, 2);
+    const json = JSON.stringify(exportSnapshot(testerNotes()), null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -268,7 +269,14 @@ export default function MechTest(props) {
 
       {/* Export */}
       <div class="mt-section">
-        <div class="mt-label">Export</div>
+        <div class="mt-label">Export <span class="mt-label-hint">— Testing Notes travel with Copy/Download</span></div>
+        <textarea
+          class="mechtest-input"
+          value={testerNotes()}
+          onInput={(e) => setTesterNotes(e.target.value)}
+          rows="3"
+          placeholder="Testing notes — what did you try, what happened?"
+        />
         <div class="mechtest-actions">
           <button class="mechtest-run" onClick={copyExport}><i class="ph ph-copy" /> Copy</button>
           <button class="mechtest-reset" onClick={downloadExport}><i class="ph ph-download-simple" /> Download</button>

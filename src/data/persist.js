@@ -125,10 +125,13 @@ export async function clearActiveCampaign() {
   } catch (_) {}
 }
 
-// Full campaign + system snapshot for export/review.
-export function exportSnapshot() {
+// Full campaign + system snapshot for export/review. `notes` is optional
+// freeform tester commentary (from MechTest's Testing Notes field) bundled
+// alongside the state so a single export carries both.
+export function exportSnapshot(notes = '') {
   return {
     exportedAt: new Date().toISOString(),
+    ...(notes ? { testerNotes: notes } : {}),
     campaign: plain(store.campaign),
     system: { ...plain(store.system), providers: { ...plain(store.system.providers), geminiKey: '«redacted»', openrouterKey: '«redacted»' } },
   };
