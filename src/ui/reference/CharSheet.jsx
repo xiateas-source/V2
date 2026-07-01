@@ -3,6 +3,7 @@ import { store, setStore, playerSet, systemSet } from '../../state/index.js';
 import { composePersonality } from '../../data/quickBuild.js';
 import { getByIndex, getAll } from '../../data/local.js';
 import { validateMechanics, applyMechanics } from '../../ai/mechanics.js';
+import { navigateToCompendium } from '../shared/sourceBus.js';
 
 const TIBF_FIELDS = [
   { key: 'trait', label: 'Personality Trait', placeholder: 'A distinctive habit, quirk, or attitude…' },
@@ -767,6 +768,10 @@ export default function CharSheet(props) {
             <button class="cs-conc-end" onClick={() => setStore('campaign', 'characters', activePC(), 'concentration', null)}>End</button>
           </div>
         </Show>
+
+        <button class="cs-browse-compendium" onClick={() => navigateToCompendium('spells')}>
+          <i class="ph ph-books" /> Browse Compendium
+        </button>
 
         <Show when={slotEntries().length > 0}>
           <div class="cs-section-label">Spell Slots</div>

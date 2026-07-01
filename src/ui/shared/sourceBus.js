@@ -18,3 +18,13 @@ export function navigateToNPC(name) {
   setPendingNpcFocus(name);
   navigateTo('journal');
 }
+
+// Compendium deep-link: set this before navigating to 'journal' so that
+// the Journal switches to its lookup/compendium view and optionally
+// pre-selects a tab ('spells', 'rules', 'glossary', 'feats').
+export const [pendingCompendium, setPendingCompendium] = createSignal(null);
+
+export function navigateToCompendium(tab = 'spells') {
+  setPendingCompendium(tab);
+  navigateTo('journal');
+}

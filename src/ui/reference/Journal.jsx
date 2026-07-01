@@ -3,7 +3,7 @@ import { store, setStore } from '../../state/index.js';
 import { extractMechanics, validateMechanics, applyMechanics } from '../../ai/mechanics.js';
 import { callProvider } from '../../ai/providers.js';
 import { DEEP_SEED_SYSTEM } from '../../ai/setupPrompts.js';
-import { pendingNpcFocus, setPendingNpcFocus } from '../shared/sourceBus.js';
+import { pendingNpcFocus, setPendingNpcFocus, pendingCompendium, setPendingCompendium } from '../shared/sourceBus.js';
 
 const Compendium = lazy(() => import('./Compendium.jsx'));
 
@@ -133,6 +133,14 @@ function urgencyRank(c) {
 
 export default function Journal() {
   const [lookup, setLookup] = createSignal(false);
+
+  // Compendium deep-link from CharSheet or any source.
+  createEffect(() => {
+    if (pendingCompendium()) {
+      setPendingCompendium(null);
+      setLookup(true);
+    }
+  });
 
   const c = createMemo(() => ({
     objectives: store.campaign.quests.filter(q => q.status === 'active').length,

@@ -2876,6 +2876,26 @@ body {
 .cs-sc-value { font-size: 20px; font-weight: 700; color: var(--color-text); margin-top: 1px; }
 .cs-sc-value.accent { color: var(--color-accent); }
 
+.cs-browse-compendium {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 9px 12px;
+  margin-bottom: 12px;
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+  border-radius: 8px;
+  color: var(--color-accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cs-browse-compendium:active {
+  background: color-mix(in srgb, var(--color-accent) 20%, var(--color-surface));
+}
+
 .cs-slot-bar {
   display: flex;
   align-items: center;
