@@ -86,7 +86,12 @@ export async function forgeCharacter(intent) {
   const supported = !!classInfo;
 
   // --- Ability scores (final, post-racial) ---
-  const abilities = intent.abilityScores
+  // A truthy-but-empty abilityScores object (an import that found nothing to
+  // put in it) must not silently win over a real roll — only treat scores as
+  // provided if at least one of the six is actually present.
+  const hasScores = intent.abilityScores &&
+    ['str', 'dex', 'con', 'int', 'wis', 'cha'].some(k => Number.isFinite(intent.abilityScores[k]));
+  const abilities = hasScores
     ? { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, ...intent.abilityScores }
     : autoAssignScores(className, race);
 

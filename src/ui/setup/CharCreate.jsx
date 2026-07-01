@@ -2,7 +2,7 @@ import { createSignal, Show, For } from 'solid-js';
 import { store, setStore } from '../../state/index.js';
 import { callProvider } from '../../ai/providers.js';
 import { CHAR_BUILDER_SYSTEM } from '../../ai/setupPrompts.js';
-import { normalizeCharacter, validateCharacter } from '../../content/normalizer.js';
+import { normalizeCharacter, validateCharacter, parseEquipmentList } from '../../content/normalizer.js';
 import {
   STARTING_EQUIPMENT, getStartingGold, getDefaultEquipment, getSelectedEquipment,
   AVAILABLE_CLASSES, AVAILABLE_RACES, BACKGROUNDS, ALIGNMENTS, ALL_SKILLS,
@@ -36,6 +36,10 @@ export default function CharCreate(props) {
   const [draftErrors, setDraftErrors] = createSignal([]);
   const [equipChoices, setEquipChoices] = createSignal({});
   const [equipMode, setEquipMode] = createSignal('default');
+  // Set only when a character was built from an import that specified its own
+  // gear — commitCharacter() uses this directly instead of the equipment
+  // picker, so an import doesn't lose the equipment the player already chose.
+  const [importedEquip, setImportedEquip] = createSignal(null);
 
   // Quick Pick state
   const [quickChar, setQuickChar] = createSignal(null);
@@ -84,30 +88,43 @@ export default function CharCreate(props) {
     const idx = store.campaign.characters.length;
     setStore('campaign', 'characters', idx, char);
 
-    const eMode = equipMode();
-    const classData = STARTING_EQUIPMENT[char.class];
+    const imported = importedEquip();
 
-    if (eMode === 'gold') {
-      const goldAmount = classData?.goldOption || getStartingGold(char.level || 1);
-      if (idx === 0) {
-        setStore('campaign', 'gold', 'gp', goldAmount);
-      } else {
-        setStore('campaign', 'gold', 'gp', store.campaign.gold.gp + goldAmount);
-      }
-    } else {
-      const items = eMode === 'customize'
-        ? getSelectedEquipment(char.class, equipChoices())
-        : getDefaultEquipment(char.class);
-      if (items.length > 0) {
+    if (imported) {
+      if (imported.items.length > 0) {
         const carried = { ...store.campaign.inventory.carried };
-        carried[char.id] = items.map(i => ({ name: i.name, qty: i.qty, type: i.type, attunement: 'none', weight: i.weight || 0, ...(i.note ? { note: i.note } : {}) }));
+        carried[char.id] = imported.items;
         setStore('campaign', 'inventory', 'carried', carried);
       }
-      const gold = getStartingGold(char.level || 1);
-      if (idx === 0) {
-        setStore('campaign', 'gold', 'gp', gold);
+      const gold = imported.gold || getStartingGold(char.level || 1);
+      if (idx === 0) setStore('campaign', 'gold', 'gp', gold);
+      else setStore('campaign', 'gold', 'gp', store.campaign.gold.gp + gold);
+    } else {
+      const eMode = equipMode();
+      const classData = STARTING_EQUIPMENT[char.class];
+
+      if (eMode === 'gold') {
+        const goldAmount = classData?.goldOption || getStartingGold(char.level || 1);
+        if (idx === 0) {
+          setStore('campaign', 'gold', 'gp', goldAmount);
+        } else {
+          setStore('campaign', 'gold', 'gp', store.campaign.gold.gp + goldAmount);
+        }
       } else {
-        setStore('campaign', 'gold', 'gp', store.campaign.gold.gp + gold);
+        const items = eMode === 'customize'
+          ? getSelectedEquipment(char.class, equipChoices())
+          : getDefaultEquipment(char.class);
+        if (items.length > 0) {
+          const carried = { ...store.campaign.inventory.carried };
+          carried[char.id] = items.map(i => ({ name: i.name, qty: i.qty, type: i.type, attunement: 'none', weight: i.weight || 0, ...(i.note ? { note: i.note } : {}) }));
+          setStore('campaign', 'inventory', 'carried', carried);
+        }
+        const gold = getStartingGold(char.level || 1);
+        if (idx === 0) {
+          setStore('campaign', 'gold', 'gp', gold);
+        } else {
+          setStore('campaign', 'gold', 'gp', store.campaign.gold.gp + gold);
+        }
       }
     }
 
@@ -115,6 +132,7 @@ export default function CharCreate(props) {
     setMode(null);
     setEquipChoices({});
     setEquipMode('default');
+    setImportedEquip(null);
     if (store.campaign.id) forceSyncNow();
   }
 
@@ -219,6 +237,17 @@ export default function CharCreate(props) {
     const appearance = normalized.appearance || flavor.appearance;
     const backstory = normalized.backstory || flavor.backstory;
 
+    // racialTraits (e.g. Lucky, Brave, Halfling Nimbleness) have no dedicated
+    // character field — fold them into notes, the existing freeform catch-all,
+    // instead of dropping them.
+    const racialTraitsText = normalized.racialTraits
+      ? Object.entries(normalized.racialTraits)
+          .filter(([, v]) => typeof v === 'string' && v.trim())
+          .map(([k, v]) => `${k.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase()).trim()}: ${v.trim()}`)
+          .join('\n')
+      : '';
+    const notes = [normalized.notes, racialTraitsText].filter(Boolean).join('\n\n');
+
     // Funnel through the Forge: keep the AI/import's creative choices (name,
     // race, class, ability scores, background, spells, traits, bio) but
     // re-derive every mechanical field (HP, AC, attacks, resources, features,
@@ -241,7 +270,7 @@ export default function CharCreate(props) {
       appearance,
       personality: normalized.personality,
       backstory,
-      notes: normalized.notes,
+      notes,
       // pass-throughs the Forge keeps for unsupported classes:
       attacks: normalized.attacks,
       features: normalized.features,
@@ -261,6 +290,10 @@ export default function CharCreate(props) {
     setDraft(char);
     setEquipChoices({});
     setEquipMode('default');
+    // The player already told us what they carry — use it directly instead
+    // of asking them to pick a class-default loadout for a character that
+    // already has one.
+    setImportedEquip(Array.isArray(normalized.equipment) ? parseEquipmentList(normalized.equipment) : null);
   }
 
   function setChoice(groupIdx, optionIdx) {
@@ -380,6 +413,8 @@ export default function CharCreate(props) {
             <span>AC: {draft().ac}</span>
             <span>Speed: {draft().speed}</span>
           </div>
+          <div class="preview-import-hint">Imported from your file — review before confirming</div>
+
           <Show when={draft().abilityScores}>
             <div class="preview-abilities">
               <For each={Object.entries(draft().abilityScores)}>
@@ -481,17 +516,46 @@ export default function CharCreate(props) {
               placeholder="Origin, motivation, secrets — who were they before the adventure?"
               onInput={(e) => setDraft({ ...draft(), backstory: e.target.value })}
             />
+            <label class="preview-bio-label">Notes</label>
+            <textarea
+              class="preview-bio-input"
+              rows="3"
+              value={draft().notes || ''}
+              placeholder="Anything else worth keeping — racial traits, quirks, reminders…"
+              onInput={(e) => setDraft({ ...draft(), notes: e.target.value })}
+            />
           </div>
 
-          <Show when={STARTING_EQUIPMENT[draft()?.class]}>
-            <EquipmentPicker
-              className={draft().class}
-              level={draft().level}
-              choices={equipChoices()}
-              onChoice={setChoice}
-              equipMode={equipMode()}
-              onModeChange={setEquipMode}
-            />
+          <Show when={importedEquip()} fallback={
+            <Show when={STARTING_EQUIPMENT[draft()?.class]}>
+              <EquipmentPicker
+                className={draft().class}
+                level={draft().level}
+                choices={equipChoices()}
+                onChoice={setChoice}
+                equipMode={equipMode()}
+                onModeChange={setEquipMode}
+              />
+            </Show>
+          }>
+            <div class="equip-picker">
+              <label class="equip-picker-label">Starting Equipment (from your file)</label>
+              <div class="equip-default-list">
+                <For each={importedEquip().items}>
+                  {(item) => <span class="equip-item-tag" title={item.note || ''}>{item.name}</span>}
+                </For>
+              </div>
+              <div class="equip-summary">
+                <Show when={importedEquip().gold > 0}>
+                  <span class="equip-gold">{importedEquip().gold} GP</span>
+                </Show>
+                <span class="equip-item-count">{importedEquip().items.length} items</span>
+              </div>
+              <button
+                class="equip-mode-chip"
+                onClick={() => setImportedEquip(null)}
+              >Use class default equipment instead</button>
+            </div>
           </Show>
           <Show when={draftErrors().length > 0}>
             <div class="preview-errors">
@@ -673,7 +737,7 @@ function AIBuilder(props) {
       <button class="builder-back" onClick={props.onBack}>&larr; Back</button>
       <div class="builder-messages">
         <Show when={messages().length === 0}>
-          <div class="builder-hint">Tell me about the character you want to play. Anything from "a sneaky elf" to a full build.</div>
+          <div class="builder-hint">Tell me about the character you want to play — anything from "a sneaky elf" to a full build. The more you tell me about who they are, not just what they can do, the better they'll turn out.</div>
         </Show>
         <For each={messages()}>
           {(msg) => (
@@ -805,7 +869,13 @@ function EquipmentPicker(props) {
                       class={`equip-chip ${(props.choices[gi()] ?? 0) === oi() ? 'active' : ''}`}
                       onClick={() => props.onChoice(gi(), oi())}
                     >
-                      {opt.label}
+                      <span class="equip-chip-label">
+                        <Show when={(props.choices[gi()] ?? 0) === oi()}><i class="ph ph-check-circle" /></Show>
+                        {opt.label}
+                      </span>
+                      <Show when={opt.items?.length > 0}>
+                        <span class="equip-chip-detail">{opt.items.map(i => i.name).join(', ')}</span>
+                      </Show>
                     </button>
                   )}
                 </For>

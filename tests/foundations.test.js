@@ -4,6 +4,8 @@ import { extractMechanics, validateMechanics, applyMechanics } from '../src/ai/m
 import { runGate2, runGate4, runGate5 } from '../src/ai/gates.js';
 import { confirmTransition, rejectTransition } from '../src/ai/mechanics.js';
 import { isPlayMsg, msgToRole, createNarrativeMsg, migrateMsg } from '../src/ai/messages.js';
+import { normalizeCharacter, parseEquipmentList } from '../src/content/normalizer.js';
+import { forgeCharacter } from '../src/data/forge.js';
 
 function loadTestCharacters() {
   setStore('campaign', 'characters', [
@@ -828,5 +830,118 @@ describe('healArrays (stuck partial-message healing)', () => {
     const healed = healArrays(raw);
     expect(healed.narrative[0].partial).toBe(false);
     expect(healed.ooc).toEqual([]);
+  });
+});
+
+describe('character JSON import — nested field extraction', () => {
+  // A shape typical of an outside-AI-generated character sheet: ability
+  // scores, combat stats, and spells nested under wrapper objects, and
+  // appearance/personality/backstory as multi-part objects instead of strings.
+  const nestedCharacter = () => ({
+    characterName: 'Sunny Greenbottle',
+    race: 'Halfling (Lightfoot)',
+    class: 'Druid',
+    background: 'Guild Artisan (Merchant of Positivity)',
+    level: 1,
+    alignment: 'Neutral Good',
+    attributes: { strength: 8, dexterity: 15, constitution: 12, intelligence: 10, wisdom: 16, charisma: 14 },
+    combatStats: { hp: 9, ac: 14, speed: 25, hitDice: '1d8' },
+    racialTraits: { lucky: 'Reroll a 1 on an attack roll.', brave: 'Advantage on saves vs frightened.' },
+    equipment: ['Wooden Shield (+2 AC)', 'Leather Armor', 'Explorer\'s Pack', 'Pouch with 15 gold coins'],
+    magic: { cantrips: ['Guidance', 'Thorn Whip'], preparedSpellsLevel1: ['Healing Word', 'Goodberry'] },
+    appearance: { posture: 'Diminutive and energetic.', attire: 'Leaf-green leather armor.' },
+    personality: {
+      core: 'A force of pure sunshine.',
+      trait: 'I assume the best in everyone.',
+      ideal: 'Redemption.',
+      bond: 'I want to prove kindness works.',
+      flaw: 'My optimism blinds me to danger.',
+    },
+    backstory: { origin: 'Raised in a peaceful magical grove.', worldview: 'Assumes the world is a paradise.' },
+  });
+
+  it('extracts ability scores nested under a wrapper object instead of leaving them empty', () => {
+    const normalized = normalizeCharacter(nestedCharacter());
+    expect(normalized.abilityScores).toEqual({ str: 8, dex: 15, con: 12, int: 10, wis: 16, cha: 14 });
+  });
+
+  it('extracts hp/ac/speed/hitDice nested under combatStats', () => {
+    const normalized = normalizeCharacter(nestedCharacter());
+    expect(normalized.hpMax).toBe(9);
+    expect(normalized.ac).toBe(14);
+    expect(normalized.speed).toBe(25);
+    expect(normalized.hitDice.die).toBe('1d8');
+  });
+
+  it('extracts cantrips/spells nested under a magic wrapper', () => {
+    const normalized = normalizeCharacter(nestedCharacter());
+    expect(normalized.cantrips).toEqual(['Guidance', 'Thorn Whip']);
+    expect(normalized.knownSpells).toEqual(['Healing Word', 'Goodberry']);
+  });
+
+  it('flattens an object-shaped appearance/backstory into readable text instead of passing the raw object through', () => {
+    const normalized = normalizeCharacter(nestedCharacter());
+    expect(typeof normalized.appearance).toBe('string');
+    expect(normalized.appearance).toContain('Diminutive and energetic');
+    expect(typeof normalized.backstory).toBe('string');
+    expect(normalized.backstory).toContain('peaceful magical grove');
+  });
+
+  it('lifts trait/ideal/bond/flaw out of a nested personality object and flattens the rest', () => {
+    const normalized = normalizeCharacter(nestedCharacter());
+    expect(normalized.traits.trait).toContain('assume the best');
+    expect(normalized.traits.ideal).toBe('Redemption.');
+    expect(normalized.traits.bond).toContain('kindness works');
+    expect(normalized.traits.flaw).toContain('optimism blinds');
+    expect(typeof normalized.personality).toBe('string');
+    expect(normalized.personality).toContain('pure sunshine');
+    expect(normalized.personality).not.toContain('Redemption');
+  });
+
+  it('passes racialTraits and equipment through for CharCreate to fold into notes/inventory', () => {
+    const normalized = normalizeCharacter(nestedCharacter());
+    expect(normalized.racialTraits.lucky).toContain('Reroll a 1');
+    expect(normalized.equipment).toEqual(['Wooden Shield (+2 AC)', 'Leather Armor', "Explorer's Pack", 'Pouch with 15 gold coins']);
+  });
+});
+
+describe('parseEquipmentList', () => {
+  it('splits a freeform gear list into items and separates out gold', () => {
+    const { items, gold } = parseEquipmentList([
+      'Wooden Shield (+2 AC)',
+      'Quarterstaff (Walking stick / friendly poking device)',
+      'Leather Armor',
+      'Pouch with 15 gold coins',
+    ]);
+    expect(gold).toBe(15);
+    expect(items.length).toBe(3);
+    expect(items[0]).toEqual({ name: 'Wooden Shield', qty: 1, type: 'gear', weight: 0, note: '+2 AC' });
+    expect(items[2].name).toBe('Leather Armor');
+    expect(items[2].note).toBeUndefined();
+  });
+
+  it('returns an empty result for an empty or missing list', () => {
+    expect(parseEquipmentList([])).toEqual({ items: [], gold: 0 });
+    expect(parseEquipmentList(undefined)).toEqual({ items: [], gold: 0 });
+  });
+});
+
+describe('forge.js — ability score guard against a truthy-but-empty import', () => {
+  it('falls through to auto-assigned scores when abilityScores is an empty object, instead of locking in all 10s', async () => {
+    const char = await forgeCharacter({
+      name: 'Test', race: 'Human', className: 'Fighter', level: 1,
+      abilityScores: {}, existingCount: 0,
+    });
+    const values = Object.values(char.abilityScores);
+    expect(values.some(v => v !== 10)).toBe(true);
+  });
+
+  it('still honors a partially-provided abilityScores object (has at least one real value)', async () => {
+    const char = await forgeCharacter({
+      name: 'Test', race: 'Human', className: 'Fighter', level: 1,
+      abilityScores: { str: 18 }, existingCount: 0,
+    });
+    expect(char.abilityScores.str).toBe(18);
+    expect(char.abilityScores.dex).toBe(10);
   });
 });
