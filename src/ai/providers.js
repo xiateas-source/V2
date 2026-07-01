@@ -214,19 +214,25 @@ async function* geminiWithRetryAndFallback(messages, systemPrompt, signal) {
   throw new Error('All Gemini models rate limited — wait a minute and try again');
 }
 
+// Ordered list of providers actually worth trying right now (healthy + keyed),
+// primary provider first. Shared by callProvider and callProviderOnce so the
+// two can't drift apart on what "worth trying" means.
+function pickHealthyProviders(config) {
+  const order = config.primary === 'openrouter' ? ['openrouter', 'gemini'] : ['gemini', 'openrouter'];
+  return order.filter(provider => {
+    if (!isHealthy(provider)) return false;
+    const hasKey = provider === 'gemini' ? config.geminiKey : config.openrouterKey;
+    return !!hasKey;
+  });
+}
+
 export async function* callProvider(messages, systemPrompt, signal) {
   const config = getProviderConfig();
-  const providers = config.primary === 'openrouter'
-    ? ['openrouter', 'gemini']
-    : ['gemini', 'openrouter'];
+  const providers = pickHealthyProviders(config);
 
   let lastError = null;
 
   for (const provider of providers) {
-    if (!isHealthy(provider)) continue;
-    const hasKey = provider === 'gemini' ? config.geminiKey : config.openrouterKey;
-    if (!hasKey) continue;
-
     try {
       const stream = provider === 'gemini'
         ? geminiWithRetryAndFallback(messages, systemPrompt, signal)
@@ -244,6 +250,30 @@ export async function* callProvider(messages, systemPrompt, signal) {
   }
 
   throw lastError || new Error('No API key set. Go to Settings and add your Gemini key.');
+}
+
+// A single, lean attempt for small non-critical calls (e.g. contextual DC
+// lookups) that must respect a tight latency budget and must never poison
+// shared provider-health state on failure — unlike callProvider, this makes
+// no retries and never calls recordFailure(). Returns the full accumulated
+// text rather than a stream, since a call this short has no need for
+// incremental chunks. Throws (including AbortError) on any failure; callers
+// are expected to catch and fall back to a sensible default.
+export async function callProviderOnce(messages, systemPrompt, signal) {
+  const config = getProviderConfig();
+  const providers = pickHealthyProviders(config);
+  if (providers.length === 0) throw new Error('No healthy provider available');
+
+  const provider = providers[0];
+  const stream = provider === 'gemini'
+    ? streamGemini(messages, systemPrompt, signal)
+    : streamOpenRouter(messages, systemPrompt, signal);
+
+  let result = '';
+  for await (const chunk of stream) {
+    result += chunk;
+  }
+  return result;
 }
 
 export function estimateTokens(text) {

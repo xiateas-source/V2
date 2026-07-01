@@ -1,7 +1,7 @@
 import { createSignal } from 'solid-js';
 import { store, setStore } from '../state/index.js';
 import { buildPrompt, buildAskDmPrompt } from './prompt.js';
-import { callProvider } from './providers.js';
+import { callProvider, callProviderOnce } from './providers.js';
 import { extractMechanics, validateMechanics, applyMechanics, buildMechReceipt, getPendingConcentrationInfo } from './mechanics.js';
 import { ASK_DM_SYSTEM } from './contracts.js';
 import { pruneIfNeeded } from './memory.js';
@@ -47,6 +47,54 @@ function finalizeStuckPartial() {
 function currentActorName() {
   const cs = store.campaign.combatState;
   return cs.initiative[cs.currentTurn]?.name || 'the active character';
+}
+
+const DC_DETERMINATION_SYSTEM = `You are assisting a D&D 5e game by picking a Difficulty Class (DC) for one or more skill checks, given the current scene. Standard tiers: Easy=10, Medium=13, Hard=15, Very Hard=18, Nearly Impossible=20+. A routine task in ordinary conditions should stay near the standard tier; genuine obstacles (poor visibility, hostile resistance, exceptional skill required) push it higher; trivial or favorable conditions push it lower. Respond with ONLY one integer per line, in the same order as the checks listed, and nothing else — no words, no explanation, no extra lines.`;
+
+// Pure, unit-testable — clamps each number to 5-30, and rejects the WHOLE
+// response (falling back to every roll's own tier default) if the line count
+// doesn't match exactly. A misaligned line (a blank line, a stray number in a
+// preamble sentence despite instructions) would otherwise shift every
+// subsequent index, producing a plausible-looking but wrong DC — worse than an
+// out-of-range number, which safely falls back on its own.
+export function parseDCResponse(raw, defaults) {
+  const nums = (raw || '').trim().split('\n')
+    .map(l => parseInt(l.match(/\d+/)?.[0], 10))
+    .filter(Number.isFinite);
+  if (nums.length !== defaults.length) return defaults;
+  return nums.map((n, i) => (n >= 5 && n <= 30) ? n : defaults[i]);
+}
+
+// Replaces the classifier's flat DC_TIERS lookup with a contextual one, for
+// the small number of rolls a single classified message produces. Never
+// blocks the player: a 4s timeout, any provider failure, or a malformed
+// response all fall back silently to the classifier's own tier defaults. Uses
+// callProviderOnce (not callProvider) deliberately — no retries, no shared
+// provider-health poisoning from a call this disposable. A genuine
+// player-initiated Stop tap (stopGeneration(), which sets wasAborted) is
+// distinguished from this function's own timeout-triggered abort (which
+// doesn't touch wasAborted) so the caller can tell the two apart.
+async function determineContextualDCs(rolls, playerMessage) {
+  const defaults = rolls.map(r => r.dc);
+  const recentContext = store.campaign.narrative.slice(-2).map(m => m.content).join('\n').slice(-600);
+  const checklist = rolls.map((r, i) => `${i + 1}. ${r.skill} (standard DC ${r.dc})`).join('\n');
+  const prompt = `Recent scene:\n${recentContext}\n\nPlayer action: "${playerMessage}"\n\nChecks needed:\n${checklist}\n\nWhat DC fits each, given this specific situation?`;
+
+  activeController = new AbortController();
+  const timeoutId = setTimeout(() => activeController?.abort(), 4000);
+  let raw = '';
+  try {
+    raw = await callProviderOnce([{ role: 'user', content: prompt }], DC_DETERMINATION_SYSTEM, activeController.signal);
+  } catch (_) {
+    // Timeout, abort, or provider failure — parseDCResponse's fallback on an
+    // empty/short string handles all three the same way: use the defaults.
+  } finally {
+    clearTimeout(timeoutId);
+    activeController = null;
+  }
+
+  const refined = parseDCResponse(raw, defaults);
+  return rolls.map((r, i) => ({ ...r, dc: refined[i] }));
 }
 
 // Kickoff violation: the AI should set the scene and resolve NPC turns before the
@@ -154,8 +202,18 @@ export async function sendMsg(text, options = {}) {
         const userMsg = createNarrativeMsg('player', text);
         setStore('campaign', 'narrative', [...store.campaign.narrative, userMsg]);
 
+        const refinedRolls = await determineContextualDCs(classification.rolls, text);
+        if (wasAborted) {
+          // Player tapped Stop while the DC lookup was in flight — respect it
+          // rather than showing a roll bar for an action they cancelled.
+          wasAborted = false;
+          window.dispatchEvent(new CustomEvent('toast', { detail: { text: 'Stopped — no roll requested' } }));
+          setSending(false);
+          return;
+        }
+
         setPreSendRolls({
-          rolls: classification.rolls,
+          rolls: refinedRolls,
           originalMessage: text,
         });
         setSending(false);

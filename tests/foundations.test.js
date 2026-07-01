@@ -7,6 +7,7 @@ import { isPlayMsg, msgToRole, createNarrativeMsg, migrateMsg } from '../src/ai/
 import { normalizeCharacter, parseEquipmentList } from '../src/content/normalizer.js';
 import { forgeCharacter } from '../src/data/forge.js';
 import { classifyAction } from '../src/ai/classifier.js';
+import { parseDCResponse } from '../src/ai/engine.js';
 
 function loadTestCharacters() {
   setStore('campaign', 'characters', [
@@ -968,5 +969,33 @@ describe('classifier — Survival coverage for trap-setting', () => {
     const skills = result.rolls.map(r => r.skill);
     expect(skills).toContain('Sleight of Hand');
     expect(skills).not.toContain('Survival');
+  });
+});
+
+describe('parseDCResponse — contextual DC parsing', () => {
+  it('uses the AI-provided DCs when the response is cleanly aligned with the roll count', () => {
+    expect(parseDCResponse('15\n10', [13, 13])).toEqual([15, 10]);
+  });
+
+  it('falls back to defaults when the line count does not match (misaligned response)', () => {
+    expect(parseDCResponse('15\n10\n8', [13, 13])).toEqual([13, 13]);
+    expect(parseDCResponse('15', [13, 13])).toEqual([13, 13]);
+  });
+
+  it('falls back to defaults on an empty or unparseable response', () => {
+    expect(parseDCResponse('', [13, 15])).toEqual([13, 15]);
+    expect(parseDCResponse('no numbers here', [13])).toEqual([13]);
+  });
+
+  it('clamps out-of-range numbers per-index while keeping in-range ones', () => {
+    expect(parseDCResponse('40\n12', [13, 13])).toEqual([13, 12]);
+    expect(parseDCResponse('2\n12', [13, 13])).toEqual([13, 12]);
+  });
+
+  it('ignores blank lines that would otherwise shift indices', () => {
+    // A blank line increases the split count without adding a parseable
+    // number, so it's filtered out before the length check — this response
+    // still counts as 2 clean numbers, matching 2 expected rolls.
+    expect(parseDCResponse('15\n\n10', [13, 13])).toEqual([15, 10]);
   });
 });
