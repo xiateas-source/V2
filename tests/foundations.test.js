@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { store, setStore, aiSet, systemSet, playerSet, OwnershipError } from '../src/state/store.js';
 import { extractMechanics, validateMechanics, applyMechanics } from '../src/ai/mechanics.js';
 import { runGate2, runGate4, runGate5 } from '../src/ai/gates.js';
+import { confirmTransition, rejectTransition } from '../src/ai/mechanics.js';
 import { isPlayMsg, msgToRole, createNarrativeMsg, migrateMsg } from '../src/ai/messages.js';
 
 function loadTestCharacters() {
@@ -56,6 +57,9 @@ function loadTestCharacters() {
   setStore('campaign', 'expenseLog', []);
   setStore('campaign', 'travelLog', []);
   setStore('campaign', 'pendingLocation', null);
+  setStore('campaign', 'pendingTime', null);
+  setStore('campaign', 'pendingChapter', null);
+  setStore('campaign', 'chapters', []);
 }
 
 describe('Ownership Enforcement', () => {
@@ -180,6 +184,54 @@ describe('Mechanics Pipeline', () => {
     expect(store.campaign.pendingLocation.value).toBe('New Town');
   });
 
+  it('applyMechanics holds a changed time as pending instead of applying it', () => {
+    const mechanics = [{ key: 'time', value: 'Evening', target: '', applied: false }];
+    applyMechanics(mechanics);
+    expect(store.campaign.pendingTime).toBe('Evening');
+    expect(store.campaign.time).toBe('Morning');
+  });
+
+  it('applyMechanics applies time immediately when it matches the current value', () => {
+    const mechanics = [{ key: 'time', value: 'Morning', target: '', applied: false }];
+    applyMechanics(mechanics);
+    expect(store.campaign.pendingTime).toBe(null);
+    expect(store.campaign.time).toBe('Morning');
+  });
+
+  it('applyMechanics holds chapter_add as pending instead of appending it', () => {
+    const mechanics = [{ key: 'chapter_add', value: 'The Fall of Ashford|The town burns.', target: '', applied: false }];
+    applyMechanics(mechanics);
+    expect(store.campaign.pendingChapter.title).toBe('The Fall of Ashford');
+    expect(store.campaign.chapters.length).toBe(0);
+  });
+
+  it('confirmTransition commits whichever of location/time/chapter are pending', () => {
+    applyMechanics([
+      { key: 'location', value: 'New Town', target: '', applied: false },
+      { key: 'time', value: 'Evening', target: '', applied: false },
+      { key: 'chapter_add', value: 'Arrival|The party arrives.', target: '', applied: false },
+    ]);
+    confirmTransition();
+    expect(store.campaign.location).toBe('New Town');
+    expect(store.campaign.time).toBe('Evening');
+    expect(store.campaign.chapters.length).toBe(1);
+    expect(store.campaign.pendingLocation).toBe(null);
+    expect(store.campaign.pendingTime).toBe(null);
+    expect(store.campaign.pendingChapter).toBe(null);
+  });
+
+  it('rejectTransition discards pending location/time/chapter without applying them', () => {
+    applyMechanics([
+      { key: 'location', value: 'New Town', target: '', applied: false },
+      { key: 'time', value: 'Evening', target: '', applied: false },
+    ]);
+    rejectTransition();
+    expect(store.campaign.location).toBe('Test Location');
+    expect(store.campaign.time).toBe('Morning');
+    expect(store.campaign.pendingLocation).toBe(null);
+    expect(store.campaign.pendingTime).toBe(null);
+  });
+
   it('damage mechanic applies raw damage with no resistance tags', () => {
     applyMechanics([{ key: 'damage', value: 'Ivy,10,slashing', target: '', applied: false }]);
     expect(store.campaign.characters[0].hp).toBe(21);
@@ -260,21 +312,27 @@ describe('Mechanics Pipeline', () => {
 describe('Gate Firing', () => {
   beforeEach(loadTestCharacters);
 
-  it('Gate 4 flags scene transition (location + time)', () => {
-    const mechanics = [
-      { key: 'location', value: 'Ashford', applied: true },
-      { key: 'time', value: 'Evening', applied: true },
-    ];
-    const flags = runGate4(mechanics);
-    expect(flags.length).toBe(1);
-    expect(flags[0].gate).toBe(4);
-    expect(flags[0].type).toBe('scene_transition');
+  it('Gate 4 auto-confirms a pending location the player already named themselves', () => {
+    applyMechanics([{ key: 'location', value: 'Ashford', target: '', applied: false }]);
+    expect(store.campaign.pendingLocation.value).toBe('Ashford');
+    const flags = runGate4([], 'We head to Ashford.');
+    expect(flags.length).toBe(0);
+    expect(store.campaign.pendingLocation).toBe(null);
+    expect(store.campaign.location).toBe('Ashford');
   });
 
-  it('Gate 4 does not flag location alone', () => {
-    const mechanics = [{ key: 'location', value: 'Ashford', applied: true }];
-    const flags = runGate4(mechanics);
+  it('Gate 4 leaves a pending location held when the player did not name it', () => {
+    applyMechanics([{ key: 'location', value: 'Ashford', target: '', applied: false }]);
+    const flags = runGate4([], 'I check my inventory.');
     expect(flags.length).toBe(0);
+    expect(store.campaign.pendingLocation.value).toBe('Ashford');
+    expect(store.campaign.location).toBe('Test Location');
+  });
+
+  it('Gate 4 is a no-op when nothing is pending', () => {
+    const flags = runGate4([], 'We head to Ashford.');
+    expect(flags.length).toBe(0);
+    expect(store.campaign.pendingLocation).toBe(null);
   });
 
   it('Gate 5 flags unmentioned PC actions', () => {

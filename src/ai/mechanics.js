@@ -314,6 +314,30 @@ export function rejectLocation() {
   aiSet('pendingLocation', null);
 }
 
+// Scene Transition gate — commits whichever of location/time/chapter are
+// currently held, in one tap. A scene transition can bundle any subset of
+// these (e.g. just a time jump, or a location move plus a new chapter), so
+// this doesn't assume all three are pending at once.
+export function confirmTransition() {
+  if (store.campaign.pendingLocation) confirmLocation();
+  const pendingTime = store.campaign.pendingTime;
+  if (pendingTime) {
+    aiSet('time', pendingTime);
+    aiSet('pendingTime', null);
+  }
+  const pendingChapter = store.campaign.pendingChapter;
+  if (pendingChapter) {
+    aiSet('chapters', [...store.campaign.chapters, pendingChapter]);
+    aiSet('pendingChapter', null);
+  }
+}
+
+export function rejectTransition() {
+  aiSet('pendingLocation', null);
+  aiSet('pendingTime', null);
+  aiSet('pendingChapter', null);
+}
+
 function dispatch(mech) {
   const handler = DISPATCH[mech.key];
   if (handler) handler(mech.value);
@@ -510,7 +534,15 @@ const DISPATCH = {
     }
   },
 
-  time(value) { aiSet('time', value.trim()); },
+  time(value) {
+    const newTime = value.trim();
+    const prev = store.campaign.time;
+    if (prev && prev.toLowerCase() !== newTime.toLowerCase()) {
+      aiSet('pendingTime', newTime);
+    } else {
+      aiSet('time', newTime);
+    }
+  },
   weather(value) { aiSet('weather', value.trim()); },
   loc_desc(value) { aiSet('locDesc', value.trim()); },
   primary_mission(value) { aiSet('primaryMission', value.trim()); },
@@ -660,9 +692,12 @@ const DISPATCH = {
   chapter_add(value) {
     const [title, ...rest] = value.split('|');
     const content = rest.join('|').trim();
-    aiSet('chapters', [...store.campaign.chapters, {
+    // A new chapter marks an arc boundary — hold it the same way as a
+    // location/time transition, so it lands in the chronicle only once the
+    // player has confirmed they're ready to move past this scene.
+    aiSet('pendingChapter', {
       id: Date.now(), title: title.trim(), content, gameTs: store.campaign.time,
-    }]);
+    });
   },
 
   chapter_update(value) {

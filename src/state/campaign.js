@@ -59,6 +59,8 @@ export const DEFAULT_CAMPAIGN = {
   },
 
   pendingLocation: null,
+  pendingTime: null,
+  pendingChapter: null,
 
   // Per-device presence roster, keyed by uid. Written only when a player
   // explicitly toggles "I'm here"/"I've left" (Settings → Who Am I?) — no

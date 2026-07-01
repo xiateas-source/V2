@@ -1,6 +1,6 @@
 import { Show } from 'solid-js';
 import { store, setStore } from '../../state/index.js';
-import { confirmLocation, rejectLocation } from '../../ai/mechanics.js';
+import { confirmTransition, rejectTransition } from '../../ai/mechanics.js';
 import { autoRead, toggleAutoRead } from '../../audio/browserTTS.js';
 import { getUid } from '../../data/index.js';
 import { navigateTo } from '../shared/sourceBus.js';
@@ -9,7 +9,19 @@ export default function ContextBanner() {
   const loc = () => store.campaign.location;
   const time = () => store.campaign.time;
   const weather = () => store.campaign.weather;
-  const pending = () => store.campaign.pendingLocation;
+  const pendingLoc = () => store.campaign.pendingLocation;
+  const pendingTime = () => store.campaign.pendingTime;
+  const pendingChapter = () => store.campaign.pendingChapter;
+  const pending = () => pendingLoc() || pendingTime() || pendingChapter();
+  // A scene transition can bundle any subset of location/time/chapter — build
+  // one combined prompt covering whichever of those are actually pending.
+  const pendingText = () => {
+    const parts = [];
+    if (pendingLoc()) parts.push(`move to ${pendingLoc().value}`);
+    if (pendingTime()) parts.push(`advance time to ${pendingTime()}`);
+    if (pendingChapter()) parts.push(`start a new chapter: ${pendingChapter().title}`);
+    return parts.length ? `${parts.join(' and ')}?`.replace(/^\w/, c => c.toUpperCase()) : '';
+  };
   const isMulti = () => store.system.playerIdentity.mode === 'multi';
   const inCombat = () => store.campaign.combatState?.active;
   const othersHere = () => {
@@ -30,10 +42,10 @@ export default function ContextBanner() {
     <>
       <Show when={pending()}>
         <div class="scene-confirm">
-          <span class="scene-confirm-text">Move to {pending().value}?</span>
+          <span class="scene-confirm-text">{pendingText()}</span>
           <div class="scene-confirm-actions">
-            <button class="scene-confirm-go" onClick={confirmLocation}>Go</button>
-            <button class="scene-confirm-stay" onClick={rejectLocation}>Stay</button>
+            <button class="scene-confirm-go" onClick={confirmTransition}>Go</button>
+            <button class="scene-confirm-stay" onClick={rejectTransition}>Stay</button>
           </div>
         </div>
       </Show>

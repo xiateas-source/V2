@@ -1,6 +1,7 @@
 import { store, setStore } from '../state/index.js';
 import { createSignal } from 'solid-js';
 import { createNarrativeMsg } from './messages.js';
+import { confirmTransition } from './mechanics.js';
 
 const [pendingRolls, setPendingRolls] = createSignal([]);
 const [gateFlags, setGateFlags] = createSignal([]);
@@ -185,21 +186,24 @@ export function runGate3(narrative, mechanics, playerMessage) {
   return flags;
 }
 
-export function runGate4(mechanics) {
-  const flags = [];
-  const hasLocation = mechanics.some(m => m.key === 'location');
-  const hasTime = mechanics.some(m => m.key === 'time');
+// Scene Transition — the actual hold-and-confirm UI lives in ContextBanner.jsx,
+// reading store.campaign.pendingLocation/pendingTime/pendingChapter directly
+// (mechanics.js's location()/time()/chapter_add() dispatch into those fields
+// instead of applying immediately). This gate's only job is the one edge case
+// that needs the player's own message: if they already stated the destination
+// themselves ("we head to the Keep"), they've already confirmed intent, so
+// commit immediately instead of holding for a redundant tap. Time/chapter text
+// is free-form narrative, not something a player types verbatim, so only
+// location is checked against the player's message.
+export function runGate4(mechanics, playerMessage) {
+  const cs = store.campaign;
+  if (!cs.pendingLocation && !cs.pendingTime && !cs.pendingChapter) return [];
 
-  if (hasLocation && hasTime) {
-    flags.push({
-      gate: 4,
-      type: 'scene_transition',
-      text: 'Scene change detected (location + time) — confirm before continuing',
-      action: 'hold',
-    });
-    addFlag(flags[0]);
+  const dest = cs.pendingLocation?.value?.toLowerCase();
+  if (dest && (playerMessage || '').toLowerCase().includes(dest)) {
+    confirmTransition();
   }
-  return flags;
+  return [];
 }
 
 export function runGate5(narrative, mechanics, playerMessage) {

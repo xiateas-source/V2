@@ -116,6 +116,11 @@ export default function MechTest(props) {
     scenarioToast(`${char.name} set to ${target}/${char.hpMax} HP — open their sheet's Vitals tab and try Spend Hit Die.`);
   }
 
+  function scenarioSceneTransition() {
+    fire(`location: Scenario Test — The Sunken Chapel\ntime: That evening\nchapter_add: The Sunken Chapel|A test chapter for the scene transition gate.`, 'Scenario: Scene Transition');
+    scenarioToast('A location/time/chapter change is now held — check the banner at the top of Play for a "Go/Stay" prompt.');
+  }
+
   function scenarioActionEconomy() {
     const chars = store.campaign.characters;
     if (!chars.length) return;
@@ -213,6 +218,7 @@ export default function MechTest(props) {
     { label: 'Covered Enemy', hint: 'Tests Cover (S69)', run: scenarioCoveredEnemy },
     { label: 'Low HP + Rest', hint: 'Tests Hit Dice healing (S68)', run: scenarioLowHP },
     { label: 'Mid-Combat Turn', hint: 'Tests Action Economy (S67)', run: scenarioActionEconomy },
+    { label: 'Scene Transition', hint: 'Tests the scene hold/confirm banner (S75)', run: scenarioSceneTransition },
   ];
   const QUICK = [
     { label: 'Damage 5',     line: () => `hp: ${pc()}, -5` },
