@@ -7725,6 +7725,29 @@ body {
 .cargo-addgo { background: var(--color-accent); color: var(--color-bg); border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; }
 .cargo-addgo:disabled { opacity: .4; }
 
+/* companions row */
+.cargo-companions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 16px 10px; border-bottom: 1px solid var(--line-soft); }
+.cargo-companions-label { font-size: 10px; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; }
+.cargo-companion-chip { font-size: 12px; color: var(--color-text-muted); background: var(--color-surface); border: 1px solid var(--line-soft); border-radius: 20px; padding: 3px 10px; }
+/* header actions */
+.cargo-head-actions { display: flex; align-items: center; gap: 6px; }
+.cargo-merge-btn { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 500; background: none; border: 1px solid var(--line-soft); border-radius: 8px; padding: 5px 10px; color: var(--color-text-muted); cursor: pointer; }
+/* inline item editing */
+.cargo-item { cursor: pointer; }
+.cargo-item.is-open { background: color-mix(in srgb, var(--color-accent) 6%, var(--color-surface)); }
+.cargo-item-edit { width: 100%; margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+.cargo-item-controls { display: flex; align-items: center; gap: 8px; }
+.cargo-qty-stepper { display: flex; align-items: center; background: var(--color-input-bg); border: 1px solid var(--line-soft); border-radius: 8px; overflow: hidden; }
+.cargo-qty-stepper button { background: none; border: none; color: var(--color-text); font-size: 16px; width: 32px; height: 30px; cursor: pointer; }
+.cargo-qty-stepper button:active { background: var(--line-soft); }
+.cargo-qty-stepper span { font-size: 13px; min-width: 24px; text-align: center; color: var(--color-text); }
+.cargo-use-btn { background: color-mix(in srgb, var(--color-accent) 15%, transparent); border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent); color: var(--color-accent); border-radius: 8px; padding: 4px 14px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.cargo-delete-btn { margin-left: auto; background: none; border: none; color: var(--color-danger, #e05050); font-size: 16px; padding: 4px 6px; cursor: pointer; opacity: 0.7; }
+.cargo-delete-btn:active { opacity: 1; }
+.cargo-note-input { width: 100%; background: var(--color-input-bg); border: 1px solid var(--line-soft); border-radius: 6px; padding: 6px 8px; font-size: 12px; color: var(--color-text); resize: none; font-family: inherit; line-height: 1.4; }
+.cargo-note-input:focus { outline: none; border-color: color-mix(in srgb, var(--color-accent) 35%, transparent); }
+.cargo-note-input::placeholder { color: var(--faint); }
+
 /* ============================================================= */
 /* ================  TAP-TO-SOURCE additions  ================= */
 /* ============================================================= */

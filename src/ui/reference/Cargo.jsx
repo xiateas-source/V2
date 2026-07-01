@@ -20,20 +20,75 @@ const CONTAINER_NAMES = /bag of holding|handy haversack|portable hole|bag of dev
 function isContainerType(i) {
   return (i.type || '').toLowerCase() === 'container' || CONTAINER_NAMES.test(i.name || '');
 }
+const USABLE_TYPES = new Set(['consumable', 'potion', 'food', 'herb', 'component', 'scroll']);
+function useVerb(type, named) {
+  const t = (type || '').toLowerCase();
+  if (t === 'food') return named ? 'eats' : 'eat';
+  if (t === 'potion') return named ? 'drinks' : 'drink';
+  if (t === 'scroll') return named ? 'reads' : 'read';
+  return named ? 'uses' : 'use';
+}
 
 export default function Cargo() {
   const [showTreasury, setShowTreasury] = createSignal(false);
-  const [owner, setOwner] = createSignal('all');   // 'all' | 'wagon' | 'hoard' | pcId
+  const [owner, setOwner] = createSignal('all');
   const [typeFilter, setTypeFilter] = createSignal('all');
   const [q, setQ] = createSignal('');
   const [adding, setAdding] = createSignal(false);
   const [openItem, setOpenItem] = createSignal(null);
 
   function itemKey(i) { return `${i.name}::${i._owner}::${i._idx}`; }
-  function toggleNote(i, e) {
-    e.stopPropagation();
+  function toggleOpen(i) {
     const k = itemKey(i);
     setOpenItem(prev => prev === k ? null : k);
+  }
+
+  // Write a patch to an item in place.
+  function writeItem(i, patch) {
+    if (i._owner === 'wagon') {
+      const arr = store.campaign.inventory.wagon.map((it, idx) => idx === i._idx ? { ...it, ...patch } : it);
+      setStore('campaign', 'inventory', 'wagon', arr);
+    } else if (i._owner === 'hoard') {
+      const arr = store.campaign.inventory.hoard.map((it, idx) => idx === i._idx ? { ...it, ...patch } : it);
+      setStore('campaign', 'inventory', 'hoard', arr);
+    } else {
+      const arr = (store.campaign.inventory.carried[i._owner] || [])
+        .map((it, idx) => idx === i._idx ? { ...it, ...patch } : it);
+      setStore('campaign', 'inventory', 'carried', i._owner, arr);
+    }
+  }
+
+  function removeItem(i) {
+    if (i._owner === 'wagon') {
+      setStore('campaign', 'inventory', 'wagon',
+        store.campaign.inventory.wagon.filter((_, idx) => idx !== i._idx));
+    } else if (i._owner === 'hoard') {
+      setStore('campaign', 'inventory', 'hoard',
+        store.campaign.inventory.hoard.filter((_, idx) => idx !== i._idx));
+    } else {
+      setStore('campaign', 'inventory', 'carried', i._owner,
+        (store.campaign.inventory.carried[i._owner] || []).filter((_, idx) => idx !== i._idx));
+    }
+  }
+
+  function adjustQty(i, delta) {
+    const newQty = (i.qty || 1) + delta;
+    if (newQty <= 0) { removeItem(i); setOpenItem(null); return; }
+    writeItem(i, { qty: newQty });
+  }
+
+  function saveNote(i, text) {
+    writeItem(i, { note: text || '' });
+  }
+
+  function useItem(i) {
+    const pc = characters().find(c => c.id === i._owner);
+    const who = pc?.name;
+    const verb = useVerb(i.type, !!who);
+    window.dispatchEvent(new CustomEvent('prefill-input', {
+      detail: { text: `${who || 'I'} ${verb} the ${i.name}.` }
+    }));
+    adjustQty(i, -1);
   }
 
   function toggleInContainer(i, e) {
@@ -42,6 +97,29 @@ export default function Cargo() {
     const arr = [...(store.campaign.inventory.carried[pcId] || [])];
     arr[i._idx] = { ...arr[i._idx], inContainer: !arr[i._idx].inContainer };
     setStore('campaign', 'inventory', 'carried', pcId, arr);
+  }
+
+  function mergeDuplicates() {
+    function mergeArr(arr) {
+      const map = new Map();
+      for (const item of arr) {
+        const key = item.name.toLowerCase();
+        if (map.has(key)) {
+          map.get(key).qty = (map.get(key).qty || 1) + (item.qty || 1);
+        } else {
+          map.set(key, { ...item, qty: item.qty || 1 });
+        }
+      }
+      return [...map.values()];
+    }
+    setStore('campaign', 'inventory', 'wagon', mergeArr(store.campaign.inventory.wagon || []));
+    setStore('campaign', 'inventory', 'hoard', mergeArr(store.campaign.inventory.hoard || []));
+    const newCarried = {};
+    for (const pc of characters()) {
+      newCarried[pc.id] = mergeArr(store.campaign.inventory.carried[pc.id] || []);
+    }
+    setStore('campaign', 'inventory', 'carried', newCarried);
+    setOpenItem(null);
   }
 
   const gold = () => store.campaign.gold;
@@ -56,10 +134,19 @@ export default function Cargo() {
       .filter(Boolean).join(' · ');
   };
 
-  // Every item tagged with its owner and original index (for in-place updates).
+  // Companions live in the wagon but get their own display, not the item list.
+  const companions = createMemo(() =>
+    wagon().map((it, idx) => ({ ...it, _owner: 'wagon', _idx: idx }))
+      .filter(i => (i.type || '').toLowerCase() === 'companion')
+  );
+
+  // Every item tagged with its owner and original index — companions excluded.
   const allItems = createMemo(() => {
     const out = [];
-    for (const [idx, it] of wagon().entries()) out.push({ ...it, _owner: 'wagon', _ownerLabel: 'Wagon', _idx: idx });
+    for (const [idx, it] of wagon().entries()) {
+      if ((it.type || '').toLowerCase() !== 'companion')
+        out.push({ ...it, _owner: 'wagon', _ownerLabel: 'Wagon', _idx: idx });
+    }
     for (const [idx, it] of hoard().entries()) out.push({ ...it, _owner: 'hoard', _ownerLabel: 'Hoard', _idx: idx });
     for (const pc of characters()) {
       for (const [idx, it] of (carried()[pc.id] || []).entries()) {
@@ -69,9 +156,20 @@ export default function Cargo() {
     return out;
   });
 
+  const hasDuplicates = createMemo(() => {
+    const seen = new Set();
+    for (const i of allItems()) {
+      const k = `${i._owner}::${i.name.toLowerCase()}`;
+      if (seen.has(k)) return true;
+      seen.add(k);
+    }
+    return false;
+  });
+
   const ownerTabs = createMemo(() => {
+    const wagonCount = wagon().filter(i => (i.type || '').toLowerCase() !== 'companion').length;
     const tabs = [{ id: 'all', label: 'All', count: allItems().length }];
-    if (wagon().length) tabs.push({ id: 'wagon', label: 'Wagon', count: wagon().length });
+    if (wagonCount) tabs.push({ id: 'wagon', label: 'Wagon', count: wagonCount });
     if (hoard().length) tabs.push({ id: 'hoard', label: 'Hoard', count: hoard().length });
     for (const pc of characters()) {
       tabs.push({ id: pc.id, label: pc.name, count: (carried()[pc.id] || []).length });
@@ -79,21 +177,18 @@ export default function Cargo() {
     return tabs;
   });
 
-  // Items in the chosen owner view (before type/search filtering).
   const ownerItems = createMemo(() => {
     const o = owner();
     if (o === 'all') return allItems();
     return allItems().filter(i => i._owner === o);
   });
 
-  // Whether the current PC owner has a container item — enables the "in bag" toggle.
   const hasContainer = createMemo(() => {
     const o = owner();
     if (o === 'all' || o === 'wagon' || o === 'hoard') return false;
     return (store.campaign.inventory.carried[o] || []).some(isContainerType);
   });
 
-  // Weight of items stored inside the container (excluded from carry weight).
   const bagWeight = createMemo(() => {
     const o = owner();
     if (o === 'all' || o === 'wagon' || o === 'hoard') return 0;
@@ -119,7 +214,6 @@ export default function Cargo() {
     return list;
   });
 
-  // Group the visible list by type → labelled sections.
   const grouped = createMemo(() => {
     const groups = {};
     for (const i of visible()) {
@@ -131,18 +225,15 @@ export default function Cargo() {
 
   const totalWeight = createMemo(() => visible().reduce((s, i) => s + itemWeight(i), 0));
 
-  // Carry capacity = STR × 15, a single hard cap (2024 SRD — no Encumbered /
-  // Heavily Encumbered tiers).
   const capacity = createMemo(() => {
     const pc = characters().find(p => p.id === owner());
     if (!pc) return null;
     const str = pc.abilityScores?.str || 10;
-    const carried = totalWeight();
+    const carriedW = totalWeight();
     const cap = str * 15;
-    let level = 'ok';
-    let warning = '';
-    if (carried > cap) { level = 'over'; warning = 'Over capacity! Cannot pick up or carry more.'; }
-    return { carried, cap, str, level, warning };
+    const level = carriedW > cap ? 'over' : 'ok';
+    const warning = carriedW > cap ? 'Over capacity! Cannot pick up or carry more.' : '';
+    return { carried: carriedW, cap, str, level, warning };
   });
 
   function selectOwner(id) { setOwner(id); setTypeFilter('all'); }
@@ -152,10 +243,27 @@ export default function Cargo() {
       <div class="cargo-page">
         <div class="cargo-head">
           <span class="page-heading cargo-title">Cargo</span>
-          <button class="cargo-add-btn" onClick={() => setAdding(!adding())}>
-            <i class="ph ph-plus" /> Add
-          </button>
+          <div class="cargo-head-actions">
+            <Show when={hasDuplicates()}>
+              <button class="cargo-merge-btn" onClick={mergeDuplicates} title="Stack duplicate items">
+                <i class="ph ph-stack" /> Merge
+              </button>
+            </Show>
+            <button class="cargo-add-btn" onClick={() => setAdding(!adding())}>
+              <i class="ph ph-plus" /> Add
+            </button>
+          </div>
         </div>
+
+        {/* Companions row */}
+        <Show when={companions().length > 0}>
+          <div class="cargo-companions">
+            <span class="cargo-companions-label">Traveling with</span>
+            <For each={companions()}>
+              {(c) => <span class="cargo-companion-chip">{c.name}</span>}
+            </For>
+          </div>
+        </Show>
 
         <button class="cargo-treasury-link" onClick={() => setShowTreasury(true)}>
           <i class="ph ph-coins cargo-treasury-icon" />
@@ -168,7 +276,6 @@ export default function Cargo() {
 
         <Show when={adding()}><AddItemForm characters={characters()} owner={owner()} onDone={() => setAdding(false)} /></Show>
 
-        {/* owner / container tabs with counts */}
         <div class="cargo-owners">
           <For each={ownerTabs()}>
             {(t) => (
@@ -179,7 +286,6 @@ export default function Cargo() {
           </For>
         </div>
 
-        {/* weight rollup */}
         <Show when={capacity()} fallback={
           <Show when={totalWeight() > 0}><div class="cargo-weight">{totalWeight()} lb total</div></Show>
         }>
@@ -197,12 +303,10 @@ export default function Cargo() {
           </Show>
         </Show>
 
-        {/* search */}
         <Show when={ownerItems().length > 6}>
           <input class="cargo-search" placeholder="Search items…" value={q()} onInput={(e) => setQ(e.target.value)} />
         </Show>
 
-        {/* type filter chips */}
         <Show when={typeChips().length > 1}>
           <div class="cargo-types">
             <button class={`cargo-type ${typeFilter() === 'all' ? 'active' : ''}`} onClick={() => setTypeFilter('all')}>
@@ -218,7 +322,6 @@ export default function Cargo() {
           </div>
         </Show>
 
-        {/* grouped item list */}
         <Show when={visible().length > 0} fallback={<p class="empty-state">{ownerItems().length === 0 ? 'Nothing stored here yet.' : 'No items match.'}</p>}>
           <div class="cargo-groups">
             <For each={grouped()}>
@@ -229,22 +332,24 @@ export default function Cargo() {
                     {(i) => {
                       const key = itemKey(i);
                       const isOpen = () => openItem() === key;
-                      const hasNote = !!i.note;
                       const isContainer = isContainerType(i);
                       const showBagToggle = () => hasContainer() && !isContainer;
+                      const isUsable = USABLE_TYPES.has((i.type || '').toLowerCase());
                       return (
                         <div
                           class="cargo-item"
-                          classList={{ 'has-note': hasNote, 'in-bag': !!i.inContainer }}
-                          onClick={(e) => hasNote && toggleNote(i, e)}
+                          classList={{ 'has-note': !!i.note, 'in-bag': !!i.inContainer, 'is-open': isOpen() }}
+                          onClick={() => toggleOpen(i)}
                         >
                           <span class="cargo-item-name">{i.name}</span>
                           <Show when={owner() === 'all' && i._ownerLabel}>
                             <span class="cargo-item-owner">{i._ownerLabel}</span>
                           </Show>
                           <span class="cargo-item-meta">
-                            {i.qty > 1 ? <span class="cargo-qty">×{i.qty}</span> : ''}
-                            {rawWeight(i) ? <span class="cargo-wt">{i.inContainer ? <s>{rawWeight(i)}lb</s> : `${rawWeight(i)}lb`}</span> : ''}
+                            <Show when={!isOpen()}>
+                              {i.qty > 1 ? <span class="cargo-qty">×{i.qty}</span> : ''}
+                              {rawWeight(i) ? <span class="cargo-wt">{i.inContainer ? <s>{rawWeight(i)}lb</s> : `${rawWeight(i)}lb`}</span> : ''}
+                            </Show>
                             <Show when={showBagToggle()}>
                               <button
                                 class={`cargo-bag-btn ${i.inContainer ? 'active' : ''}`}
@@ -254,12 +359,34 @@ export default function Cargo() {
                                 <i class="ph ph-handbag" />
                               </button>
                             </Show>
-                            <Show when={hasNote}>
-                              <i class={`ph ${isOpen() ? 'ph-caret-up' : 'ph-caret-down'} cargo-note-caret`} />
-                            </Show>
+                            <i class={`ph ${isOpen() ? 'ph-caret-up' : 'ph-caret-down'} cargo-note-caret`} />
                           </span>
+
                           <Show when={isOpen()}>
-                            <div class="cargo-item-note">{i.note}</div>
+                            <div class="cargo-item-edit" onClick={e => e.stopPropagation()}>
+                              <div class="cargo-item-controls">
+                                <div class="cargo-qty-stepper">
+                                  <button onClick={() => adjustQty(i, -1)}>−</button>
+                                  <span>{i.qty || 1}</span>
+                                  <button onClick={() => adjustQty(i, 1)}>+</button>
+                                </div>
+                                <Show when={isUsable}>
+                                  <button class="cargo-use-btn" onClick={() => useItem(i)}>
+                                    {useVerb(i.type, !!characters().find(c => c.id === i._owner))}
+                                  </button>
+                                </Show>
+                                <button class="cargo-delete-btn" onClick={() => { removeItem(i); setOpenItem(null); }}>
+                                  <i class="ph ph-trash" />
+                                </button>
+                              </div>
+                              <textarea
+                                class="cargo-note-input"
+                                placeholder="Add a note…"
+                                value={i.note || ''}
+                                rows={2}
+                                onInput={(e) => saveNote(i, e.target.value)}
+                              />
+                            </div>
                           </Show>
                         </div>
                       );
@@ -275,8 +402,6 @@ export default function Cargo() {
   );
 }
 
-// Player add — routed through the item_add mechanic (inventory is AI-owned, so
-// we go through the pipeline rather than writing the store directly).
 function AddItemForm(props) {
   const [name, setName] = createSignal('');
   const [type, setType] = createSignal('gear');
@@ -284,12 +409,6 @@ function AddItemForm(props) {
 
   const TYPES = ['gear', 'weapon', 'armor', 'potion', 'scroll', 'tool', 'supply', 'trade', 'key', 'document', 'consumable', 'misc'];
 
-  function destLabel(id) {
-    if (id === 'wagon') return 'Wagon';
-    if (id === 'hoard') return 'Hoard';
-    const pc = props.characters.find(p => p.id === id);
-    return pc ? pc.name : 'Wagon';
-  }
   function destToken(id) {
     if (id === 'wagon' || id === 'hoard') return id;
     const pc = props.characters.find(p => p.id === id);
