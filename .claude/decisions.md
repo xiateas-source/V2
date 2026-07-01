@@ -546,6 +546,29 @@ Two fixes, deliberately not a third:
 
 3 new tests (classifier Survival/trap coverage, a disarm-trap regression to confirm no false-positive overlap with Sleight of Hand), 107/107 passing, build clean. No test added for the contract-text/migration change (prompt content + `restoreSession()`'s Firebase-touching migration logic have no precedent for direct testing in this suite). **Not live-verified** — needs a real compound-action message in play to confirm both the Survival pattern match and the AI's respected scope boundary (does it still only narrate the rolled clause, and does it now ask for a second roll for the other one).
 
+## Contextual AI-determined DCs (S78) — Priority #4
+
+Workboard Priority #4, deliberately left for last as the most complex remaining item. The classifier's pre-send skill checks (`classifier.js`'s `classifyAction()`) used a fixed `DC_TIERS` lookup (`{easy:10, medium:13, hard:15, very_hard:18}`) per matched action regardless of fictional context — every "search" rolled DC 13 whether it was a glance around a lit room or a hidden trapdoor in darkness. Confirmed directly with the user which of two very different shapes this should take: a real extra AI call before the roll bar appears (accepting added latency for genuine context-awareness), not the cheaper alternative of just improving the DM's own free-form `roll_request` DC guidance (which already works, unprompted, elsewhere in the game).
+
+This inserts a new async step into the sacred core loop (Law 1), so it got unusually heavy review for this sprint: an Explore agent traced the exact integration point first, then two **independent, sequential** Plan-agent passes red-teamed the design against source directly — the second pass explicitly tasked with finding whatever the first missed, not re-deriving the design. Between them they caught four real, concrete bugs before any code was written:
+
+| Bug caught | Fix |
+|---|---|
+| Stop button didn't actually cancel the wait — `activeController` was `null` during classify→DC-lookup, so tapping Stop just hid the sending indicator while the lookup kept running, and the roll bar would still pop up seconds later | `sendMsg()`'s classifier branch now creates its own `AbortController`, assigns it to the shared `activeController` (the same field `stopGeneration()` already aborts), and checks `wasAborted` after the call before deciding whether to show the roll bar at all |
+| Reusing `callProvider()`'s full retry/fallback chain for a tiny call: its retries (3 attempts, 2/4/8s delays) can't finish inside a 4s budget, and its `recordFailure()` writes to *shared* provider-health state — a burst of failed tiny DC calls would mark Gemini "unhealthy" for up to 5 minutes and make the very next real DM narration call skip it too | New `callProviderOnce()` export (`providers.js`) — one attempt, no retries, never calls `recordFailure()`. Shares a new `pickHealthyProviders()` helper with `callProvider` so provider-selection logic doesn't duplicate/drift |
+| A bare `Promise.race` against a timer doesn't actually cancel the losing fetch — it keeps running in the background wasting a request against the free-tier rate limit, and can produce an unhandled rejection later | `determineContextualDCs()` explicitly calls `activeController.abort()` in a `setTimeout`, not just races a timer promise |
+| Per-line, per-index DC parsing has no defense against a blank line or a stray number in a preamble shifting every subsequent index — producing a plausible-but-wrong DC, worse than an out-of-range one (which safely falls back on its own) | `parseDCResponse()` rejects the *whole* response (falls back to every roll's own tier default) if the parsed-number count doesn't match the roll count, rather than trusting index alignment |
+
+Also settled: one combined AI call per classified message (not one parallel call per roll) — cheaper, one clean timeout/fallback path, avoids hammering a free-tier rate-limited key with N concurrent requests for a multi-PC compound action.
+
+| Decision | Rationale |
+|----------|-----------|
+| `determineContextualDCs`/`parseDCResponse` live in `engine.js`, not `classifier.js` | Keeps `classifier.js` pure, synchronous, and zero-AI-dependency — its 3 existing tests assume exactly that, and `engine.js` already owns the async orchestration around `classifyAction()`'s result. |
+| The roll bar simply doesn't appear until the real DC is ready — no placeholder-then-upgrade flash | User's explicit choice between the two DC-approach options; confirmed `isSending()` (already true for the whole window) already drives the existing typing-dots/Send→Stop UI in `Chat.jsx`/`InputBar.jsx`, so this needed zero new UI. |
+| No test for `determineContextualDCs`/`callProviderOnce` themselves; only `parseDCResponse` (pure) gets tests | No `callProvider` mocking precedent exists anywhere in this suite (confirmed by both review passes) — matches this codebase's established rule of testing pure logic, not AI-call orchestration. |
+
+5 new tests (`parseDCResponse`: aligned response, misaligned/short response falling back wholesale, empty/unparseable input, per-index out-of-range clamping, blank-line filtering), 112/112 passing, build clean. **Not live-verified** — needs a real phone check: an unusual action should get a plausibly-different DC than the flat tier default after a brief pause; tapping Stop during that pause should prevent the roll bar from appearing at all; a network hiccup should still produce a working roll bar at the tier-default DC rather than hanging.
+
 ## Open Questions (not yet answered)
 
 - **Child-friendly view target age** — 7-16 is wide. What's the actual simplification scope?

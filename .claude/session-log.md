@@ -1,54 +1,52 @@
-# Session Log — S77 (2026-07-01)
+# Session Log — S78 (2026-07-01)
 
 ## Branch / Build
-Branch: `claude/workboard-sprint-deadline-ka8m7y` · S76 (JSON import, equipment picker, AI Builder depth) merged to main and deployed earlier this conversation · S77 not yet merged · build clean, 107/107 tests passing
+Branch: `claude/workboard-sprint-deadline-ka8m7y` · S77 (classifier/contract fix) merged to main and deployed earlier this conversation, plus a docs-only reconciliation commit (ai-failures.md, enforcement-spec.md, CLAUDE.md) pushed to the feature branch but not yet merged · S78 not yet merged · build clean, 112/112 tests passing
 
 ---
 
 ## What Shipped This Session
 
-User sent a real playtest export and asked specifically to review the DM's "roll request types." Traced two distinct issues.
+### 1. Doc reconciliation (ai-failures.md, enforcement-spec.md, CLAUDE.md)
 
-### Issue A (flagged, not fixed) — Animal Friendship's roll didn't match the spell
+User noticed `.claude/ai-failures.md` and `.claude/enforcement-spec.md` hadn't been touched in days/weeks and worried the documentation system had broken. It hadn't — every session's findings were going into `decisions.md`'s narrative, but these two *operational* tracking docs never got looped back to. Given the user's explicit history of past agents misreading this project's architecture, had an independent Explore agent re-verify every claim (which `ai-failures.md` items are actually fixed, the exact `gates.js` gate mapping) directly against source before writing anything — it found the gate-numbering mismatch was worse than first spotted (7 of 9 gates shifted, not just the one originally noticed).
 
-Casting Animal Friendship, the DM's mechanics block correctly described the spell ("Target must succeed on a DC 13 Wisdom saving throw or be charmed") but then requested an **Animal Handling** roll from the caster — the spell never asks the caster to roll anything; the target saves. Gate 6 (Spell Validation, `gates.js`) only checks known-spell/slot availability — nothing validates that a `roll_request` actually matches how the spell it's attached to resolves (attack roll / no-roll-target-saves / caster-check). Real gap, but separate, larger scope (would need a spell-resolution-type lookup table across the spell list). Not built — flagged for a future session.
+Marked six already-fixed `ai-failures.md` items ✅ with their real fix locations and sessions, added two new S77 findings, added a verified gate-mapping table to `enforcement-spec.md`, and added one line to `CLAUDE.md`'s session-end checklist so this doesn't quietly drift again. Pure documentation, no code, no tests.
 
-### Issue B (fixed) — one classified roll silently governed a whole compound message
+### 2. Contextual AI-determined DCs (Priority #4)
 
-Player: "Ill set some traps to provide food for the wolves, then ill look around to see what else i can do to spruce up their home." The engine classified this as a single Perception check (DC 13, rolled 7, FAIL) — the DM then narrated **both** the trap-setting and the camp-decorating as failed from that one roll. The player's own follow-up question, answered by the game's built-in rules-advisory (`dm_advisory`), correctly explained a Perception check shouldn't govern either action — proof the game already knows the rule; the code path that ran the scene didn't apply it.
+The last of the deliberately-ordered scheduled priorities. The classifier's pre-send skill checks used a flat DC-tier lookup (10/13/15/18) regardless of fictional context. Confirmed with the user directly which of two shapes this should take: a real extra AI call before the roll bar appears (chosen, accepting latency), not just better guidance for the DM's own already-flexible `roll_request` DCs.
 
-Cross-checked root cause against a second agent's independent handoff — verified its claims against source rather than trusting them at face value (matches this sprint's practice). It matched my own trace almost exactly, with one imprecision I corrected: it conflated this bug with the workboard's "classifier doesn't handle combat attacks or saving throws" Known Issue, which is a different, *intentional* boundary (combat/saves are deliberately routed to `RollBar.jsx`'s own attack flow, not a classifier miss).
+Because this inserts a new async step into the sacred core loop, gave it the heaviest review of the sprint: an Explore agent traced the exact classify→RollBar wiring first (confirmed `classifyAction()` is called once inside `sendMsg()`, populates a `preSendRolls` signal `RollBar.jsx` reads reactively — delaying that signal's population is all that's needed, no new UI plumbing). Then two **independent, sequential** Plan-agent passes red-teamed the design — the second explicitly tasked with finding whatever the first missed, not re-deriving it. Between them they caught four real bugs before any code shipped:
 
-Root cause: `classifier.js`'s `ACTION_PATTERNS` had zero pattern for "set/lay a trap or snare" — only "disarm trap" (the opposite action) existed. So "set some traps" was invisible to the classifier; only "look around" matched (→ Perception), and the DM treated the whole message as resolved by that one roll.
+1. Stop button didn't actually cancel the wait (`activeController` was `null` during this window) — fixed by giving the DC lookup its own `AbortController` wired into the same field `stopGeneration()` already aborts.
+2. Reusing the main provider call's full retry chain for a tiny call would blow the latency budget and poison shared provider-health state for the *next* real DM turn — fixed with a new lean `callProviderOnce()` export (`providers.js`) that never retries and never calls `recordFailure()`, sharing a new `pickHealthyProviders()` helper with `callProvider` so the two don't duplicate/drift.
+3. A bare `Promise.race` against a timer doesn't actually cancel the losing fetch — fixed by explicitly calling `.abort()` in the timeout.
+4. Per-line DC parsing had no defense against a misaligned response (blank line, stray number in a preamble) silently handing the wrong DC to the wrong roll — fixed: `parseDCResponse()` rejects the whole response wholesale on any count mismatch, falling back to every roll's own tier default, rather than trusting index alignment.
 
-User pushed back hard on an early direction I floated (leaning on AI judgment as a backstop for whatever the classifier misses) — correctly pointing out that's exactly what V1 relied on and it didn't work, which is why the code-enforcement layer exists at all. Re-examined the "bigger structural fix" I'd proposed (splitting messages into clauses, then flagging any unmatched clause to the player) and concluded on reflection it doesn't actually hold up: `pattern.test()` already matches anywhere in a string, so multi-skill detection across clauses already works whenever a recognized verb is present — clause-splitting wouldn't have caught "set traps" either, since the real gap is a missing pattern, not a scoping problem in the matcher. And "flag any clause matching nothing" would be very noisy, since most of what players type (dialogue, description, flavor) correctly matches nothing and needs no roll.
+Also settled: one combined AI call per classified message, not one per roll — cheaper, avoids hammering a free-tier rate-limited key with parallel requests on a multi-PC compound action.
 
-**Actual fix, two parts:**
-1. Added trap/snare-setting keywords to `classifier.js`'s Survival pattern. Direct, low-risk, root-cause fix — the classifier already dedupes and rolls once per matched skill, so this exact message now correctly produces two rolls (Survival + Perception) instead of one wrongly covering both.
-2. Clarified the SCOPE of a classified/predetermined roll in two places: `src/ai/contracts.js`'s `MECHANICS_FORMAT` (a fixed block sent to every campaign unconditionally — fixed here reaches every campaign immediately, no migration needed) and `DEFAULT_CONTRACTS.never` (`state/campaign.js`, for new campaigns), plus a `STALE_CONTRACTS` migration entry in `persist.js` so existing campaigns whose `contracts.never` still holds the old text verbatim (never customized by the player) get it refreshed automatically on next load. `STALE_CONTRACTS` changed from one string per field to an array of superseded strings, since a field can now have more than one past default in its history.
-
-This keeps outcomes exactly as code-enforced as before (Gate 1 still requires a real submitted roll before narration) — it removes an accidental *over-restriction* that was stopping the AI from using a roll_request capability it already reliably uses unprompted (it self-requested the Animal Handling roll with zero classifier involvement, proving the capability already works).
-
-Files: `src/ai/classifier.js`, `src/ai/contracts.js`, `src/state/campaign.js`, `src/data/persist.js`, `tests/foundations.test.js`. 3 new tests (Survival/trap coverage, disarm-trap regression confirming no false-positive overlap with Sleight of Hand), 107/107 passing, build clean.
+Files: `src/ai/providers.js` (`callProviderOnce`, `pickHealthyProviders`), `src/ai/engine.js` (`determineContextualDCs`, `parseDCResponse`, wired into `sendMsg()`'s classifier branch), `tests/foundations.test.js`. 5 new tests (`parseDCResponse`: aligned, misaligned/short, empty/unparseable, clamping, blank-line filtering), 112/112 passing, build clean.
 
 ---
 
 ## Decisions Made
-See `.claude/decisions.md` → "One roll silently governing a whole compound message (S77)" for full detail, including the rejected clause-splitting approach and why.
+See `.claude/decisions.md` → "Contextual AI-determined DCs (S78) — Priority #4" for full detail on the design and all four caught bugs.
 
 ---
 
 ## Known Issues / Follow-ups
-- **Not live-verified** — needs a real compound-action message in play ("set traps... then look around" or similar) to confirm both the Survival pattern match and that the AI actually respects the new scope wording (does it still narrate only the rolled clause, and does it now ask for a second roll for the other one, rather than silently treating the whole message as resolved).
-- Issue A (Animal Friendship / spell roll-type mismatch) is flagged but not built — would need a spell-resolution-type lookup table (attack roll / target-saves / caster-check) checked by Gate 6. Separate, larger scope.
+- S78's contextual-DC feature is **not live-verified** — needs a real phone check: an unusual action should get a plausibly different DC after a brief pause (not the flat tier default); tapping Stop during that pause should prevent the roll bar from appearing at all; a network hiccup should still produce a working roll bar rather than hanging.
+- User separately flagged a new bug mid-session, not yet investigated: "i currently cant open npc info without it closing on me immediately" — likely a UI issue in the Journal/NPC detail view (tooltip or drawer closing itself immediately on open). Explicitly deferred to be picked up right after this session's core-loop work, per the user's own request not to split attention mid-review.
+- Remaining scheduled priority: #8 Multiplayer bundles MVP (the only one left).
 - All prior sessions' unverified items remain outstanding (see workboard.md's Known Issues section for the full running list).
 
 ---
 
 ## Next Up (per workboard Priorities, deadline July 11)
-Priorities #1, #2, #3, #5, #7 closed. Remaining: #4 AI DC determination, #8 Multiplayer bundles MVP. This session was entirely playtest-driven, continuing the pattern this sprint — a real transcript surfaced a genuine rules-enforcement gap, cross-checked against a second agent's independent analysis before acting on it.
+Priorities #1, #2, #3, #4, #5, #7 now closed. Only #8 (Multiplayer bundles MVP) remains scheduled. Immediate next item: the NPC info panel closing-on-open bug flagged mid-session but not yet investigated.
 
 ---
 
 ## Branch State
-`claude/workboard-sprint-deadline-ka8m7y` has this session's commits pending push as of writing. S76 was merged to `main` and deployed earlier this conversation. S77 has not been merged — no "go live" given yet for this session's work.
+`claude/workboard-sprint-deadline-ka8m7y` has this session's commits pending push as of writing. S77 (code) is merged to `main` and deployed; the S77 doc-reconciliation commit and this session's S78 work are both on the feature branch only — no "go live" given yet for either.
