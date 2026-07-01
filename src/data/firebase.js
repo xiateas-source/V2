@@ -27,14 +27,29 @@ let connected = false;
 // the listener showing stale data until some unrelated change fired onValue again.
 const lastWritten = new Map();
 
+// Firebase RTDB returns object children back in its own canonical order
+// (alphabetical for non-integer-like keys), not the insertion order the app
+// wrote them in — so a plain JSON.stringify comparison between what was
+// written and what comes back almost never matches, even for a pure
+// self-echo with identical content. Stringify with keys sorted recursively
+// so the comparison is order-independent and echoes are actually detected.
+export function stableStringify(value) {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+  if (value && typeof value === 'object') {
+    const keys = Object.keys(value).sort();
+    return `{${keys.map(k => `${JSON.stringify(k)}:${stableStringify(value[k])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
 function markWritten(path, value) {
-  lastWritten.set(path, JSON.stringify(value));
+  lastWritten.set(path, stableStringify(value));
 }
 
 function isEcho(path, incoming) {
   const expected = lastWritten.get(path);
   if (expected === undefined) return false;
-  const matches = JSON.stringify(incoming) === expected;
+  const matches = stableStringify(incoming) === expected;
   if (matches) lastWritten.delete(path);
   return matches;
 }

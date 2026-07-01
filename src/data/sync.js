@@ -1,4 +1,5 @@
 import { createEffect, on } from 'solid-js';
+import { reconcile } from 'solid-js/store';
 import { store, setStore } from '../state/index.js';
 import { dbWrite, dbRead, dbListen, getUid } from './firebase.js';
 import { mergeCampaign, healArrays } from './persist.js';
@@ -96,7 +97,13 @@ export function startLiveSync() {
   liveUnsub = dbListen(path, (data) => {
     if (!data || !store.campaign.id) return;
     const merged = mergeCampaign(store.campaign, data);
-    setStore('campaign', merged);
+    // reconcile() diffs the already-merged result against the current store
+    // tree and patches it in place, instead of replacing the whole campaign
+    // node wholesale — keyed <For>s over campaign arrays (e.g. the Journal's
+    // NPC list) keep their component identity for anything that didn't
+    // actually change, instead of tearing down and remounting on every sync
+    // round-trip (which was resetting local UI state like an expanded card).
+    setStore('campaign', reconcile(merged));
   });
   // Push current state immediately so guests can join without waiting for a change event.
   const mp = store.system.multiplay;
@@ -173,7 +180,7 @@ export async function joinCampaign(shareIdRaw) {
   }
   if (!data) throw new Error('Campaign not found. Make sure the host is online and the code is correct.');
 
-  setStore('campaign', healArrays({ ...DEFAULT_CAMPAIGN, ...data, id: campaignId }));
+  setStore('campaign', reconcile(healArrays({ ...DEFAULT_CAMPAIGN, ...data, id: campaignId })));
   setStore('system', 'activeCampaignId', campaignId);
   setStore('system', 'multiplay', { role: 'guest', hostUid });
 

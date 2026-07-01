@@ -8,6 +8,7 @@ import { normalizeCharacter, parseEquipmentList } from '../src/content/normalize
 import { forgeCharacter } from '../src/data/forge.js';
 import { classifyAction } from '../src/ai/classifier.js';
 import { parseDCResponse } from '../src/ai/engine.js';
+import { stableStringify } from '../src/data/firebase.js';
 
 function loadTestCharacters() {
   setStore('campaign', 'characters', [
@@ -997,5 +998,29 @@ describe('parseDCResponse — contextual DC parsing', () => {
     // number, so it's filtered out before the length check — this response
     // still counts as 2 clean numbers, matching 2 expected rolls.
     expect(parseDCResponse('15\n\n10', [13, 13])).toEqual([15, 10]);
+  });
+});
+
+describe('stableStringify — order-independent echo detection', () => {
+  it('produces identical output for the same object regardless of key order', () => {
+    const written = { characters: [], location: 'Town', gold: { gp: 10, sp: 5 } };
+    const rtdbOrder = { characters: [], gold: { sp: 5, gp: 10 }, location: 'Town' };
+    expect(stableStringify(written)).toBe(stableStringify(rtdbOrder));
+  });
+
+  it('still distinguishes genuinely different content regardless of key order', () => {
+    const a = { location: 'Town', gold: { gp: 10 } };
+    const b = { gold: { gp: 11 }, location: 'Town' };
+    expect(stableStringify(a)).not.toBe(stableStringify(b));
+  });
+
+  it('preserves array order (arrays are ordered data, not reordered like RTDB object keys)', () => {
+    expect(stableStringify(['a', 'b'])).not.toBe(stableStringify(['b', 'a']));
+  });
+
+  it('handles nested objects inside arrays with differing key order', () => {
+    const a = { npcs: [{ id: '1', name: 'Bob' }] };
+    const b = { npcs: [{ name: 'Bob', id: '1' }] };
+    expect(stableStringify(a)).toBe(stableStringify(b));
   });
 });

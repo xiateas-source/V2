@@ -7,7 +7,7 @@
 import { createEffect, on, createSignal } from 'solid-js';
 
 export const [lastSavedAt, setLastSavedAt] = createSignal(0);
-import { unwrap } from 'solid-js/store';
+import { unwrap, reconcile } from 'solid-js/store';
 import { store, setStore } from '../state/index.js';
 import { DEFAULT_CAMPAIGN, DEFAULT_CHARACTER, DEFAULT_CONTRACTS } from '../state/campaign.js';
 
@@ -213,7 +213,7 @@ export async function restoreSession() {
   } catch (_) {}
 
   if (snap?.campaign?.id) {
-    setStore('campaign', healArrays({ ...structuredClone(DEFAULT_CAMPAIGN), ...snap.campaign }));
+    setStore('campaign', reconcile(healArrays({ ...structuredClone(DEFAULT_CAMPAIGN), ...snap.campaign })));
     setStore('system', 'activeCampaignId', snap.campaign.id);
     // Heal older saves that predate default contracts (empty persona ⇒ no DM spine).
     const con = store.campaign.contracts || {};
