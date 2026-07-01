@@ -1,97 +1,46 @@
 # Session Log — S66 (2026-07-01)
 
 ## Branch / Build
-Branch: `claude/latest-test-analysis-v64a6i` · build clean · all changes merged to main
+Branch: `claude/latest-test-analysis-v64a6i` · merged to main · build clean
 
 ---
 
 ## What Shipped This Session
 
-### Undo button moved left (`PR #5`)
-- Undo was at `right: 16px`, right drawer handle is 22px wide from `right: 0` — they overlapped
-- Moving undo to `left: 16px` clears the right edge entirely for the sidebar handle and send button
-- File: `src/style.css`
+### Undo button moved into input row
+- Undo is now the leftmost icon button in the input row (↺ counterclockwise arrow, 40px circle matching d20)
+- Previously floated as a block between TurnPrompt and the input, causing visual orphaning and overlap
+- Appears only when there's something to undo — no permanent space reservation
+- Files: `src/ui/play/Rewind.jsx`, `src/ui/play/InputBar.jsx`, `src/ui/play/Chat.jsx`, `src/style.css`
 
-### Spell ⓘ button in ActionsDrawer (`PR #6`)
-- Each spell chip in the right sidebar now has an ⓘ button that fires the existing `spell-tooltip` event
-- Shows level, school, cast time, range, duration, full description inline without leaving play
-- Tap the spell name to cast as before
-- Files: `src/ui/play/ActionsDrawer.jsx`, `src/style.css`
+### Dice tab now reachable in combat
+- d20 button previously called `setTurnPromptMinimized()` during combat instead of opening QuickActions
+- Fixed: d20 always calls `toggle('actions')` regardless of combat state
+- Files: `src/ui/play/InputBar.jsx`
 
-### Combat tracker auto-close fix + Victory button + Conditions parsing (`PR #7`)
-- **Combat tracker staying closed**: `createEffect` was subscribing to all `combatState` changes — any mechanic (HP, condition, etc.) during a PC's turn forced the tracker closed. Fixed with `on(currentTurnIdx, ...)` so auto-minimize only fires on actual turn advances.
-- **Victory button**: when all enemies reach 0 HP, `⚑ Victory` appears in the tracker header for one-tap combat end — no more waiting for AI to emit `combat_end:`.
-- **Conditions parsing**: handler now parses `Name, condition` (add) and `Name, -condition` (remove) — the comma-space format the AI commonly emits. Strips stray leading dashes so `-poisoned` can't be stored as a condition name.
-- Files: `src/ui/play/Combat.jsx`, `src/ai/mechanics.js`
+### Combat card dismiss button
+- TurnPrompt expanded card now has a `−` button (right of header) to minimize to the strip
+- Minimized strip taps to re-expand; card starts expanded
+- Files: `src/ui/play/TurnPrompt.jsx`, `src/style.css`
 
-### Test panel height + section reorder (`PR #4`)
-- `max-height: 80vh`, `overscroll-behavior: contain`
-- Section order: Mass Test → Jump To → Quick Fire → Export → Build Status → Environment → Inject
+### NPC ally guest join flow
+- GuestCharPick rebuilt as three-path mode picker:
+  1. **Play a character** — pick from existing party PCs (multi-select)
+  2. **Join as NPC ally** — pick from campaign NPC list OR enter custom name
+  3. **Create new character** — routes to CharCreate
+- NPC ally stored as `playerIdentity.mode = 'npc'` / `playerIdentity.npcName`
+- `system.js` adds `npcName: ''` to playerIdentity defaults
+- Files: `src/ui/setup/GuestCharPick.jsx`, `src/state/system.js`, `src/style.css`
 
-### CharDrawer + CharSheet: dead `roll-request` events connected (`1612871`)
-- ALL `roll-request` CustomEvent dispatches in CharDrawer and CharSheet were firing into void — no listener
-- Fixed by routing to `prefill-input` instead (consistent with ActionsDrawer's spell flow)
-- CharDrawer: attack tap → `prefill-input: "${name} attacks with ${weapon}."` + closes drawer
-- CharSheet abilities/saves/skills/attacks/initiative/spell attack → all now use `prefill-input`
-- Files: `src/ui/play/CharDrawer.jsx`, `src/ui/reference/CharSheet.jsx`
-
-### Browse Compendium button on CharSheet (`76c70d3`)
-- Button on Spells tab navigates to Journal → Compendium, pre-filtered to the PC's class
-- Files: `src/ui/reference/CharSheet.jsx`, `src/ui/shared/sourceBus.js`
-
-### Compendium spell UI overhaul (`96f8737`)
-- Class filter chip row + level filter chip row + inline accordion — no page navigation
-- Rules / Glossary / Feats tabs: inline accordion too
-- Files: `src/ui/reference/Compendium.jsx`, `src/ui/shared/sourceBus.js`, `src/style.css`
-
-### Mass test panel (`18be0dd`)
-- 24-mechanic Run All, auto-audit on open, clear chat button
-- Files: `src/ui/manage/MechTest.jsx`, `src/style.css`
-
----
-
-## Player Feedback Collected (Unbuilt)
-
-### Combat card (TurnPrompt) redesign
-- **What's good**: "it's your turn" prompt, Action/Bonus/Move economy tracking
-- **What's bad**: spell list feels redundant and messy now that sidebar does it better; hard to dismiss before hitting dice button
-- **Direction**: strip spells from the card, keep it lean — just the turn prompt + economy slots + attack buttons. Let sidebar own spells.
-
-### Color themes need real design treatment
-- All palette swaps look like unstyled hue washes — "plain washes of color, look bad next to the main theme"
-- Each theme needs real visual polish, not just a color variable swap
-
-### Accessibility: large text mode
-- User struggles to read without glasses
-- Need a dedicated large-text theme or toggle
-
-### Multiplayer as NPC ally
-- Want to be able to join a session as a named NPC/ally rather than only as a new PC
-- Drop-in co-op / asymmetric play
-
-### Dice button
-- D20 button currently opens QuickActions. User wonders if it should roll dice.
-- DiceRoller component already exists but is wired to nothing.
-- Recommendation: add Dice as a tab inside QuickActions, keep D20 as quick-actions opener.
-
-### Narrative/OOC tab bar
-- "Somehow off next to the side tabs" — visual polish needed
-- May need repositioning or redesign to sit cleanly between the drawer handles
-
----
-
-## Known Bugs from JSON Analysis
-- Christian's conditions array had `{name: "poisoned"}` and `{name: "-poisoned"}` both present — artifact of old conditions parsing. Fixed in this session (PR #7). Existing saved data will clear naturally as conditions are removed in play.
-
----
-
-## Data Protection — Short-term Plan (Unbuilt)
-Three fixes bundled into backlog (see workboard):
-1. Settings: "Last saved to cloud X min ago" status indicator
-2. Settings: "Check for update" hard refresh button (no data loss — just clears asset cache, not IndexedDB)
-3. New Campaign / Reset: confirmation modal with export prompt before wiping
-
-**Long-term**: Replace Firebase anonymous auth with Google sign-in. Anonymous UID lives in Firebase's own IndexedDB — clearing site data generates a new UID and orphans cloud saves. Google sign-in survives device switches and data clears. Not urgent while play is on one device, but the right eventual fix.
+### Prior this session (also on main)
+- Spell ⓘ button in ActionsDrawer sidebar
+- Combat tracker no longer auto-minimizes (manual control only)
+- Victory button when all enemies hit 0 HP
+- Conditions parsing: `Name, condition` and `Name, -condition` formats
+- Large text mode toggle (Settings → Display, persisted)
+- All 20 color themes rebuilt with color theory (60-30-10, named themes)
+- Data protection: New Campaign auto-exports JSON before clearing
+- Last saved indicator + Check for Update button in Settings
 
 ---
 
@@ -99,48 +48,24 @@ Three fixes bundled into backlog (see workboard):
 
 ### Phase 1 — No broken mechanics (COMPLETE)
 ### Phase 2 — Christian's active experience (COMPLETE)
-- ✅ CharDrawer/CharSheet rollable elements — prefill-input
-- ✅ Browse Compendium button on CharSheet Spells tab
-- ✅ Compendium: class/level filters, inline accordion, section counts
-- ✅ Rules/Glossary/Feats inline accordion
-- ✅ Mass test panel — 24-mechanic Run All, auto-audit
-- ✅ Undo button left (sidebar handle clear)
-- ✅ Spell ⓘ in ActionsDrawer
-- ✅ Combat tracker auto-close fix + Victory button
-- ✅ Conditions add/remove parsing
 
 ### Phase 3 — Second player ready
-- Nyx's player joining cleanly
-- Multiplayer as NPC ally (new player request)
-- Guest experience audit
+- ✅ GuestCharPick three-path flow (Play PC / NPC ally / Create new)
+- ✅ NPC ally mode stored and retrievable
+- Guest experience audit — needs live two-device test
 
 ### Phase 4 — July 11 deadline
 - [ ] AI DC determination (complex, do last)
 
 ---
 
-## Backlog (Player-First Priority)
-
-1. **Large text accessibility mode** — toggle in Settings, bumps base font size ~30%
-2. **Combat card slim-down** — strip spells; keep: turn prompt + round + Action/Bonus/Move + attacks only
-3. **Color themes real treatment** — pick 3-4 themes, do real visual polish (not just hue swaps)
-4. **Data protection trio** — save indicator + hard refresh + reset confirmation (see above)
-5. **Dice tab in QuickActions** — DiceRoller.jsx exists but is wired to nothing
-6. **Multiplayer as NPC ally** — Phase 3
-7. **AI DC determination** — Phase 4, do last
-
----
-
 ## Known Gaps Still Unbuilt
-- Combat card TurnPrompt redesign (strip spells, keep turn prompt + economy)
-- Color themes — real design treatment per theme
-- Large text accessibility mode
-- Dice tab inside QuickActions
 - AI DC determination (Phase 4)
-- Multiplayer bundles MVP (data/bundles.js stub)
-- `dbWrite()` write failures never surface (cosmetic)
-- Data protection trio (save indicator, hard refresh, reset confirmation)
+- Multiplayer bundles MVP (`data/bundles.js` stub)
+- `dbWrite()` write failures never surface to caller (cosmetic)
+- Color themes need live visual verification
+- Guest join NPC ally — no UI yet in ContextBanner/presence to show "Fenwick (NPC)" vs "Nyx (PC)"
 
 ## Live Verification Still Needed
-- S65: NPC deep-link, Gate 8 tap, CharDrawer/CharSheet roll connections, Compendium overhaul
-- S66: Combat tracker fix, Victory button, conditions fix, spell ⓘ in sidebar, undo position
+- S65: NPC deep-link, CharDrawer/CharSheet roll connections, Compendium overhaul
+- S66: Combat tracker manual control, Victory button, combat card dismiss button, spell ⓘ in sidebar, undo icon in input row, dice tab reachable in combat, large text toggle, color themes, NPC ally guest join three-path flow

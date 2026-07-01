@@ -1,6 +1,6 @@
 # Workboard
 
-*What to build next. Updated S65 · 2026-07-01.*
+*What to build next. Updated S66 · 2026-07-01.*
 
 ---
 
@@ -91,8 +91,14 @@ Key files: `src/ai/classifier.js`, `src/ai/engine.js` (sendNarrative, resumeAfte
 - Charmed, Deafened, and part of Grappled have no roll-time enforcement (cosmetic only) — no data exists to determine which checks "require hearing/sight" or who a PC's grappler is; see decisions.md "Rules Enforcement (S52)"
 - This sandboxed environment can't reach Firebase, so code fixes are normally verified via `npm test`/`npm run build` only. Still unverified live: S56's partial-message healing fixes, S56's mechanics-pipeline fixes, S57's `restoreQuickActions()`/chat-name-label fixes, S57's PC attack-roll/Critical Hits enforcement (needs a live combat session to confirm the AI reliably emits `roll_request: Attack|...` and the HIT/MISS/damage text reads well), S62's presence badge (two-device session — confirm count updates off the other player's toggle), S62's join auto-retry (confirm 3s retry fires when host write is still propagating), and S62's character union merge (tab-kill test — add a character, tab out immediately, reload, confirm it survived). S60's three sync-bug fixes and S61's reconnect-triggered `flushPending()` fix are confirmed live-working as of S62's production retest.
 - `dbWrite()` still never surfaces a write failure to its caller — `shareInvite()` and any other `await dbWrite(...)` site can't distinguish "synced" from "queued, will retry on reconnect." S61 fixed the retry timing gap but didn't add a failure signal; a host who shares a link while genuinely offline (not just a transient blip) still sees a normal-looking "Link copied!" with no indication the guest will hit "Campaign not found" until reconnect. Not pursued — flagged as a possible follow-up, not yet asked about.
+- NPC ally presence: no indicator in ContextBanner/presence roster to distinguish "Fenwick (NPC)" from "Nyx (PC)" — the `npcName` is stored but not yet surfaced in the play UI presence display
 - ✅ Gate 8 (`missing_xp`) click handler — now tappable (S65)
 - ✅ `roll-request` CustomEvent orphaned in CharDrawer/CharSheet — now routes to `prefill-input` (S65)
+- ✅ Combat tracker auto-closing — removed auto-minimize entirely (S66)
+- ✅ Undo button overlap — moved into input row as icon button (S66)
+- ✅ Dice tab unreachable in combat — d20 always opens QuickActions now (S66)
+- ✅ Combat card no dismiss button — `−` added to TurnPrompt header (S66)
+- ✅ GuestCharPick NPC ally path — three-path flow shipped (S66)
 
 ---
 
