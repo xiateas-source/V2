@@ -412,9 +412,21 @@ const DISPATCH = {
   hp_max() {},
 
   conditions(value) {
-    const match = value.match(/^(.+?)([+-=])(.+)$/);
-    if (!match) return;
-    const [, name, op, condition] = match.map(s => s?.trim());
+    let name, op, condition;
+    // Prefer "Name, [-]condition" comma format (AI commonly emits this)
+    const commaMatch = value.match(/^(.+?),\s*([+-]?)(.+)$/);
+    if (commaMatch) {
+      [, name, op, condition] = commaMatch.map(s => s?.trim());
+      if (!op) op = '+';
+    } else {
+      // Fallback: "Name+condition" / "Name-condition" / "Name=condition"
+      const opMatch = value.match(/^(.+?)([+-=])(.+)$/);
+      if (!opMatch) return;
+      [, name, op, condition] = opMatch.map(s => s?.trim());
+    }
+    // Guard: strip stray leading '-' from condition name (e.g. "--poisoned" artifacts)
+    condition = condition.replace(/^-+/, '');
+    if (!condition) return;
     const idx = findPCIndex(name);
     if (idx === -1) return;
     const current = [...store.campaign.characters[idx].conditions];

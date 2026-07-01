@@ -1,4 +1,4 @@
-import { For, Show, createMemo, createSignal, createEffect } from 'solid-js';
+import { For, Show, createMemo, createSignal, createEffect, on } from 'solid-js';
 import { store, setStore } from '../../state/index.js';
 import { validateMechanics, applyMechanics } from '../../ai/mechanics.js';
 import { createNarrativeMsg } from '../../ai/messages.js';
@@ -9,11 +9,14 @@ export default function Combat() {
   const active = () => combat().active;
   const [minimized, setMinimized] = createSignal(false);
 
-  createEffect(() => {
+  // Only auto-minimize on actual turn changes, not on every state update.
+  // Using on() prevents re-triggering when HP/conditions change mid-turn.
+  const currentTurnIdx = () => combat().currentTurn;
+  createEffect(on(currentTurnIdx, (idx) => {
     if (!active()) return;
-    const cur = (combat().initiative || [])[combat().currentTurn];
+    const cur = (combat().initiative || [])[idx];
     if (cur) setMinimized(cur.type === 'pc' && cur.hp > 0);
-  });
+  }, { defer: true }));
 
   // Initiative is stored sorted (highest first); currentTurn indexes it directly.
   const order = createMemo(() => (active() ? (combat().initiative || []) : []));
@@ -41,6 +44,12 @@ export default function Combat() {
   });
 
   const currentName = () => order()[combat().currentTurn]?.name || '';
+
+  const allEnemiesDead = createMemo(() => {
+    const init = combat().initiative || [];
+    const enemies = init.filter(c => c.type !== 'pc');
+    return enemies.length > 0 && enemies.every(c => liveHp(c).hp <= 0);
+  });
 
   function advanceTurn() {
     engineAdvanceTurn();
@@ -71,7 +80,10 @@ export default function Combat() {
           <button class="btn-min" onClick={() => setMinimized(!minimized())} title={minimized() ? 'Expand' : 'Minimize'}>
             {minimized() ? '▢' : '—'}
           </button>
-          <Show when={!minimized()}>
+          <Show when={allEnemiesDead()}>
+            <button class="btn-victory" onClick={endCombat}>⚑ Victory</button>
+          </Show>
+          <Show when={!minimized() && !allEnemiesDead()}>
             <button class="btn-advance" onClick={advanceTurn}>Next</button>
             <button class={`btn-end-combat ${confirmEnd() ? 'confirm' : ''}`} onClick={endCombat}>
               {confirmEnd() ? 'Tap again' : 'End'}
