@@ -1219,14 +1219,22 @@ export default function CharSheet(props) {
         </For>
       </div>
 
-      {/* Tab content */}
+      {/* Tab content — keyed on pc() so swiping to a different PC while
+          staying on the same tab actually re-reads that PC's data, instead
+          of the tab component staying mounted with a stale snapshot. */}
       <div class="cs-tab-content">
-        <Show when={activeTab() === 'Stats'}><StatsTab /></Show>
-        <Show when={activeTab() === 'Vitals'}><VitalsTab /></Show>
-        <Show when={activeTab() === 'Spells'}><SpellsTab /></Show>
-        <Show when={activeTab() === 'Features'}><FeaturesTab /></Show>
-        <Show when={activeTab() === 'Equipment'}><EquipmentTab /></Show>
-        <Show when={activeTab() === 'Bio'}><BioTab /></Show>
+        <Show when={pc()} keyed>
+          {() => (
+            <>
+              <Show when={activeTab() === 'Stats'}><StatsTab /></Show>
+              <Show when={activeTab() === 'Vitals'}><VitalsTab /></Show>
+              <Show when={activeTab() === 'Spells'}><SpellsTab /></Show>
+              <Show when={activeTab() === 'Features'}><FeaturesTab /></Show>
+              <Show when={activeTab() === 'Equipment'}><EquipmentTab /></Show>
+              <Show when={activeTab() === 'Bio'}><BioTab /></Show>
+            </>
+          )}
+        </Show>
       </div>
 
       {/* Edit bar */}
