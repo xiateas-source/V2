@@ -25,6 +25,15 @@ Files: `src/style.css`, `src/data/persist.js`, `src/ui/manage/MechTest.jsx`.
 ### Also this session: merged S69 (Cover) to main
 User said "go live" at the start of the session; that was queued behind a plan-mode gate for the new testing-tab work and executed as soon as planning was approved. S69's Cover fix (making the `cover` mechanic actually affect hit/miss for PC-attacks-enemy) is now on `main`.
 
+### The new Testing Notes/export workflow immediately paid off
+User ran "Run All" (Mass Test) on a fresh blank campaign and sent the exported JSON — the very first real use of the feature just shipped. Reviewed it against the source rather than eyeballing the numbers, and found a real, pre-existing bug: Kael's `xp` stayed at `0` despite the mass-test log showing `xp: 75` as `"applied": true`. Traced it: the `xp` DISPATCH handler (`mechanics.js`) only matches `Name+amount` or `party+amount` — matching the AI's actual contract format (`contracts.js:27`) — but both `MechTest.jsx`'s Mass Test and Quick Fire XP buttons had always sent a bare `xp: 75`/`xp: 100`, no target, which silently fails the match and returns. `applyMechanics()`'s `applied: true` only means the dispatch call didn't throw — it doesn't verify anything actually happened — so the test harness had been falsely reporting a pass on this one all along.
+
+Fixed both XP button templates (`xp: ${pc}+75` / `xp: ${pc}+100`) and added 3 tests for the `xp` mechanic, including one that explicitly asserts a bare amount with no target is a no-op — a regression guard for this exact bug shape. 80/80 tests passing, build clean.
+
+Everything else in the export checked out on inspection: gold ended at 165 gp (150 from the two correctly-formatted test entries + a plausible ~15 gp starting-gold remainder from character creation, not a bug), Hit Dice/HP/conditions/death saves/combat state all landed exactly where a Long Rest as the last step in the sequence would put them.
+
+Flagged, not fixed: `applyMechanics()`'s `applied: true` semantics are misleading for any mechanic with an early-return guard clause (not unique to `xp`) — a systemic gap, out of scope for this one-off catch.
+
 ---
 
 ## Decisions Made

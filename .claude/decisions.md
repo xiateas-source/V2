@@ -401,6 +401,16 @@ User reported two problems with the testing tab (`MechTest.jsx`, opened via the 
 | `exportSnapshot(notes = '')` only adds a `testerNotes` field when notes are non-empty | Keeps the other existing caller (`Settings.jsx`'s own export) and MechTest's own pre-existing calls unaffected when no notes are passed. |
 | No new CSS, reused `.mechtest-input` (already used for the Inject-a-block textarea) | Same visual language, no duplicate styling. |
 
+## XP test-button bug found via the new export review (S70 follow-up)
+
+The Testing Notes/export feature's first real use: user ran "Run All" on a blank campaign and sent the exported JSON. Reviewed it against the source rather than eyeballing — Kael's `xp` was `0` despite the mass test claiming `xp: 75` applied successfully. Traced it: the `xp` mechanic (`mechanics.js`) only matches `Name+amount` or `party+amount` (per its regex and the AI's actual contract in `contracts.js:27`) — but both `MechTest.jsx`'s Mass Test and Quick Fire XP buttons sent a bare `xp: 75`/`xp: 100` with no target, which fails the match and silently returns. `applyMechanics()` still marked it `applied: true` (that flag only means the dispatch call didn't throw, not that it did anything), so the mass-test log reported a pass on a mechanic that had done nothing.
+
+| Decision | Rationale |
+|----------|-----------|
+| Fixed both XP button templates in `MechTest.jsx` to send `xp: ${pc}+75` / `xp: ${pc}+100` | Matches the mechanic's actual (and AI's real) format — this bug only ever existed in the test harness's own hardcoded strings, not in the mechanic or the AI contract. |
+| Added 3 tests for the `xp` mechanic: `Name+amount`, `party+amount`, and an explicit no-op assertion for a bare amount | The no-op test is a regression guard for this exact bug shape — asserts XP silently doesn't change when the target is missing, so a future test-button edit that regresses back to `xp: 75` gets caught by the suite. |
+| Did not change `applyMechanics()`'s `applied: true` semantics (still just "didn't throw," not "did something") | That's a bigger, systemic question — many DISPATCH handlers have early-return guard clauses that would report the same false "applied" status. Fixing that generally is a separate, larger audit, not something to fold into a one-off bug catch. Flagged as a known gap, not fixed here. |
+
 ## Open Questions (not yet answered)
 
 - **Child-friendly view target age** — 7-16 is wide. What's the actual simplification scope?
