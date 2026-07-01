@@ -3460,12 +3460,21 @@ body {
 
 /* Spell chips */
 .drawer-spell-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.drawer-spell-chip-row { display: flex; align-items: center; gap: 3px; }
 .drawer-spell-chip {
   padding: 5px 11px; background: var(--color-surface);
   border: 1px solid var(--line-soft); border-radius: 20px;
   font-size: 12px; color: var(--color-text); cursor: pointer;
 }
 .drawer-spell-chip:active { background: var(--line-soft); border-color: var(--color-accent); }
+.drawer-spell-info {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: none; border: none;
+  font-size: 13px; color: var(--faint);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.drawer-spell-info:active { color: var(--color-accent); }
 
 .drawer-empty { font-size: 13px; color: var(--faint); text-align: center; padding: 16px 0; }
 
