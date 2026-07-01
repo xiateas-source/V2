@@ -1,60 +1,56 @@
-# Session Log — S75 (2026-07-01)
+# Session Log — S76 (2026-07-01)
 
 ## Branch / Build
-Branch: `claude/workboard-sprint-deadline-ka8m7y` · S74 and the first S75 fix both merged to main and deployed this session (confirmed via GitHub Actions) · Scene Transition gate (second S75 piece) not yet merged · build clean, 94/94 tests passing
+Branch: `claude/workboard-sprint-deadline-ka8m7y` · S75 (both pieces) merged to main and deployed earlier this conversation · S76 not yet merged · build clean, 104/104 tests passing
 
 ---
 
 ## What Shipped This Session
 
-### 1. CharSheet swipe shows stale PC data
+### 1. Character JSON import — nested fields, silent ability-score loss, equipment
 
-A follow-up export from the same playtest session flagged, via testerNotes: "Thorns hp on his character sheet, under vitals show 31/31 if i swipe from ivy." Ivy's real HP is 31/31; Thorn's is 23/27 — after swiping from Ivy's sheet to Thorn's while staying on the Vitals tab, the numbers stayed frozen at Ivy's.
+User pasted a real character JSON they'd built with an outside AI (having first tried the in-app AI Builder and found it too shallow — see below) and reported: "struggling to use this json for character import... leaves appearance and personality backstory blank. there's also no space for the other data." An initial research pass concluded the import pipeline was "working as intended" — I didn't take that at face value, traced the exact pasted JSON through the real code myself, and found something worse than what the user had noticed.
 
-Root cause: all six tab-render functions (`StatsTab`, `VitalsTab`, `SpellsTab`, `FeaturesTab`, `EquipmentTab`, `BioTab`) capture `const p = pc();` once at mount and read `p.hp`/`p.ac`/etc. throughout their JSX. Each is wrapped in an *unkeyed* `<Show when={activeTab() === 'X'}>`, which only re-invokes its children on a false→true boolean transition — not when `activePC()` changes while the tab stays selected. Affects all six tabs identically.
+The JSON nested almost everything one level deep (`attributes`, `combatStats`, `magic`, plus object-shaped `appearance`/`personality`/`backstory`) — a very common shape for AI-generated character sheets. `normalizer.js`'s fuzzy-match fallback only ever scanned top-level keys, so `abilityScores` came back as an empty object — and `forge.js`'s `intent.abilityScores ? {...} : autoAssignScores()` check treated that truthy-but-empty object as "provided," **silently replacing the user's actual rolled stats with all-10s**, with zero indication anything went wrong. `hp`/`ac`/`speed`/`hitDice` (nested under `combatStats`) were lost the same way. Bio fields passed through as raw JS objects instead of strings. `commitCharacter()` also never looked at the JSON's own `equipment` list — always building inventory from the class's generic default picker instead.
 
-Fixed by wrapping the tab-content block in an outer *keyed* `<Show when={pc()} keyed>` (`CharSheet.jsx` ~line 1223) — keyed mode compares by reference identity, so any time `pc()` resolves to a different character proxy, the block remounts and re-reads. Ordinary in-place HP mutations don't change the proxy's identity, so no spurious remounts during normal play. Required touching only that one block. Design pressure-tested by a Plan agent (confirmed Show/keyed semantics, confirmed no other component state gets wiped, flagged one accepted side effect — an in-progress unsaved Bio-field edit is discarded on swipe, which is correct behavior).
+The user's framing reshaped the fix: every creation path (guided wizard, Quick Pick, JSON import) should reach the same completeness — import shouldn't produce a worse character just because the input arrived in a different shape.
 
-File: `src/ui/reference/CharSheet.jsx`. No new tests (Solid JSX/reactivity fix). Merged to `main` and deployed — confirmed via GitHub Actions ("Deploy to Firebase Hosting" green for commit `be46f7f`).
+Fixed: `normalizer.js` now flattens known nested wrapper objects (`attributes`, `combatStats`, `magic`, etc.) up to the top level before the existing alias-matching runs (reusing the same alias lists, no duplicated logic), flattens object-shaped bio fields into readable prose, and lifts `trait`/`ideal`/`bond`/`flaw` out of a nested `personality` object when present. `forge.js` now only treats `abilityScores` as "provided" if at least one of the six keys has a real value — a caller passing `{}` falls through to the normal auto-roll instead of silently winning. A new `parseEquipmentList()` splits an imported gear list into carried-inventory items plus any gold mentioned, and `CharCreate.jsx` now uses that directly (skipping the equipment picker for that character) instead of discarding it. `racialTraits` (no dedicated field) fold into the existing `notes` catch-all — added a notes textarea to the pre-commit preview form, since it previously only existed post-commit. Added a light "Imported from your file — review before confirming" line near the ability-score/bio section, since the user had already read a working editable box as "blank" once.
 
-### 2. Scene Transition gate (workboard Priority #5)
+Files: `src/content/normalizer.js`, `src/data/forge.js`, `src/ui/setup/CharCreate.jsx`. 8 new tests.
 
-User picked this off the remaining priority list (AI DC determination / Scene transition gate / Multiplayer bundles MVP — asked via AskUserQuestion, user chose Scene transition as the smaller, more contained option).
+### 2. Equipment Picker — missing pack contents, unclear selection state
 
-Per `enforcement-spec.md`'s "Gate 2: Scene Transition," location changes, time jumps, and new chapters should hold for player confirmation instead of applying immediately (the failure mode being multi-step scenes — travel montages, escape sequences — compressed into one AI response with no player input in between).
+Mid-investigation the user separately flagged: "i can't customize my starting equipment. cant tap the buttons and there's no explanation of whats in each." Confirmed by direct code read: each equipment option only ever rendered its bare label — the actual pack contents (`opt.items`, each with a description of what's inside) were never shown anywhere, a 100%-confirmed bug. The "can't tap" half couldn't be fully root-caused from static code alone (click handlers and CSS looked structurally correct on inspection) — made the selected state unmistakable regardless (a checkmark plus a thicker border, not just a background-color swap) so the complaint resolves either way.
 
-Had a Plan agent research the existing code before designing anything new, then verified its key claim myself before trusting it: **location-change holding was already built and live** — `mechanics.js`'s `location(value)` dispatch already diffs against current state and stashes into `store.campaign.pendingLocation` instead of applying when it differs, and `ContextBanner.jsx` already has a working "Move to X? Go/Stay" banner wired to `confirmLocation()`/`rejectLocation()`. This has apparently worked all sprint without ever being connected to the gate/priority list. The actual gap: `time` and `chapter_add` applied instantly with zero hold, and the old `runGate4` only produced an inert, passive text pill *after* the state had already changed — not a real gate.
+Files: `src/ui/setup/CharCreate.jsx`, `src/style.css`.
 
-Presented the design to the user (via AskUserQuestion, since it adds two new campaign-store fields — a state schema change per CLAUDE.md's standing confirmation rule) and got approval to proceed:
-- Extended the same hold pattern to `time` (`pendingTime`) and `chapter_add` (`pendingChapter`) — two new fields in `DEFAULT_CAMPAIGN` (`src/state/campaign.js`), healed automatically into existing saves via the existing `healStructure()`/`healArrays()` machinery.
-- Added `confirmTransition()`/`rejectTransition()` to `mechanics.js`, committing or discarding whichever of the three are pending (a transition can bundle any subset).
-- Widened `ContextBanner.jsx`'s existing Go/Stay banner into one combined prompt ("Move to X and advance time to Y?") instead of building a second, separate confirm UI — chose this over a new `Chat.jsx` pill specifically because the user's approved option was to unify into the existing banner, not duplicate.
-- Rewrote `runGate4` (`gates.js`) as the sole "player already stated it" check from the spec's edge case: if the player's own message already named the pending location (substring match), commit immediately and silently — no prompt shown for a transition they already asked for. Only location is checked this way; time/chapter text is narrative, not something a player types verbatim.
-- Deliberately did not build: real time-delta parsing (spec wants ">30 minutes," but `time` is freeform prose with no structured duration — used "any change" as the heuristic instead, confirmed safe since `time:` is only emitted in the mechanics block on genuine transitions, not restated every message) or narrative prose-scanning for transition markers ("hours later," travel montages) — mechanics-block diffing is deterministic and sufficient; regex-scanning phrasing is the fuzzy-NLP class Law 5 warns against.
+### 3. AI Builder conversation depth (prompt-only)
 
-Added a "Scene Transition" scenario button to the testing tab (`MechTest.jsx`), following the S72 convention, so the user can test the widened banner without needing a real AI-narrated transition.
+The user's underlying reason for going to an outside JSON generator in the first place: "the AI feels too Simple to create a character with." `CHAR_BUILDER_SYSTEM` (`src/ai/setupPrompts.js`) already asked for rich *output* but explicitly told the model to rush to finalize once it had bare mechanical facts (class/race/level). Rewrote it to require at least one genuine creative detail from the player before finalizing — asking one sharp, specific question if they haven't volunteered one ("what's the worst thing that's ever happened to them?" rather than "tell me about your character"), with an explicit opt-out ("just build it") for players who want speed. Sharpened the appearance/backstory guidance to explicitly target generic, interchangeable output (require a specific place/person/event, an unresolved hook, an unusual physical detail). Also softened the AI Builder's opening hint text to signal a real creative conversation rather than a quick form.
 
-Files: `src/ai/mechanics.js`, `src/ai/gates.js`, `src/ai/engine.js` (pass `text` into `runGate4`), `src/state/campaign.js`, `src/ui/play/ContextBanner.jsx`, `src/ui/manage/MechTest.jsx`. 10 new tests (94/94 passing total), build clean.
+Deliberately not pursued: switching to a stronger (paid) model for this one flow — would violate Law 5 ("zero cost to play," "never depend on a single provider"). Prompt-only change, no tests (no precedent for testing prompt content in this suite).
+
+File: `src/ai/setupPrompts.js`, `src/ui/setup/CharCreate.jsx` (hint text).
 
 ---
 
 ## Decisions Made
-See `.claude/decisions.md` → "CharSheet swipe shows stale PC data (S75)" and "Scene Transition gate built (S75) — Priority #5" for full detail on both.
+See `.claude/decisions.md` → "Character JSON import: nested fields, silent ability-score loss, equipment (S76)" and "AI Builder conversation depth (S76)" for full detail on all three pieces.
 
 ---
 
 ## Known Issues / Follow-ups
-- Scene Transition gate is **not live-verified** — needs a real phone check: trigger a location/time/chapter change (or the new "Scene Transition" Scenario button), confirm the banner shows the combined prompt, Go commits everything pending / Stay discards it, and a player-stated move ("we head to the Keep") skips the banner and applies immediately.
-- S74's combat-turn-loop fix remains the highest-stakes unverified item this sprint (deployed, but needs a real multi-round combat encounter to confirm live).
-- S75's CharSheet swipe fix also needs a phone check across all six tabs.
+- All three S76 fixes are **not live-verified** — need a real phone check: re-import the exact JSON from this conversation and confirm ability scores/bio/equipment all come through correctly; tap through the equipment picker to confirm contents display and selection feels obviously responsive; have an actual conversation with the AI Builder to judge whether the creative-depth prompt change reads richer in practice (this one especially can only be judged by using it, not by reading the diff).
+- S74's combat-turn-loop fix remains the highest-stakes unverified item this sprint overall.
 - Remaining scheduled priorities: #4 AI DC determination, #8 Multiplayer bundles MVP.
 
 ---
 
 ## Next Up (per workboard Priorities, deadline July 11)
-Priorities #1, #2, #3, #5, #7 are now closed. Remaining: #4 AI DC determination (deliberately last, most complex — needs an extra AI call), #8 Multiplayer bundles MVP (larger, multiplayer-focused). Playtest-driven fixes remain a steady parallel stream alongside whichever of these gets picked up next.
+Priorities #1, #2, #3, #5, #7 closed. Remaining: #4 AI DC determination, #8 Multiplayer bundles MVP. This session was entirely playtest-driven (three separate reports from the same character-creation attempt) rather than scheduled-priority work — consistent with the pattern this sprint of playtest findings being a steady parallel stream.
 
 ---
 
 ## Branch State
-`claude/workboard-sprint-deadline-ka8m7y` has the Scene Transition gate work pending push as of writing. The CharSheet swipe fix (first S75 piece) was merged to `main` and deployed earlier this session. Scene Transition gate has not been merged — no "go live" given yet for this specific piece.
+`claude/workboard-sprint-deadline-ka8m7y` has this session's commits pending push as of writing. S75 (both the CharSheet swipe fix and the Scene Transition gate) was merged to `main` and deployed earlier this conversation. S76 has not been merged — no "go live" given yet for this session's work.
