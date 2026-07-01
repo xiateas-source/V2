@@ -1,7 +1,7 @@
 # Session Log — S65 (2026-07-01)
 
 ## Branch / Build
-Branch: `claude/latest-test-analysis-v64a6i` · last commit: `96f8737` · build clean · 60/60 tests
+Branch: `claude/latest-test-analysis-v64a6i` · last commit: `ec526c1` · build clean · all features merged to main
 
 ---
 
@@ -49,13 +49,19 @@ Branch: `claude/latest-test-analysis-v64a6i` · last commit: `96f8737` · build 
 - **Inline accordion** — tap a spell card to expand description, cast stats, class list in-place. No page navigation.
 - **Spell card** — name + school + Ritual (R) / Concentration (C) badges + caret. Expanded: cast/range/duration/components grid + class list + full description.
 - **Auto-filter from CharSheet** — `navigateToCompendium('spells', p.class)` sets a new `compendiumFilter` signal (separate from `pendingCompendium` so Journal doesn't consume it). Compendium reads it on `onMount` and pre-selects the PC's class chip.
-- Rules / Glossary / Feats tabs: unchanged, keep list → detail-page behaviour.
+- Rules / Glossary / Feats tabs: inline accordion too (fixed silent blank-content bug — glossary uses `definition`, feats use `desc`).
 - Files: `src/ui/reference/Compendium.jsx`, `src/ui/shared/sourceBus.js`, `src/ui/reference/CharSheet.jsx`, `src/style.css`
+
+### Mass test panel + panel height fix (`18be0dd`, `ec526c1`)
+- MechTest.jsx overhauled: 24-mechanic mass test sequence (Run All button), auto-audit on open, clear chat button
+- Panel was clipping at 70vh on mobile — "Inject a block" unreachable. Fixed: 80vh + `overscroll-behavior: contain`
+- Section reorder: Mass Test → Jump To → Quick Fire → result → Export → Build Status → Environment → Inject
+- Files: `src/ui/manage/MechTest.jsx`, `src/style.css`
 
 ---
 
 ## Git Note
-Session had SSH signing configured via `/tmp/code-sign` (environment-manager). Commits show `N` in `git log --format="%G?"` locally because `gpg.ssh.allowedSignersFile` isn't configured in this environment, but `git cat-file -p HEAD` confirms valid `gpgsig` blocks exist — GitHub verifies them correctly. Fast-forward cherry-pick push resolved the history divergence from the prior session's author-fix rebase without needing a force push.
+All S65 work merged to main via PRs. Branch `claude/latest-test-analysis-v64a6i` is the working branch — pushed fresh each session. SSH signing configured via `/tmp/code-sign` (environment-manager). Commits show `N` in `git log --format="%G?"` locally but GitHub verifies them correctly.
 
 ---
 
@@ -72,6 +78,8 @@ Session had SSH signing configured via `/tmp/code-sign` (environment-manager). C
 - ✅ CharDrawer/CharSheet rollable elements — prefill-input (S65)
 - ✅ Browse Compendium button on CharSheet Spells tab (S65)
 - ✅ Compendium: class/level filters, inline accordion, section counts (S65)
+- ✅ Rules/Glossary/Feats inline accordion (S65)
+- ✅ Mass test panel — 24-mechanic Run All, auto-audit (S65)
 
 ### Phase 3 — Second player ready
 - Nyx's player joining cleanly
@@ -90,4 +98,4 @@ Session had SSH signing configured via `/tmp/code-sign` (environment-manager). C
 ## Live Verification Still Needed
 - S62: presence badge two-device, join auto-retry, tab-kill character merge
 - S57: PC attack-roll/Critical Hits (needs live combat)
-- S65: NPC deep-link, Gate 8 tap, CharDrawer/CharSheet roll connections, Compendium overhaul
+- S65: NPC deep-link, Gate 8 tap, CharDrawer/CharSheet roll connections, Compendium overhaul, mass test panel

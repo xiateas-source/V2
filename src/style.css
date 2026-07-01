@@ -2132,7 +2132,7 @@ body {
 .btn-rewind {
   position: absolute;
   top: -28px;
-  right: var(--spacing-md);
+  left: var(--spacing-md);
   background: var(--color-surface-alt);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
