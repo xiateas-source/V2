@@ -137,6 +137,19 @@ export function validateMechanics(mechanics) {
       .filter(Boolean)
   );
 
+  // Batch-level rule: an hp:/damage: mechanic for the exact target of a
+  // roll_request in this same batch is a fabricated outcome — the AI hasn't
+  // seen the roll result yet (the player hasn't rolled). Reject it; the real
+  // hp/damage belongs in a later message, once the roll is actually
+  // submitted. Only Attack-type roll_request carries a TargetName (5th
+  // field), so plain skill-check roll_requests are naturally excluded.
+  const rollRequestTargets = new Set(
+    mechanics
+      .filter(m => m.key === 'roll_request')
+      .map(m => m.value.split('|')[4]?.trim().toLowerCase())
+      .filter(Boolean)
+  );
+
   for (const mech of mechanics) {
     let reason = checkRejection(mech);
     if (!reason && hasCombatStart && mech.key === 'hp') {
@@ -155,6 +168,18 @@ export function validateMechanics(mechanics) {
       const entries = parseHpEntries(mech.value);
       if (entries.some(e => damagedPCNames.has((e.name || '').toLowerCase()))) {
         reason = 'hp: rejected — damage: already resolves this PC\'s HP in the same message';
+      }
+    }
+    if (!reason && mech.key === 'hp' && rollRequestTargets.size) {
+      const entries = parseHpEntries(mech.value);
+      if (entries.some(e => rollRequestTargets.has((e.name || '').toLowerCase()))) {
+        reason = 'hp: rejected — a roll for this target is still pending in the same message';
+      }
+    }
+    if (!reason && mech.key === 'damage' && rollRequestTargets.size) {
+      const name = mech.value.split(',')[0]?.trim().toLowerCase();
+      if (rollRequestTargets.has(name)) {
+        reason = 'damage: rejected — a roll for this target is still pending in the same message';
       }
     }
     if (reason) {

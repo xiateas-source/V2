@@ -243,6 +243,8 @@ async function sendNarrative(text, { contextInject = '', onChunk, combatKickoff 
       }
     }
 
+    let hasPendingRoll = false;
+
     if (mechanics.length > 0) {
       const { valid, rejected } = validateMechanics(mechanics);
       const applied = applyMechanics(valid);
@@ -251,6 +253,19 @@ async function sendNarrative(text, { contextInject = '', onChunk, combatKickoff 
       for (const save of saves) {
         applied.push({ key: 'roll_request', value: `Constitution|${save.dc}|${save.pc}`, target: '', applied: true });
       }
+
+      // Turn only advances once the current actor's roll is actually resolved.
+      // A roll_request for them here means their turn isn't done — the engine
+      // was previously advancing immediately on the request, then advancing
+      // AGAIN when the player's roll came back through this same function,
+      // double-counting the turn. Scoped to the current actor specifically so
+      // a forced roll for someone else (e.g. a reaction save) doesn't hold the
+      // turn open when the current actor's turn is genuinely over.
+      const actorName = currentActorName();
+      hasPendingRoll = applied.some(m =>
+        m.key === 'roll_request' && m.applied &&
+        m.value.split('|')[2]?.trim().toLowerCase() === actorName.toLowerCase()
+      );
 
       const mechReceipt = buildMechReceipt(applied.filter(m => m.applied), rejected);
 
@@ -295,7 +310,10 @@ async function sendNarrative(text, { contextInject = '', onChunk, combatKickoff 
       }
     }
 
-    if (store.campaign.combatState.active && !isAwaitingInitiative()) {
+    // The kickoff placement (inclusive: true) establishes whose turn it is for
+    // the first time — it isn't confirming a resolution, so a pending roll
+    // shouldn't hold it back. Only the normal, non-kickoff advance is gated.
+    if (store.campaign.combatState.active && !isAwaitingInitiative() && !(hasPendingRoll && !combatKickoff)) {
       advanceCombatToNextPC({ inclusive: combatKickoff });
     }
 

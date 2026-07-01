@@ -341,6 +341,45 @@ describe('damage + hp co-emission for the same PC', () => {
   });
 });
 
+describe('roll_request + hp/damage co-emission for the same target', () => {
+  beforeEach(loadTestCharacters);
+
+  it('rejects a co-emitted hp: for the exact target of an Attack roll_request in the same batch', () => {
+    const { valid, rejected } = validateMechanics([
+      { key: 'roll_request', value: 'Attack|13|Thorn|normal|Kobold', target: '', applied: false },
+      { key: 'hp', value: 'Kobold=4', target: '', applied: false },
+    ]);
+    expect(rejected.some(m => m.key === 'hp')).toBe(true);
+    expect(valid.some(m => m.key === 'roll_request')).toBe(true);
+  });
+
+  it('rejects a co-emitted damage: for the exact target of an Attack roll_request in the same batch', () => {
+    const { valid, rejected } = validateMechanics([
+      { key: 'roll_request', value: 'Attack|13|Thorn|normal|Kobold', target: '', applied: false },
+      { key: 'damage', value: 'Kobold, 2, slashing', target: '', applied: false },
+    ]);
+    expect(rejected.some(m => m.key === 'damage')).toBe(true);
+    expect(valid.some(m => m.key === 'roll_request')).toBe(true);
+  });
+
+  it('does not reject hp: for a different target than the roll_request names', () => {
+    const { valid, rejected } = validateMechanics([
+      { key: 'roll_request', value: 'Attack|13|Thorn|normal|Kobold', target: '', applied: false },
+      { key: 'hp', value: 'GoblinGuard=8', target: '', applied: false },
+    ]);
+    expect(rejected.length).toBe(0);
+    expect(valid.length).toBe(2);
+  });
+
+  it('does not reject hp: when the roll_request is a plain skill check with no TargetName', () => {
+    const { valid, rejected } = validateMechanics([
+      { key: 'roll_request', value: 'Perception|13|Thorn', target: '', applied: false },
+      { key: 'hp', value: 'Thorn=20', target: '', applied: false },
+    ]);
+    expect(rejected.length).toBe(0);
+  });
+});
+
 describe('xp mechanic', () => {
   beforeEach(loadTestCharacters);
 
