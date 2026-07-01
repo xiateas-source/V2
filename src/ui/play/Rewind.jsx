@@ -36,7 +36,7 @@ export default function Rewind() {
   return (
     <Show when={canRewind()}>
       <button class="btn-rewind" onClick={doRewind} title="Undo last exchange">
-        Undo
+        <i class="ph ph-arrow-counter-clockwise" />
       </button>
     </Show>
   );

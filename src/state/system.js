@@ -3,6 +3,7 @@ export const DEFAULT_SYSTEM = {
     name: '',
     selectedPCs: [],
     mode: 'single',
+    npcName: '',
   },
 
   multiplay: {

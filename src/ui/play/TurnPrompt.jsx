@@ -71,6 +71,9 @@ export default function TurnPrompt() {
               {actor()?.name}'s turn
             </span>
             <span class="turn-prompt-round">Round {combat().round}</span>
+            <button class="turn-prompt-dismiss" onClick={() => setTurnPromptMinimized(true)} title="Minimize">
+              <i class="ph ph-minus" />
+            </button>
           </div>
 
           <div class="econ-slots">

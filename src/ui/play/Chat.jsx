@@ -10,7 +10,6 @@ import PreviouslyOn from './PreviouslyOn.jsx';
 import SituationBar from './SituationBar.jsx';
 import Combat from './Combat.jsx';
 import TurnPrompt from './TurnPrompt.jsx';
-import Rewind from './Rewind.jsx';
 import TTS from './TTS.jsx';
 import CharDrawer from './CharDrawer.jsx';
 import ActionsDrawer from './ActionsDrawer.jsx';
@@ -297,7 +296,6 @@ export default function Chat() {
 
       <TurnPrompt />
       <RollBar />
-      <Rewind />
       <div class="input-area">
         <InputBar tab={tab()} />
       </div>
