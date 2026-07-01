@@ -1,70 +1,46 @@
-# Session Log — S72 (2026-07-01)
+# Session Log — S73 (2026-07-01)
 
 ## Branch / Build
-Branch: `claude/workboard-sprint-deadline-ka8m7y` · S71 merged to main this session · S72 not yet merged · build clean, 84/84 tests passing
+Branch: `claude/workboard-sprint-deadline-ka8m7y` · S72 merged to main this session · S73 not yet merged · build clean, 84/84 tests passing
 
 ---
 
-## What Shipped This Session (S72)
+## What Shipped This Session
 
-### Scenario buttons in the testing tab
-Direct follow-up to the S71 playtest audit conversation. User's feedback after that audit: freeform solo play works fine, but *deliberately* testing one specific mechanic is hard alone — that pressure normally comes from a second person saying "now try X." Confirmed the shape of a fix with two quick questions before building: (1) one-tap buttons that land you in a live situation, not a written checklist, and (2) a small set I curate and update each session, not an auto-generated system pulling from the workboard.
+### Four fixes from a real deployed-app playtest
+User played the live app using the S72 scenario buttons, then sent an export with real Testing Notes — the very first use of that feature, which immediately surfaced a bug in itself. Researched all four findings with parallel Explore agents before touching code, then verified the key claims directly (one research pass initially pointed at the wrong drawer for the spell-navigation bug — the user said "side tab," which is the right-side `ActionsDrawer.jsx`, not `CharDrawer.jsx` where the first pass looked; caught and corrected this by reading the actual code myself before writing the fix).
 
-Shipped a "Scenarios" section in `MechTest.jsx` with 3 buttons:
-- **Covered Enemy** — starts combat with a Kobold already behind half cover (tests S69's Cover fix). Requires one initiative roll first, same as real combat kickoff — kept authentic rather than skipping straight to an active turn.
-- **Low HP + Rest** — sets the first PC to half HP (tests S68's Hit Dice Spend button).
-- **Mid-Combat Turn** — starts combat with the PC's turn already active, no initiative roll needed (tests S67's Action Economy button-disable). This one bypasses the normal mechanics pipeline and writes `combatState` directly via `aiSet`, since there's no single mechanic that reaches "turn already active, un-rolled" — matches the existing direct-state-manipulation style already used elsewhere in the same file (`newCampaign()`, `clearNarrative()`).
+1. **"My testing notes dont persist."** `testerNotes` in `MechTest.jsx` was a local `createSignal('')` — the testing tab fully unmounts when its drawer closes, destroying local component state. Moved to `store.system.testerNotes` (new `DEFAULT_SYSTEM` field), persisted the same way `largeText`/`theme` already are (`persist.js`'s `snapshot()`/`restoreSession()`). Confirmed `system` fields don't sync to Firebase and survive `resetCampaign()` (only touches `campaign`), so notes now survive closing the tab, reloading, and New Campaign.
 
-Deliberately only 3 scenarios, not one for every unverified item going back to S56: scoped to what's actually reachable via a deterministic state setup. S70 (the testing tab itself) doesn't need one. S71's damage/hp fix and companion contract nudge both depend on the AI's own narrative behavior, not a state you can force — no scenario button fits those; they can only be confirmed by playing normally and watching for the (absence of the) old behavior.
+2. **"Spell compendium from side tab takes to journal, not spells."** The right-side "Spells & actions" drawer's spell ⓘ buttons dispatch `spell-tooltip`, handled in `Chat.jsx`'s `showSpellTooltip()` (two call sites) — both built a tooltip action with `mode: 'journal'`, routed through the generic `navigateTo()`, landing on Journal instead of the Compendium's Spells sub-tab. Fixed both call sites to use `compendium: 'spells'`, added a branch in the tooltip's click handler to call the already-existing, already-correct `navigateToCompendium('spells')` (used properly elsewhere in `CharSheet.jsx`).
 
-Documented the maintenance convention in a code comment above the scenario functions: add one when something new ships that needs a live check, remove it once confirmed, next session.
+3. **"Its thorns turn but my side tab is for ivy."** The left "Character vitals" drawer (`CharDrawer.jsx`) picked its displayed PC once on open and never re-synced to whoever's combat turn it was. Added a `currentActorIdx()` helper mirroring `TurnPrompt.jsx`'s existing correct actor-derivation, used both in the drawer's initial PC selection and a new `createEffect` that re-syncs on every turn change. Manual tab-switching still works in between turns — the effect only fires on an actual turn change.
 
-Files: `src/ui/manage/MechTest.jsx`. Build clean, no new tests (UI-only, no new testable logic).
+4. **"Sometimes i want to send a message with my roll."** Confirmed two distinct roll-submission paths in `RollBar.jsx`. The classifier pre-send path already carries the player's typed action forward as their message (`engine.js`'s `resumeAfterRolls()`); the AI-initiated `roll_request` path (mid-combat rolls the AI asks for) had zero room for player text. Added an optional textarea shown only for that path (`!isPreSendRoll()`, already existed as a helper), prepended to the roll result in `submitAll()` if filled in.
 
-**Not live-verified** — same sandbox limitation as recent sessions.
+Files: `src/state/system.js`, `src/data/persist.js`, `src/ui/manage/MechTest.jsx`, `src/ui/play/Chat.jsx`, `src/ui/play/CharDrawer.jsx`, `src/ui/play/RollBar.jsx`, `src/style.css`. 84/84 tests passing (no new tests — all four are UI/persistence-plumbing changes with no new testable pure logic; `persist.js`'s `snapshot()`/`restoreSession()` aren't exported and this suite has no IndexedDB-mocking precedent). Build clean.
 
----
-
-## What Shipped Earlier This Session (S71, merged to main)
-
-### Playtest transcript audit → HP override bug + companion tracking gap
-User sent a real solo playtest export and asked for a gap audit, explicitly flagging that solo testing without a co-player is limited. Read the transcript carefully against the actual source (using two parallel Explore agents to verify hypotheses rather than guessing from the JSON), found two confirmed real issues.
-
-**HP override bug** — the AI emitted `damage: foot, 4, slashing` then `hp: foot=4` in the same mechanics batch, with foot at 1 HP going in. `damage:` correctly clamped HP to 0. The co-emitted `hp:` then ran as a second, independent absolute-target write — computing a "heal" of 4 to reach its stated number, silently reviving the character from 0 to 4 HP with zero narrative mention of healing. Verified via Explore agent reading `damage()`/`hp()`/`applyDamage()` directly in `src/ai/mechanics.js`: no batch-level rule prevented this, despite `validateMechanics()` already having a precedent for exactly this shape (the existing `combat_start` + `hp`/`damage` rejection).
-
-Fixed: added a batch-level rule in `validateMechanics()` — reject a co-emitted `hp:` for any PC that a `damage:` mechanic in the same batch also targets. Mirrors the existing pattern exactly. Added a contract line telling the AI not to co-emit both, explaining why the app rejects the redundant one.
-
-**Companion tracking gap** — a "star-fox" NPC traveled with the party across ~15 exchanges (gifted items, asked to join three times, rested alongside the PC) but the AI never emitted `npc_add`; the player noticed and asked in OOC why it wasn't tracked. Turns out `Cargo.jsx` already renders a "Traveling with" row for wagon items with `type: 'companion'` — the AI's contract never mentioned this exists at all. Added contract documentation (MECHANIC KEY REFERENCE and MANDATORY EMISSIONS in `contracts.js`) pointing the AI at the existing feature. No new UI code needed.
-
-**Deliberately not built** (user's explicit call, asked before assuming scope): automatic "AI forgot to emit npc_add for a new NPC" detection. This is spec'd in `enforcement-spec.md`'s Gate 5 but was never actually implemented in the real `runGate3` — confirmed via a second Explore agent; a narrower pattern exists in `drift.js` but only matches explicit self-introduction phrasing and wouldn't have caught this transcript's purely descriptive, never-formally-named creature. Building a real detector means real false-positive risk in a name-detection heuristic — flagged as its own future session's design problem rather than guessed at here.
-
-Also confirmed, via the same audit, several things working correctly: Law 2 spell ownership (rejected an AI attempt to re-add an already-known spell), Gate 8's missing-XP flag firing correctly after combat, and the classifier correctly splitting a compound player action ("climb the tree and look around") into two separate skill checks. No action needed on any of those.
-
-Files: `src/ai/mechanics.js`, `src/ai/contracts.js`, `tests/foundations.test.js`. 4 new tests (co-emission rejection, hp-alone regression, damage-alone regression, per-PC scoping check), 84/84 passing, build clean.
-
-**Not live-verified in the browser** — same sandbox limitation as recent sessions. High confidence in the `mechanics.js` fix from the test suite (pure data-layer change, same as every other mechanics.js fix this sprint). The contract-only companion nudge has no code-enforcement guarantee — the AI could still forget; that's the nature of a contract clause versus code enforcement, noted explicitly as a live-verification item.
+### Also confirmed from the same export (no code changes, just verification)
+- **S69's Cover fix is live and working** — the export showed an attack against a Kobold with `cover: Kobold=half` resolving against AC 15 (13 base + 2 cover), not the AI's raw reported 13, exactly as designed.
+- **S70's scroll fix and XP-format fix are reasonably confirmed** — the user used the testing tab extensively (scenarios, notes, export) without a scroll complaint, and the mass-test XP mechanic showed the corrected `Name+amount` format applying successfully.
 
 ---
 
 ## Decisions Made
-See `.claude/decisions.md`:
-- "Playtest audit: HP override bug + companion tracking (S71)" — full trace and rationale, including why the automatic-detection gap was deliberately left unbuilt.
-- "Scenario buttons in the testing tab (S72)" — why these 3, why curated-not-automated, why "Mid-Combat Turn" bypasses the mechanics pipeline.
+See `.claude/decisions.md` → "Four fixes from a live playtest export (S73)" for the full root-cause trace on all four, including the correction on which drawer had the spell-nav bug.
 
 ---
 
 ## Known Issues / Follow-ups
-- The automatic NPC-introduction drift detector is now a named, flagged gap on the workboard (previously just an undiscovered discrepancy between the spec and the code) — worth a dedicated session when the user wants to tackle it, given the false-positive design tradeoff needs real discussion.
-- S71's fixes need live confirmation: does the AI actually stop co-emitting `damage:`/`hp:` in real play, and does it start using the companion item type for recurring NPCs.
-- S72's 3 scenario buttons need a live check that each actually works and lands in the intended state, especially "Mid-Combat Turn" (direct `combatState` write, bypasses normal validation).
-- The scenario list needs upkeep each session going forward — add/remove as features ship and get confirmed, per the convention documented in `MechTest.jsx`.
+- S73's four fixes need a real phone check: reopen the testing tab after closing it (notes should persist), tap a spell's ⓘ in the right drawer and confirm it lands on Spells not just Journal, watch the left drawer during a multi-PC combat sequence, and try adding a note to a `roll_request`-triggered roll.
+- The user is now in an active playtest-and-report loop using the S70/S72 tooling (Testing Notes + scenario buttons + export). Expect more findings of this shape going forward — this has become a real, working feedback channel, not just a one-off.
 
 ---
 
 ## Next Up (per workboard Priorities, deadline July 11)
-Priority #1 (SRD gap-analysis) closed as of S69. Remaining: #4 AI DC determination (deliberately last, complex), #5 Scene transition gate, #8 Multiplayer bundles MVP. The user is now also actively playtesting and sending export reviews — expect more findings of this shape (real bugs surfaced by actual play, not scheduled work) to keep showing up alongside the priority list.
+Priority #1 (SRD gap-analysis) closed as of S69. Remaining: #4 AI DC determination (deliberately last, complex), #5 Scene transition gate, #8 Multiplayer bundles MVP. Playtest-driven fixes (like this session's four) are proving to be a steady, valuable parallel stream alongside the priority list — worth continuing to prioritize alongside scheduled work, not after it.
 
 ---
 
 ## Branch State
-`claude/workboard-sprint-deadline-ka8m7y` has this session's commits (pending push as of writing). S71 was merged to `main` this session ("make live"). S72 has not been merged — user has not said so yet this segment.
+`claude/workboard-sprint-deadline-ka8m7y` has this session's commits (pending push as of writing). S72 was merged to `main` this session ("make it live" / deploy confirmed via GitHub Actions). S73 has not been merged — user has not said so yet this segment.
