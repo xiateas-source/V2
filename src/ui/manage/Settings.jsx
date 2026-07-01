@@ -165,6 +165,22 @@ export default function Settings() {
     e.target.value = '';
   }
 
+  const THEME_NAMES = [
+    'Obsidian', 'Abyss', 'Arcane', 'Embers', 'Void',
+    'Crimson', 'Grove', 'Dusk', 'Steel', 'Lantern',
+  ];
+  const LIGHT_NAMES = [
+    'Parchment', 'Daybreak', 'Fern', 'Terracotta', 'Sky',
+    'Rose', 'Honey', 'Lavender', 'Stone', 'Seafoam',
+  ];
+
+  function themeName() {
+    const t = store.system.settings.theme;
+    const [mode, numStr] = t.split('-');
+    const num = parseInt(numStr, 10);
+    return mode === 'dark' ? THEME_NAMES[num] : LIGHT_NAMES[num];
+  }
+
   function cycleTheme() {
     const current = store.system.settings.theme;
     const [mode, numStr] = current.split('-');
@@ -348,7 +364,7 @@ export default function Settings() {
             <button class="btn-theme" onClick={cycleTheme}>
               Next Palette
             </button>
-            <span class="theme-current">{store.system.settings.theme}</span>
+            <span class="theme-current">{themeName()}</span>
           </div>
           <div class="settings-large-text-row">
             <span class="settings-large-text-label">Large Text</span>
