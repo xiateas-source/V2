@@ -4,7 +4,9 @@
 // (sync.js) remains the cross-device backup; here we read it only to reconcile a
 // newer cloud copy at boot.
 
-import { createEffect, on } from 'solid-js';
+import { createEffect, on, createSignal } from 'solid-js';
+
+export const [lastSavedAt, setLastSavedAt] = createSignal(0);
 import { unwrap } from 'solid-js/store';
 import { store, setStore } from '../state/index.js';
 import { DEFAULT_CAMPAIGN, DEFAULT_CHARACTER, DEFAULT_CONTRACTS } from '../state/campaign.js';
@@ -81,6 +83,7 @@ function snapshot() {
     playerIdentity: plain(store.system.playerIdentity),
     multiplay: plain(store.system.multiplay),
     theme: store.system.settings.theme,
+    largeText: store.system.settings.largeText,
     ts: Date.now(),
   };
 }
@@ -94,6 +97,7 @@ async function writeLocal() {
       { key: SNAP_PREFIX + id, value: snap, ts: snap.ts },
       { key: ACTIVE_KEY, value: id, ts: snap.ts },
     ]);
+    setLastSavedAt(snap.ts);
   } catch (_) {}
 }
 
@@ -230,6 +234,10 @@ export async function restoreSession() {
     if (snap.theme) {
       setStore('system', 'settings', 'theme', snap.theme);
       document.documentElement.setAttribute('data-theme', snap.theme);
+    }
+    if (snap.largeText) {
+      setStore('system', 'settings', 'largeText', true);
+      document.documentElement.style.fontSize = '20px';
     }
     return true;
   }

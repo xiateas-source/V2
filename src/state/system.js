@@ -12,6 +12,7 @@ export const DEFAULT_SYSTEM = {
 
   settings: {
     theme: 'dark-0',
+    largeText: false,
     ttsEnabled: false,
     ttsVoice: null,
     pushEnabled: false,

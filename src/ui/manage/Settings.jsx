@@ -1,7 +1,7 @@
 import { createSignal, Show, For } from 'solid-js';
 import { store, setStore, resetCampaign } from '../../state/index.js';
 import { saveKeys as persistKeys, saveProviderSettings } from '../../data/keys.js';
-import { clearActiveCampaign, exportSnapshot, saveLocalNow, healArrays } from '../../data/persist.js';
+import { clearActiveCampaign, exportSnapshot, saveLocalNow, healArrays, lastSavedAt } from '../../data/persist.js';
 import { buildShareId, stopLiveSync, forceSyncNow, setPresence } from '../../data/sync.js';
 import { getUid } from '../../data/firebase.js';
 import Contracts from './Contracts.jsx';
@@ -38,11 +38,42 @@ export default function Settings() {
   }
 
   async function newCampaign() {
-    if (store.campaign.id && !confirm('Start a new campaign? This clears the current game on this device.')) return;
-    stopLiveSync();
-    setStore('system', 'multiplay', { role: 'solo', hostUid: '' });
-    await clearActiveCampaign();
-    resetCampaign(setStore);
+    if (!store.campaign.id) {
+      stopLiveSync();
+      setStore('system', 'multiplay', { role: 'solo', hostUid: '' });
+      await clearActiveCampaign();
+      resetCampaign(setStore);
+      return;
+    }
+    const choice = confirm('Start a new campaign?\n\nOK = export a backup first, then clear.\nCancel = go back.');
+    if (!choice) return;
+    exportGame();
+    setTimeout(async () => {
+      stopLiveSync();
+      setStore('system', 'multiplay', { role: 'solo', hostUid: '' });
+      await clearActiveCampaign();
+      resetCampaign(setStore);
+    }, 600);
+  }
+
+  function toggleLargeText() {
+    const next = !store.system.settings.largeText;
+    setStore('system', 'settings', 'largeText', next);
+  }
+
+  function hardRefresh() {
+    if (confirm('Reload the app to get the latest version?\n\nYour game data is safe — this only clears the app cache.')) {
+      location.reload();
+    }
+  }
+
+  function lastSavedLabel() {
+    const ts = lastSavedAt();
+    if (!ts) return 'Not saved yet this session';
+    const mins = Math.round((Date.now() - ts) / 60000);
+    if (mins < 1) return 'Saved just now';
+    if (mins === 1) return 'Saved 1 min ago';
+    return `Saved ${mins} min ago`;
   }
 
   async function shareInvite() {
@@ -309,7 +340,7 @@ export default function Settings() {
         </section>
 
         <section class="settings-section">
-          <h3 class="settings-label">Theme</h3>
+          <h3 class="settings-label">Display</h3>
           <div class="theme-controls">
             <button class="btn-theme" onClick={toggleMode}>
               {store.system.settings.theme.startsWith('dark') ? 'Light' : 'Dark'}
@@ -319,6 +350,25 @@ export default function Settings() {
             </button>
             <span class="theme-current">{store.system.settings.theme}</span>
           </div>
+          <div class="settings-large-text-row">
+            <span class="settings-large-text-label">Large Text</span>
+            <button
+              class={`btn-large-text-toggle ${store.system.settings.largeText ? 'active' : ''}`}
+              onClick={toggleLargeText}
+            >
+              {store.system.settings.largeText ? 'On' : 'Off'}
+            </button>
+          </div>
+          <p class="settings-hint">Makes all text ~25% bigger — easier to read without glasses.</p>
+        </section>
+
+        <section class="settings-section">
+          <h3 class="settings-label">App Updates</h3>
+          <div class="settings-save-status">{lastSavedLabel()}</div>
+          <button class="btn-refresh-app" onClick={hardRefresh}>
+            <i class="ph ph-arrows-clockwise" /> Check for Update
+          </button>
+          <p class="settings-hint">The app updates automatically. Tap this if something looks broken — your game data is never lost by refreshing.</p>
         </section>
       </div>
     </Show>

@@ -1,4 +1,4 @@
-import { createSignal, createMemo, Show, onMount, onCleanup } from 'solid-js';
+import { createSignal, createMemo, createEffect, Show, onMount, onCleanup } from 'solid-js';
 import { store, setStore } from '../state/index.js';
 import PlayerOnboard from './setup/PlayerOnboard.jsx';
 import GuestCharPick from './setup/GuestCharPick.jsx';
@@ -49,6 +49,10 @@ export default function App() {
   }
   onMount(() => window.addEventListener('tp-navigate', onNavigate));
   onCleanup(() => window.removeEventListener('tp-navigate', onNavigate));
+
+  createEffect(() => {
+    document.documentElement.style.fontSize = store.system.settings.largeText ? '20px' : '';
+  });
 
   const cargoBadge = createMemo(() => {
     const seen = lastSeen().cargo;

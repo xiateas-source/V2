@@ -10,7 +10,7 @@ const GENERIC = [
   { label: 'Help', econ: 'action', text: ' uses the Help action to aid ' },
 ];
 
-export const [turnPromptMinimized, setTurnPromptMinimized] = createSignal(true);
+export const [turnPromptMinimized, setTurnPromptMinimized] = createSignal(false);
 
 export default function TurnPrompt() {
   const combat = () => store.campaign.combatState;
@@ -38,13 +38,6 @@ export default function TurnPrompt() {
       const name = typeof atk === 'string' ? atk : atk.name;
       return { label: name, econ: 'action', text: `${p.name} attacks with ${name} — targeting ` };
     }).filter(a => a.label);
-  });
-
-  const spells = createMemo(() => {
-    const p = pc();
-    if (!p) return [];
-    return [...(p.cantrips || []), ...(p.knownSpells || [])].slice(0, 4)
-      .map(s => ({ label: s, econ: 'action', text: `${p.name} casts ${s} — targeting ` }));
   });
 
   const bonus = createMemo(() => {
@@ -89,12 +82,6 @@ export default function TurnPrompt() {
           <div class="turn-prompt-actions">
             <For each={attacks()}>
               {(qa) => <button class="turn-action-btn ta-atk" onClick={() => take(qa)}><i class="ph ph-sword" />{qa.label}</button>}
-            </For>
-            <For each={spells()}>
-              {(qa) => <button class="turn-action-btn ta-spell" onClick={() => take(qa)}>
-                <i class="ph ph-sparkle" />{qa.label}
-                <span class="ta-spell-info" onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('spell-tooltip', { detail: { name: qa.label } })); }}>ⓘ</span>
-              </button>}
             </For>
             <For each={bonus()}>
               {(qa) => <button class="turn-action-btn ta-bonus" onClick={() => take(qa)}><i class="ph ph-lightning" />{qa.label}</button>}

@@ -3,6 +3,7 @@ import { store, setStore } from '../../state/index.js';
 import { sendMsg, isSending } from '../../ai/engine.js';
 import { validateMechanics, applyMechanics } from '../../ai/mechanics.js';
 import { saveQuickActions } from '../../data/keys.js';
+import DiceRoller from './DiceRoller.jsx';
 
 const PRESETS = [
   // Rest
@@ -103,6 +104,7 @@ export default function QuickActions(props) {
   // always-visible pill bar is hidden — the drawer is the whole component.
   const isOpen = () => props.controlled ? props.open : open();
   const close = () => { if (props.controlled) props.onClose?.(); else setOpen(false); };
+  const [drawerTab, setDrawerTab] = createSignal('actions');
   const [editing, setEditing] = createSignal(false);
   const [customLabel, setCustomLabel] = createSignal('');
   const [customText, setCustomText] = createSignal('');
@@ -251,20 +253,30 @@ export default function QuickActions(props) {
           onTouchEnd={onDrawerTouchEnd}
         >
           <div class="qa-drawer-header">
-            <span class="qa-context-badge">{context() === 'combat' ? 'Combat' : context() === 'social' ? 'Social' : 'Explore'}</span>
+            <div class="qa-drawer-tabs">
+              <button class={`qa-tab ${drawerTab() === 'actions' ? 'active' : ''}`} onClick={() => setDrawerTab('actions')}>Actions</button>
+              <button class={`qa-tab ${drawerTab() === 'dice' ? 'active' : ''}`} onClick={() => setDrawerTab('dice')}>Dice</button>
+            </div>
             <div class="qa-drawer-controls">
-              <button class="qa-mode-btn" onClick={toggleMode} title={qaConfig().mode === 'instant' ? 'Instant mode' : 'Pre-fill mode'}>
-                {qaConfig().mode === 'instant' ? '⚡' : '✏️'}
-              </button>
-              <button class={`qa-edit-btn ${editing() ? 'qa-edit-active' : ''}`} onClick={() => setEditing(!editing())}>
-                {editing() ? 'Done' : 'Edit'}
-              </button>
+              <Show when={drawerTab() === 'actions'}>
+                <button class="qa-mode-btn" onClick={toggleMode} title={qaConfig().mode === 'instant' ? 'Instant mode' : 'Pre-fill mode'}>
+                  {qaConfig().mode === 'instant' ? '⚡' : '✏️'}
+                </button>
+                <button class={`qa-edit-btn ${editing() ? 'qa-edit-active' : ''}`} onClick={() => setEditing(!editing())}>
+                  {editing() ? 'Done' : 'Edit'}
+                </button>
+              </Show>
               <Show when={props.controlled}>
                 <button class="qa-close-btn" onClick={close} title="Close">&times;</button>
               </Show>
             </div>
           </div>
 
+          <Show when={drawerTab() === 'dice'}>
+            <DiceRoller />
+          </Show>
+
+          <Show when={drawerTab() === 'actions'}>
           <Show when={store.campaign.combatState?.active}>
             <div class="qa-economy-chips">
               <span class="qa-chip">Action</span>
@@ -363,6 +375,7 @@ export default function QuickActions(props) {
                 </div>
               </Show>
             </div>
+          </Show>
           </Show>
         </div>
       </Show>
