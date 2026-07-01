@@ -124,6 +124,19 @@ export function validateMechanics(mechanics) {
   // before initiative is rolled.
   const hasCombatStart = mechanics.some(m => m.key === 'combat_start');
 
+  // Batch-level rule: `damage:` already resolves a PC's HP (with resistance/
+  // vulnerability/immunity lookups). A co-emitted `hp:` for the same PC in the
+  // same message is either redundant or an AI arithmetic error, and would
+  // silently override damage's correctly-clamped result with an unrelated
+  // absolute target (e.g. damage clamps to 0, then hp: heals back up) with no
+  // narrative mention of any healing.
+  const damagedPCNames = new Set(
+    mechanics
+      .filter(m => m.key === 'damage')
+      .map(m => m.value.split(',')[0]?.trim().toLowerCase())
+      .filter(Boolean)
+  );
+
   for (const mech of mechanics) {
     let reason = checkRejection(mech);
     if (!reason && hasCombatStart && mech.key === 'hp') {
@@ -136,6 +149,12 @@ export function validateMechanics(mechanics) {
       const name = mech.value.split(',')[0]?.trim();
       if (findPC(name)) {
         reason = 'PC damage rejected — combat just started, resolve attacks after initiative';
+      }
+    }
+    if (!reason && mech.key === 'hp' && damagedPCNames.size) {
+      const entries = parseHpEntries(mech.value);
+      if (entries.some(e => damagedPCNames.has((e.name || '').toLowerCase()))) {
+        reason = 'hp: rejected — damage: already resolves this PC\'s HP in the same message';
       }
     }
     if (reason) {

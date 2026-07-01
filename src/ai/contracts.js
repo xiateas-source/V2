@@ -28,7 +28,7 @@ xp: Name+amount | xp: party+amount
 gp: +amount | income: amount, category, desc | expense: amount, desc
   (expense ALREADY subtracts gold and income ALREADY adds it — never also emit a gp: change for the same transaction, or it double-counts)
 item_add: PCname, itemname, type, attunement, weight | item_add: itemname, type (no PC = wagon) | item_remove: target, name, qty
-  Types: weapon, armor, potion, wondrous, gear, consumable, ammo, food, trade. Attunement: attuned or none. Weight in lb (use standard D&D weights: longsword=3, shield=6, chain mail=55, potion=0.5, rations=2, rope 50ft=10).
+  Types: weapon, armor, potion, wondrous, gear, consumable, ammo, food, trade, companion (a recurring NPC/creature traveling with the party — shows in the "Traveling with" display; use item_add: wagon, <Name>, companion). Attunement: attuned or none. Weight in lb (use standard D&D weights: longsword=3, shield=6, chain mail=55, potion=0.5, rations=2, rope 50ft=10).
 location: Name | time: value | weather: value | loc_desc: text
 quest_add: text | quest_done: name | quest_fail: name | quest_update: name|notes
 primary_mission: text | npc_add: name, disposition, details | npc_mood: name=mood
@@ -50,6 +50,7 @@ round_advance: (DO NOT EMIT — the app tracks turns and rounds itself)
 DAMAGE TYPE ENFORCEMENT:
 - When a PC takes damage, emit damage: PCname,amount,DamageType with the RAW, un-modified damage amount and its type — e.g. damage: Aria,14,fire. The app looks up Aria's resistances/vulnerabilities/immunities and applies the correct multiplier itself (resistance = half, vulnerability = double, immunity = zero). Do NOT pre-halve, double, or zero the number yourself — always report the raw rolled damage.
 - For enemy/NPC damage, or any healing, keep using hp: Name=newTotal as before.
+- Never emit BOTH damage: and hp: for the same PC in the same message — damage: alone resolves that PC's HP for this event. The app will reject a co-emitted hp: for that PC (it would silently override damage's result with an unrelated number).
 - Emit resistance_add/vulnerability_add/immunity_add when a spell, feature, or effect grants one (e.g. Bear Totem rage → resistance to all except psychic). Emit the matching _remove when the effect ends.
 
 ROLL PROCEDURE:
@@ -117,6 +118,7 @@ EXHAUSTION:
 
 MANDATORY EMISSIONS:
 - New NPC introduced → ALWAYS emit npc_add.
+- If an NPC or creature becomes a recurring presence traveling with the party (not just a one-scene encounter), also emit item_add: wagon, <Name>, companion — this puts them in the party's "Traveling with" display so the player can see them tracked, not just a roster entry.
 - Gold spent → ALWAYS emit expense.
 - Items found/given/purchased/used → ALWAYS emit item_add or item_remove (include weight in lb).
 - Combat starts → emit zone_add_enemy for EVERY enemy present.

@@ -302,6 +302,45 @@ describe('Gate Firing', () => {
   });
 });
 
+describe('damage + hp co-emission for the same PC', () => {
+  beforeEach(loadTestCharacters);
+
+  it('rejects a co-emitted hp: for a PC that damage: already targets, keeping damage\'s clamped result', () => {
+    setStore('campaign', 'characters', 0, 'hp', 1);
+    const { valid, rejected } = validateMechanics([
+      { key: 'damage', value: 'Ivy, 4, slashing', target: '', applied: false },
+      { key: 'hp', value: 'Ivy=4', target: '', applied: false },
+    ]);
+    applyMechanics(valid);
+    expect(rejected.some(m => m.key === 'hp')).toBe(true);
+    expect(store.campaign.characters[0].hp).toBe(0);
+  });
+
+  it('still applies hp: normally when no damage: targets the same PC in the batch', () => {
+    const { valid, rejected } = validateMechanics([{ key: 'hp', value: 'Ivy=20', target: '', applied: false }]);
+    applyMechanics(valid);
+    expect(rejected.length).toBe(0);
+    expect(store.campaign.characters[0].hp).toBe(20);
+  });
+
+  it('still applies damage: normally when emitted alone', () => {
+    const { valid } = validateMechanics([{ key: 'damage', value: 'Ivy, 5, fire', target: '', applied: false }]);
+    applyMechanics(valid);
+    expect(store.campaign.characters[0].hp).toBe(26);
+  });
+
+  it('does not reject hp: for a different PC than the one damage: targets', () => {
+    const { valid, rejected } = validateMechanics([
+      { key: 'damage', value: 'Ivy, 5, fire', target: '', applied: false },
+      { key: 'hp', value: 'Thorn=15', target: '', applied: false },
+    ]);
+    applyMechanics(valid);
+    expect(rejected.length).toBe(0);
+    expect(store.campaign.characters[0].hp).toBe(26);
+    expect(store.campaign.characters[1].hp).toBe(15);
+  });
+});
+
 describe('xp mechanic', () => {
   beforeEach(loadTestCharacters);
 
