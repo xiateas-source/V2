@@ -6,6 +6,7 @@ import { confirmTransition, rejectTransition } from '../src/ai/mechanics.js';
 import { isPlayMsg, msgToRole, createNarrativeMsg, migrateMsg } from '../src/ai/messages.js';
 import { normalizeCharacter, parseEquipmentList } from '../src/content/normalizer.js';
 import { forgeCharacter } from '../src/data/forge.js';
+import { classifyAction } from '../src/ai/classifier.js';
 
 function loadTestCharacters() {
   setStore('campaign', 'characters', [
@@ -943,5 +944,29 @@ describe('forge.js — ability score guard against a truthy-but-empty import', (
     });
     expect(char.abilityScores.str).toBe(18);
     expect(char.abilityScores.dex).toBe(10);
+  });
+});
+
+describe('classifier — Survival coverage for trap-setting', () => {
+  beforeEach(loadTestCharacters);
+
+  it('classifies trap-setting as Survival, alongside a separately-matched skill in the same compound message', () => {
+    const result = classifyAction("Ill set some traps to provide food for the wolves, then ill look around to see what else i can do to spruce up their home");
+    expect(result).not.toBeNull();
+    const skills = result.rolls.map(r => r.skill);
+    expect(skills).toContain('Survival');
+    expect(skills).toContain('Perception');
+  });
+
+  it('classifies "lay a snare" as Survival', () => {
+    const result = classifyAction('I lay a snare near the trail.');
+    expect(result.rolls.some(r => r.skill === 'Survival')).toBe(true);
+  });
+
+  it('still classifies disarming a trap as Sleight of Hand only, not also Survival', () => {
+    const result = classifyAction('I carefully disarm the trap.');
+    const skills = result.rolls.map(r => r.skill);
+    expect(skills).toContain('Sleight of Hand');
+    expect(skills).not.toContain('Survival');
   });
 });

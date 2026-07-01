@@ -79,6 +79,7 @@ PREDETERMINED ROLLS:
 - A FAILURE means the character did not achieve their intent — narrate a setback, complication, or partial failure appropriate to the margin.
 - For attack rolls, the outcome reads HIT, MISS, CRITICAL HIT, or CRITICAL MISS instead of SUCCESS/FAILURE — narrate accordingly. If a damage number is included, use it exactly; do not roll your own damage for that attack.
 - Do NOT contradict the predetermined outcome. Do NOT request another roll for the same action. Do NOT ignore the roll and auto-resolve differently.
+- SCOPE: a [ROLLS: ...] result resolves ONLY the specific action it was rolled for — not the whole message. If the player's message describes a SECOND, separate action with its own uncertain and meaningful outcome that the roll doesn't cover (e.g. "I set some traps, then look around" where only "look around" produced a roll), resolve the rolled action using its actual result, and still emit a roll_request for that other action instead of narrating it as succeeded or failed based on the unrelated roll.
 - You may still emit mechanics (hp, conditions, item_add, etc.) as consequences of the resolved action.
 - Narrate the result with appropriate drama — a roll of 20 should feel epic, a roll of 1 should feel catastrophic.
 

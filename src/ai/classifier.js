@@ -16,7 +16,7 @@ const ACTION_PATTERNS = [
   { pattern: /\b(perform|play\s+(the|my|a)\s+\w+|sing(s|ing)?|dance[s]?|recite|entertain|juggle)\b/i, skill: 'Performance', tier: 'medium' },
 
   // Knowledge/Awareness
-  { pattern: /\b(track|follow\s+(the\s+)?trail|forage|navigate|find\s+(the\s+)?way|orient|survive|find\s+food|find\s+shelter)\b/i, skill: 'Survival', tier: 'medium' },
+  { pattern: /\b(track|follow\s+(the\s+)?trail|forage|navigate|find\s+(the\s+)?way|orient|survive|find\s+food|find\s+shelter|set\s+(a\s+|some\s+)?(traps?|snares?)|lay\s+(a\s+|some\s+)?(traps?|snares?)|snares?)\b/i, skill: 'Survival', tier: 'medium' },
   { pattern: /\b(treat|stabilize|bandage|first\s+aid|tend\s+(to\s+)?(the\s+)?wound|medical|diagnose|heal\s+without)\b/i, skill: 'Medicine', tier: 'easy' },
   { pattern: /\b(recall|identify\s+(the\s+)?magic|arcane|recognize\s+(the\s+)?spell|know\s+about\s+.*(magic|arcane|spell))\b/i, skill: 'Arcana', tier: 'medium' },
   { pattern: /\b(calm\s+(the\s+)?(animal|beast|horse|mount)|tame|train|handle\s+(the\s+)?(animal|beast|horse)|ride\s+(through|over|past))\b/i, skill: 'Animal Handling', tier: 'medium' },

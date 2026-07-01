@@ -11,10 +11,19 @@ import { unwrap } from 'solid-js/store';
 import { store, setStore } from '../state/index.js';
 import { DEFAULT_CAMPAIGN, DEFAULT_CHARACTER, DEFAULT_CONTRACTS } from '../state/campaign.js';
 
-// Superseded DEFAULT_CONTRACTS text from before the three-phase roll system (S48).
-// Used only to detect un-customized fields during the one-time migration below.
+// Every superseded DEFAULT_CONTRACTS string a field has ever held, oldest first.
+// Used only to detect un-customized fields during the one-time migration below —
+// each entry is a full history, not just the immediately-previous version, so a
+// campaign that's been through several of these migrations still gets caught.
 const STALE_CONTRACTS = {
-  never: 'Never auto-resolve a roll — when an action is uncertain, emit a roll_request and wait for the player\'s submitted result. Never resolve actions for a PC the player did not mention. Never kill a PC without death saves. Never reveal DM secrets or undiscovered content. Never change HP, gold, items, quests, NPCs, or location in prose without emitting the matching mechanic.',
+  never: [
+    // Pre-S48 (before the three-phase roll system existed).
+    'Never auto-resolve a roll — when an action is uncertain, emit a roll_request and wait for the player\'s submitted result. Never resolve actions for a PC the player did not mention. Never kill a PC without death saves. Never reveal DM secrets or undiscovered content. Never change HP, gold, items, quests, NPCs, or location in prose without emitting the matching mechanic.',
+    // Pre-S76 (before the classified-roll-scope clarification — a classified roll
+    // was ambiguously worded as covering the whole message, letting an unrelated
+    // matched skill silently govern a second, unmatched action in the same message).
+    'Never auto-resolve a combat attack or saving throw — when one of those is uncertain, emit a roll_request and wait for the player\'s submitted result. Skill checks (Investigation, Persuasion, Stealth, etc.) are classified and rolled before you see the message — they arrive as a [ROLLS: ...] block with the outcome already decided; never contradict it, never request another roll for it, and never emit a redundant roll_request for an action that already has a result. Never resolve actions for a PC the player did not mention. Never kill a PC without death saves. Never reveal DM secrets or undiscovered content. Never change HP, gold, items, quests, NPCs, or location in prose without emitting the matching mechanic.',
+  ],
 };
 
 // Firebase RTDB omits/nullifies empty arrays and empty objects on write, and can
@@ -218,12 +227,12 @@ export async function restoreSession() {
         multi: DEFAULT_CONTRACTS.multi,
       });
     } else {
-      // One-time migration: a contract field still holding an old DEFAULT_CONTRACTS
+      // One-time migration: a contract field still holding any past DEFAULT_CONTRACTS
       // string verbatim (never customized by the player) gets refreshed to the
       // current default, so engine updates (e.g. the three-phase roll flow) reach
       // existing campaigns. Anything the player edited is left untouched.
-      for (const [key, staleText] of Object.entries(STALE_CONTRACTS)) {
-        if (con[key] === staleText) {
+      for (const [key, staleTexts] of Object.entries(STALE_CONTRACTS)) {
+        if (staleTexts.includes(con[key])) {
           setStore('campaign', 'contracts', key, DEFAULT_CONTRACTS[key]);
         }
       }
