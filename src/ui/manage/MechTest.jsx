@@ -225,25 +225,6 @@ export default function MechTest(props) {
         </Show>
       </div>
 
-      {/* Build Status — auto-runs on open */}
-      <div class="mt-section">
-        <div class="mt-label">Build Status</div>
-        <Show when={audit()} fallback={<div class="mt-loading">Checking…</div>}>
-          <div class="audit-results">
-            <For each={audit()}>
-              {(row) => (
-                <div class={`audit-row audit-${row.status}`}>
-                  <span class="audit-dot" />
-                  <span class="audit-label">{row.label}</span>
-                  <span class="audit-detail">{row.detail}</span>
-                </div>
-              )}
-            </For>
-          </div>
-          <button class="mechtest-reset mt-reaudit" onClick={runAudit}><i class="ph ph-arrows-clockwise" /> Re-check</button>
-        </Show>
-      </div>
-
       {/* Jump to */}
       <div class="mt-section">
         <div class="mt-label">Jump to</div>
@@ -254,16 +235,6 @@ export default function MechTest(props) {
           <button class="mechtest-chip" onClick={() => openCharSheet(pc())}>{pc()}'s sheet</button>
           <button class="mechtest-chip" onClick={() => navigateTo('manage')}>Settings</button>
           <button class="mechtest-chip" onClick={() => navigateToCompendium('spells')}>Compendium</button>
-        </div>
-      </div>
-
-      {/* Environment */}
-      <div class="mt-section">
-        <div class="mt-label">Environment</div>
-        <div class="mechtest-quick">
-          <button class="mechtest-chip" onClick={loadFullDemo}>Load FULL demo</button>
-          <button class="mechtest-chip" onClick={loadDemoCampaign}>Load basic demo</button>
-          <button class="mechtest-chip mt-danger" onClick={newCampaign}>New / reset</button>
         </div>
       </div>
 
@@ -295,16 +266,6 @@ export default function MechTest(props) {
         </div>
       </Show>
 
-      {/* Inject */}
-      <div class="mt-section">
-        <div class="mt-label">Inject a block</div>
-        <textarea class="mechtest-input" value={text()} onInput={(e) => setText(e.target.value)} rows="5" spellcheck={false} />
-        <div class="mechtest-actions">
-          <button class="mechtest-run" onClick={() => { const r = run(text(), 'Injected block'); setLast(r); }}>Inject</button>
-          <button class="mechtest-reset" onClick={() => setText(SAMPLE)}>Reset</button>
-        </div>
-      </div>
-
       {/* Export */}
       <div class="mt-section">
         <div class="mt-label">Export</div>
@@ -313,6 +274,45 @@ export default function MechTest(props) {
           <button class="mechtest-reset" onClick={downloadExport}><i class="ph ph-download-simple" /> Download</button>
         </div>
         <Show when={copied()}><div class="mt-copied">{copied()}</div></Show>
+      </div>
+
+      {/* Build Status — auto-runs on open */}
+      <div class="mt-section">
+        <div class="mt-label">Build Status</div>
+        <Show when={audit()} fallback={<div class="mt-loading">Checking…</div>}>
+          <div class="audit-results">
+            <For each={audit()}>
+              {(row) => (
+                <div class={`audit-row audit-${row.status}`}>
+                  <span class="audit-dot" />
+                  <span class="audit-label">{row.label}</span>
+                  <span class="audit-detail">{row.detail}</span>
+                </div>
+              )}
+            </For>
+          </div>
+          <button class="mechtest-reset mt-reaudit" onClick={runAudit}><i class="ph ph-arrows-clockwise" /> Re-check</button>
+        </Show>
+      </div>
+
+      {/* Environment */}
+      <div class="mt-section">
+        <div class="mt-label">Environment</div>
+        <div class="mechtest-quick">
+          <button class="mechtest-chip" onClick={loadFullDemo}>Load FULL demo</button>
+          <button class="mechtest-chip" onClick={loadDemoCampaign}>Load basic demo</button>
+          <button class="mechtest-chip mt-danger" onClick={newCampaign}>New / reset</button>
+        </div>
+      </div>
+
+      {/* Inject */}
+      <div class="mt-section">
+        <div class="mt-label">Inject a block</div>
+        <textarea class="mechtest-input" value={text()} onInput={(e) => setText(e.target.value)} rows="5" spellcheck={false} />
+        <div class="mechtest-actions">
+          <button class="mechtest-run" onClick={() => { const r = run(text(), 'Injected block'); setLast(r); }}>Inject</button>
+          <button class="mechtest-reset" onClick={() => setText(SAMPLE)}>Reset</button>
+        </div>
       </div>
     </div>
   );
