@@ -10,7 +10,6 @@ const LEVEL_HEADING = ['Cantrips', '1st Level', '2nd Level', '3rd Level', '4th L
 export default function Compendium() {
   const [tab, setTab] = createSignal('spells');
   const [search, setSearch] = createSignal('');
-  const [selected, setSelected] = createSignal(null);
   const [selClass, setSelClass] = createSignal(null);
   const [selLevel, setSelLevel] = createSignal(null);
   const [expanded, setExpanded] = createSignal(new Set());
@@ -28,13 +27,15 @@ export default function Compendium() {
     }
   });
 
-  function toggleExpand(name) {
+  function toggleExpand(key) {
     setExpanded(prev => {
       const s = new Set(prev);
-      if (s.has(name)) s.delete(name); else s.add(name);
+      if (s.has(key)) s.delete(key); else s.add(key);
       return s;
     });
   }
+
+  // ── Spells ──────────────────────────────────────────────────────────────
 
   const filteredSpells = () => {
     const q = search().toLowerCase().trim();
@@ -62,46 +63,66 @@ export default function Compendium() {
       .map(([level, list]) => ({ level, list: list.sort((a, b) => a.name.localeCompare(b.name)) }));
   };
 
-  const filteredOther = () => {
-    const q = search().toLowerCase().trim();
-    const source = tab() === 'glossary' ? (glossary() || [])
-      : tab() === 'feats' ? (feats() || [])
-      : (rules() || []);
-    if (!q) return source.slice(0, 50);
-    return source.filter(item => {
-      const name = (item.name || item.term || '').toLowerCase();
-      const body = (item.content || item.description || item.effect || '').toLowerCase();
-      return name.includes(q) || body.includes(q);
-    }).slice(0, 30);
-  };
+  // ── Rules / Glossary / Feats ─────────────────────────────────────────────
 
-  function getTitle(item) { return item.name || item.term || 'Unknown'; }
-  function getSubtitle(item) {
-    if (tab() === 'glossary') return item.category || '';
-    if (tab() === 'feats') return item.prerequisite || 'No prerequisite';
+  function getOtherItems() {
+    const t = tab();
+    if (t === 'glossary') return glossary() || [];
+    if (t === 'feats') return feats() || [];
+    return rules() || [];
+  }
+
+  function getItemKey(item) {
+    return item.name || item.term || '';
+  }
+
+  function getItemTitle(item) {
+    return item.name || item.term || 'Unknown';
+  }
+
+  function getItemSub(item) {
+    const t = tab();
+    if (t === 'glossary') return item.category || '';
+    if (t === 'feats') return item.prerequisite ? `Prereq: ${item.prerequisite}` : 'No prerequisite';
     return item.type || item.source || '';
   }
-  function getContent(item) { return item.content || item.description || item.effect || ''; }
+
+  function getItemBody(item) {
+    // each data file uses different field names
+    return item.content || item.definition || item.desc || item.description || item.effect || '';
+  }
+
+  const filteredOther = () => {
+    const q = search().toLowerCase().trim();
+    const list = getOtherItems();
+    if (!q) return list;
+    return list.filter(item => {
+      const title = getItemTitle(item).toLowerCase();
+      const body = getItemBody(item).toLowerCase();
+      return title.includes(q) || body.includes(q);
+    });
+  };
 
   return (
     <div class="compendium-page">
       <div class="comp-tabs">
-        <button class={`jtab ${tab() === 'spells' ? 'active' : ''}`} onClick={() => { setTab('spells'); setSelected(null); }}>Spells</button>
-        <button class={`jtab ${tab() === 'rules' ? 'active' : ''}`} onClick={() => { setTab('rules'); setSelected(null); }}>Rules</button>
-        <button class={`jtab ${tab() === 'glossary' ? 'active' : ''}`} onClick={() => { setTab('glossary'); setSelected(null); }}>Glossary</button>
-        <button class={`jtab ${tab() === 'feats' ? 'active' : ''}`} onClick={() => { setTab('feats'); setSelected(null); }}>Feats</button>
+        <button class={`jtab ${tab() === 'spells' ? 'active' : ''}`} onClick={() => { setTab('spells'); setExpanded(new Set()); }}>Spells</button>
+        <button class={`jtab ${tab() === 'rules' ? 'active' : ''}`} onClick={() => { setTab('rules'); setExpanded(new Set()); }}>Rules</button>
+        <button class={`jtab ${tab() === 'glossary' ? 'active' : ''}`} onClick={() => { setTab('glossary'); setExpanded(new Set()); }}>Glossary</button>
+        <button class={`jtab ${tab() === 'feats' ? 'active' : ''}`} onClick={() => { setTab('feats'); setExpanded(new Set()); }}>Feats</button>
       </div>
 
       <div class="comp-search">
         <input
           type="text"
           class="field-input"
-          placeholder={tab() === 'spells' ? 'Search spells…' : 'Search…'}
+          placeholder="Search…"
           value={search()}
           onInput={(e) => setSearch(e.target.value)}
         />
       </div>
 
+      {/* ── SPELLS TAB ── */}
       <Show when={tab() === 'spells'}>
         <div class="comp-filter-row">
           <button class={`comp-chip ${!selClass() ? 'active' : ''}`} onClick={() => setSelClass(null)}>All</button>
@@ -133,9 +154,10 @@ export default function Compendium() {
                     <span class="comp-section-count">{list.length}</span>
                   </div>
                   <For each={list}>{(spell) => {
-                    const isOpen = () => expanded().has(spell.name);
+                    const key = `spell-${spell.name}`;
+                    const isOpen = () => expanded().has(key);
                     return (
-                      <button class={`comp-spell-card ${isOpen() ? 'open' : ''}`} onClick={() => toggleExpand(spell.name)}>
+                      <button class={`comp-spell-card ${isOpen() ? 'open' : ''}`} onClick={() => toggleExpand(key)}>
                         <div class="comp-spell-row">
                           <span class="comp-spell-name">{spell.name}</span>
                           <div class="comp-spell-meta">
@@ -169,27 +191,32 @@ export default function Compendium() {
         </div>
       </Show>
 
+      {/* ── RULES / GLOSSARY / FEATS TABS ── */}
       <Show when={tab() !== 'spells'}>
-        <Show when={selected()} fallback={
-          <div class="comp-list">
-            <For each={filteredOther()}>{(item) => (
-              <button class="comp-item" onClick={() => setSelected(item)}>
-                <span class="comp-item-name">{getTitle(item)}</span>
-                <span class="comp-item-sub">{getSubtitle(item)}</span>
-              </button>
-            )}</For>
-            <Show when={filteredOther().length === 0}>
-              <div class="empty-state">No results</div>
-            </Show>
-          </div>
-        }>
-          <div class="comp-detail">
-            <button class="comp-back" onClick={() => setSelected(null)}>← Back</button>
-            <h3 class="comp-detail-title">{getTitle(selected())}</h3>
-            <p class="comp-detail-sub">{getSubtitle(selected())}</p>
-            <div class="comp-detail-content">{getContent(selected())}</div>
-          </div>
-        </Show>
+        <div class="comp-spell-list">
+          <Show when={filteredOther().length > 0} fallback={<div class="empty-state">No results</div>}>
+            <For each={filteredOther()}>{(item) => {
+              const key = `${tab()}-${getItemKey(item)}`;
+              const isOpen = () => expanded().has(key);
+              return (
+                <button class={`comp-spell-card ${isOpen() ? 'open' : ''}`} onClick={() => toggleExpand(key)}>
+                  <div class="comp-spell-row">
+                    <span class="comp-spell-name">{getItemTitle(item)}</span>
+                    <Show when={getItemSub(item)}>
+                      <span class="comp-spell-school">{getItemSub(item)}</span>
+                    </Show>
+                    <i class={`ph ph-caret-${isOpen() ? 'up' : 'down'} comp-spell-caret`} />
+                  </div>
+                  <Show when={isOpen()}>
+                    <div class="comp-spell-body">
+                      <p class="comp-spell-desc">{getItemBody(item)}</p>
+                    </div>
+                  </Show>
+                </button>
+              );
+            }}</For>
+          </Show>
+        </div>
       </Show>
     </div>
   );
