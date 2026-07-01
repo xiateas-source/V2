@@ -363,6 +363,19 @@ Workboard gap: `combatState.actionsUsed` flags existed but nothing checked them 
 | Gate 2's `multi_action`/`multi_bonus`/`multi_reaction` prose scan now scopes regex matching to sentences mentioning the current actor's name (`actorSentences()` helper), instead of counting matches across the entire response | Real accuracy bug: NPC/enemy turns narrated in the same response (which legitimately happen before/after the current PC's turn) were inflating the count and risked misfiring the hard re-prompt in `engine.js`'s `combatViolation()`. Also added an Extra Attack allowance (threshold 2 instead of 1) alongside the existing Action Surge bypass. |
 | Did not add a cross-message "already used" hard-reject to Gate 2 | Considered and rejected — see first row. Would need the engine to support genuinely multi-message turns (it doesn't) before that check could be sound. |
 
+## Hit Dice healing fixed at the source (S68)
+
+Workboard gap: "Short Rest missing Hit Dice healing surfacing." User caught that the paired workboard item ("Rest buttons on CharSheet Vitals tab") was already built — investigation (via an Explore agent) found the *actual* gap one level deeper: `hit_dice_use` in `mechanics.js` already existed and is in the AI's contract (`contracts.js`), but was silently broken — it decremented the hit dice pool then fired `roll_request: HitDice|...`, which `RollBar.jsx` has no handler for (it falls through the generic skill-check path and the result is discarded). The die spent; nothing ever healed. True for both the AI-narrated path and any future player-facing trigger.
+
+| Decision | Rationale |
+|----------|-----------|
+| Fixed `hit_dice_use` to roll + heal entirely in code (`src/ai/mechanics.js`), removing the `roll_request` round-trip | Matches the existing code-enforced Attack Roll pattern (S57) — roll and apply immediately, no AI dependency for a mechanical outcome that's just arithmetic. Fixes the mechanic for the AI-narrated path too, not just the new UI. |
+| Healing reuses `applyDamage(idx, -healed)` (already defined in the same file) instead of a new hpMax-clamp | One clamping implementation, shared with `hp`/`damage`. |
+| CON modifier reused from `abilityMod()` in `src/data/forge.js` (imported into `mechanics.js`) | Already exists, already handles missing ability scores — no duplicate math. |
+| No per-die minimum-1 floor on healing | SRD doesn't guarantee one; a very low CON PC rolling a 1 can legitimately net 0 HP from a hit die. |
+| New "Spend" button in `CharSheet.jsx`'s `VitalsTab()` next to the Hit Dice pip row, spends exactly one die per tap (no quantity picker) | Matches how players actually decide mid-rest ("do I need another?"); avoids introducing a new stepper/quantity-input pattern the codebase doesn't otherwise have. Disabled when no dice remain or already at full HP. |
+| No combat-state gating on the new button | Existing Short Rest/Long Rest buttons aren't gated on combat state either — stays consistent rather than adding an asymmetric restriction. |
+
 ## Open Questions (not yet answered)
 
 - **Child-friendly view target age** — 7-16 is wide. What's the actual simplification scope?
