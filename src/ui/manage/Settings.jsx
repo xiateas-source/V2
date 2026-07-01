@@ -1,11 +1,13 @@
-import { createSignal, Show, For } from 'solid-js';
+import { createSignal, createResource, Show, For } from 'solid-js';
 import { store, setStore, resetCampaign } from '../../state/index.js';
 import { saveKeys as persistKeys, saveProviderSettings } from '../../data/keys.js';
 import { clearActiveCampaign, exportSnapshot, saveLocalNow, healArrays, lastSavedAt } from '../../data/persist.js';
-import { buildShareId, stopLiveSync, forceSyncNow, setPresence } from '../../data/sync.js';
+import { buildShareId, stopLiveSync, forceSyncNow, setPresence, setActiveBundle } from '../../data/sync.js';
 import { getUid } from '../../data/firebase.js';
+import { listBundles, deleteBundle, exportBundle } from '../../data/bundles.js';
 import Contracts from './Contracts.jsx';
 import CharCreate from '../setup/CharCreate.jsx';
+import ContentImport from '../setup/ContentImport.jsx';
 
 const GEMINI_MODELS = [
   { id: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash (free, newest)' },
@@ -145,6 +147,48 @@ export default function Settings() {
     fileInput?.click();
   }
 
+  const [bundleRefresh, setBundleRefresh] = createSignal(0);
+  const [bundles] = createResource(bundleRefresh, listBundles);
+
+  function isBundleActive(id) {
+    return !!store.campaign.activeBundles?.[id]?.active;
+  }
+
+  function toggleBundleActive(bundle) {
+    setActiveBundle(bundle.id, bundle.name, bundle.version, !isBundleActive(bundle.id));
+  }
+
+  async function handleDeleteBundle(bundle) {
+    if (!confirm(`Delete "${bundle.name}"? This removes it from this device only.`)) return;
+    await deleteBundle(bundle.id);
+    if (isBundleActive(bundle.id)) setActiveBundle(bundle.id, bundle.name, bundle.version, false);
+    setBundleRefresh(n => n + 1);
+  }
+
+  function handleExportBundle(bundle) {
+    const raw = exportBundle(bundle);
+    const json = JSON.stringify(raw, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const name = (bundle.name || 'bundle').replace(/[^a-z0-9]/gi, '-').toLowerCase();
+    a.download = `${name}-${bundle.version || '1.0.0'}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // "This campaign uses a bundle you don't have installed" — refs live in
+  // synced campaign state (activeBundles), actual content stays local-only.
+  // Suppressed while the bundles list is still loading, so a bundle that IS
+  // installed doesn't flash as "missing" during the async IndexedDB read.
+  function missingBundles() {
+    if (bundles.loading) return [];
+    const active = Object.values(store.campaign.activeBundles || {}).filter(b => b.active);
+    const installedIds = new Set((bundles() || []).map(b => b.id));
+    return active.filter(b => !installedIds.has(b.id));
+  }
+
   async function handleImportFile(e) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -205,6 +249,9 @@ export default function Settings() {
     </Show>
     <Show when={subView() === 'charCreate'}>
       <CharCreate onBack={() => setSubView(null)} />
+    </Show>
+    <Show when={subView() === 'contentImport'}>
+      <ContentImport onBack={() => { setSubView(null); setBundleRefresh(n => n + 1); }} />
     </Show>
     <Show when={!subView()}>
       <div class="settings-page">
@@ -353,6 +400,50 @@ export default function Settings() {
             />
           </div>
           <p class="settings-hint">Export downloads your game as a JSON file. Import loads a previously saved game, replacing the current one.</p>
+        </section>
+
+        <section class="settings-section">
+          <h3 class="settings-label">Content Bundles</h3>
+
+          <Show when={missingBundles().length > 0}>
+            <For each={missingBundles()}>
+              {(b) => (
+                <div class="settings-hint" style="color: var(--color-warning, #b8860b)">
+                  This campaign uses "{b.name}" — you don't have it. <button class="btn-import" onClick={() => setSubView('contentImport')}>Import</button>
+                </div>
+              )}
+            </For>
+          </Show>
+
+          <Show when={!bundles.loading} fallback={<p class="settings-hint">Loading bundles…</p>}>
+            <Show when={(bundles() || []).length > 0} fallback={<p class="settings-hint">No bundles installed yet.</p>}>
+              <ul class="bundle-list">
+                <For each={bundles()}>
+                  {(b) => (
+                    <li class="bundle-row">
+                      <div class="bundle-row-info">
+                        <span class="bundle-row-name">{b.name}</span>
+                        <span class="bundle-row-meta">v{b.version} · {b.author}</span>
+                      </div>
+                      <div class="bundle-row-actions">
+                        <button
+                          class={`btn-theme ${isBundleActive(b.id) ? 'active' : ''}`}
+                          onClick={() => toggleBundleActive(b)}
+                        >
+                          {isBundleActive(b.id) ? 'Active' : 'Inactive'}
+                        </button>
+                        <button class="btn-export" onClick={() => handleExportBundle(b)}>Export</button>
+                        <button class="btn-import" onClick={() => handleDeleteBundle(b)}>Delete</button>
+                      </div>
+                    </li>
+                  )}
+                </For>
+              </ul>
+            </Show>
+          </Show>
+
+          <button class="btn-import" onClick={() => setSubView('contentImport')}>+ Import Bundle</button>
+          <p class="settings-hint">Bundles add optional campaign content (adventures, encounters, NPCs, locations, AI guidance, DM tools) authored outside the app. Import a bundle file, then mark it Active to use it in this campaign.</p>
         </section>
 
         <section class="settings-section">

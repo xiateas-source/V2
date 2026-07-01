@@ -1,6 +1,16 @@
 import { createSignal, createResource, onMount, For, Show } from 'solid-js';
 import { getAll } from '../../data/local.js';
+import { listBundles } from '../../data/bundles.js';
 import { compendiumFilter, setCompendiumFilter } from '../shared/sourceBus.js';
+
+const BUNDLE_CONTENT_TYPES = [
+  { key: 'npcs', label: 'NPC', title: (e) => e.name, body: (e) => e.description },
+  { key: 'locations', label: 'Location', title: (e) => e.name, body: (e) => e.description },
+  { key: 'encounters', label: 'Encounter', title: (e) => e.name, body: (e) => e.description },
+  { key: 'adventures', label: 'Adventure', title: (e) => e.title, body: (e) => e.body || e.summary },
+  { key: 'dmTools', label: 'DM Tool', title: (e) => e.title, body: (e) => e.body },
+  { key: 'aiGuidance', label: 'AI Guidance', title: (e) => e.scope, body: (e) => e.text },
+];
 
 const SPELL_CLASSES = ['Bard', 'Cleric', 'Druid', 'Paladin', 'Ranger', 'Sorcerer', 'Warlock', 'Wizard'];
 const LEVEL_CHIPS = ['Cantrips', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th'];
@@ -18,6 +28,7 @@ export default function Compendium() {
   const [glossary] = createResource(() => getAll('glossary'));
   const [rules] = createResource(() => getAll('compendium'));
   const [feats] = createResource(() => getAll('feats'));
+  const [installedBundles] = createResource(listBundles);
 
   onMount(() => {
     const f = compendiumFilter();
@@ -92,6 +103,27 @@ export default function Compendium() {
     return item.content || item.definition || item.desc || item.description || item.effect || '';
   }
 
+  // ── Bundles ───────────────────────────────────────────────────────────────
+
+  function flattenedBundleEntries() {
+    const out = [];
+    for (const bundle of (installedBundles() || [])) {
+      for (const { key, label, title, body } of BUNDLE_CONTENT_TYPES) {
+        for (const entry of (bundle.content?.[key] || [])) {
+          out.push({ bundleName: bundle.name, type: label, key: `${bundle.id}-${key}-${entry.id}`, title: title(entry) || 'Untitled', body: body(entry) || '' });
+        }
+      }
+    }
+    return out;
+  }
+
+  const filteredBundleEntries = () => {
+    const q = search().toLowerCase().trim();
+    const list = flattenedBundleEntries();
+    if (!q) return list;
+    return list.filter(e => e.title.toLowerCase().includes(q) || e.body.toLowerCase().includes(q));
+  };
+
   const filteredOther = () => {
     const q = search().toLowerCase().trim();
     const list = getOtherItems();
@@ -110,6 +142,7 @@ export default function Compendium() {
         <button class={`jtab ${tab() === 'rules' ? 'active' : ''}`} onClick={() => { setTab('rules'); setExpanded(new Set()); }}>Rules</button>
         <button class={`jtab ${tab() === 'glossary' ? 'active' : ''}`} onClick={() => { setTab('glossary'); setExpanded(new Set()); }}>Glossary</button>
         <button class={`jtab ${tab() === 'feats' ? 'active' : ''}`} onClick={() => { setTab('feats'); setExpanded(new Set()); }}>Feats</button>
+        <button class={`jtab ${tab() === 'bundles' ? 'active' : ''}`} onClick={() => { setTab('bundles'); setExpanded(new Set()); }}>Bundles</button>
       </div>
 
       <div class="comp-search">
@@ -191,8 +224,33 @@ export default function Compendium() {
         </div>
       </Show>
 
+      {/* ── BUNDLES TAB ── */}
+      <Show when={tab() === 'bundles'}>
+        <div class="comp-spell-list">
+          <Show when={filteredBundleEntries().length > 0} fallback={<div class="empty-state">No bundle content yet — import a bundle in Settings.</div>}>
+            <For each={filteredBundleEntries()}>{(item) => {
+              const isOpen = () => expanded().has(item.key);
+              return (
+                <button class={`comp-spell-card ${isOpen() ? 'open' : ''}`} onClick={() => toggleExpand(item.key)}>
+                  <div class="comp-spell-row">
+                    <span class="comp-spell-name">{item.title}</span>
+                    <span class="comp-spell-school">{item.type} · {item.bundleName}</span>
+                    <i class={`ph ph-caret-${isOpen() ? 'up' : 'down'} comp-spell-caret`} />
+                  </div>
+                  <Show when={isOpen()}>
+                    <div class="comp-spell-body">
+                      <p class="comp-spell-desc">{item.body}</p>
+                    </div>
+                  </Show>
+                </button>
+              );
+            }}</For>
+          </Show>
+        </div>
+      </Show>
+
       {/* ── RULES / GLOSSARY / FEATS TABS ── */}
-      <Show when={tab() !== 'spells'}>
+      <Show when={tab() !== 'spells' && tab() !== 'bundles'}>
         <div class="comp-spell-list">
           <Show when={filteredOther().length > 0} fallback={<div class="empty-state">No results</div>}>
             <For each={filteredOther()}>{(item) => {

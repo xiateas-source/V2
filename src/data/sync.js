@@ -37,6 +37,7 @@ function getSyncPayload() {
     combatState: c.combatState,
     chapters: c.chapters,
     locations: c.locations,
+    activeBundles: c.activeBundles,
     townReputation: c.townReputation,
     travelLog: c.travelLog,
     wagonState: c.wagonState,
@@ -137,6 +138,15 @@ export function setPresence(active) {
   if (!uid) return;
   const name = store.system.playerIdentity?.name?.trim() || 'Player';
   setStore('campaign', 'presence', uid, { name, active, ts: Date.now() });
+  scheduleSync();
+}
+
+// Same pattern as setPresence(): write through the store and sync immediately
+// rather than relying on the generic reactive effect above, since flipping an
+// existing entry's `active` flag doesn't change activeBundles' key count and
+// so wouldn't be noticed by a length-based dependency.
+export function setActiveBundle(bundleId, name, version, active) {
+  setStore('campaign', 'activeBundles', bundleId, { id: bundleId, name, version, active, ts: Date.now() });
   scheduleSync();
 }
 

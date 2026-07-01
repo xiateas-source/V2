@@ -62,6 +62,15 @@ export const DEFAULT_CAMPAIGN = {
   pendingTime: null,
   pendingChapter: null,
 
+  // Refs only, never bundle content itself — Firebase carries "this campaign
+  // uses bundle X," each device checks its own IndexedDB for whether it
+  // actually has that bundle installed. Keyed by bundle id (like `presence`
+  // is keyed by uid) with a per-entry timestamp, not a plain array — a plain
+  // array merged by union could never shrink, so deactivating a bundle would
+  // never survive a sync round-trip against a stale cloud copy that still
+  // lists it. { [bundleId]: { id, name, version, active, ts } }
+  activeBundles: {},
+
   // Per-device presence roster, keyed by uid. Written only when a player
   // explicitly toggles "I'm here"/"I've left" (Settings → Who Am I?) — no
   // automatic onDisconnect()/heartbeat detection, since backgrounded mobile

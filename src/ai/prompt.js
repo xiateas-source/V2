@@ -1,6 +1,7 @@
 import { store } from '../state/index.js';
 import { buildContracts } from './contracts.js';
 import { buildRulesBlock } from './rules.js';
+import { buildBundleBlock } from './bundleContext.js';
 import { estimateTokens } from './providers.js';
 
 export function genLedger(mode = 'compact') {
@@ -224,6 +225,7 @@ export async function buildPrompt(contextInject = '') {
   const ledger = genLedger('compact');
 
   const rulesBlock = await buildRulesBlock();
+  const bundleBlock = await buildBundleBlock();
 
   const activeConsequences = store.campaign.consequences
     .filter(c => !c.resolved)
@@ -234,6 +236,10 @@ export async function buildPrompt(contextInject = '') {
 
   if (rulesBlock) {
     sections.push(rulesBlock);
+  }
+
+  if (bundleBlock) {
+    sections.push(bundleBlock);
   }
 
   if (activeConsequences) {

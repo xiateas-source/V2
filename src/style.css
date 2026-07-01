@@ -8634,6 +8634,20 @@ body {
 .btn-export:active, .btn-import:active { background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface)); }
 .import-file-input { display: none; }
 
+/* Settings — content bundles */
+.bundle-list { list-style: none; padding: 0; margin: 8px 0; display: flex; flex-direction: column; gap: 8px; }
+.bundle-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--color-surface);
+}
+.bundle-row-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.bundle-row-name { font-size: 13px; font-weight: 600; color: var(--color-text); }
+.bundle-row-meta { font-size: 11px; color: var(--color-text-muted); }
+.bundle-row-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.bundle-row-actions .btn-export, .bundle-row-actions .btn-import, .bundle-row-actions .btn-theme {
+  width: auto; padding: 6px 10px; font-size: 11px;
+}
+
 /* ---------- GUEST CHARACTER PICKER ---------- */
 .guest-pick-shell {
   display: flex;

@@ -1,5 +1,5 @@
 const DB_NAME = 'tinklepebble-v2';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbInstance = null;
 
@@ -12,6 +12,7 @@ const STORES = {
   xpThresholds:  { keyPath: 'level', autoIncrement: false, indexes: [] },
   compendium:    { keyPath: 'id', autoIncrement: true, indexes: ['name', 'type', 'source'] },
   meta:          { keyPath: 'key', autoIncrement: false, indexes: [] },
+  bundles:       { keyPath: 'id', autoIncrement: false, indexes: ['name'] },
 };
 
 function isConnectionAlive(db) {
@@ -132,6 +133,16 @@ export async function getByKey(storeName, key) {
     const req = tx.objectStore(storeName).get(key);
     req.onsuccess = () => resolve(req.result || null);
     req.onerror = () => reject(req.error);
+  });
+}
+
+export async function deleteByKey(storeName, key) {
+  const db = await openDB();
+  const tx = db.transaction(storeName, 'readwrite');
+  tx.objectStore(storeName).delete(key);
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
   });
 }
 

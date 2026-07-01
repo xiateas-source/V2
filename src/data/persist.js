@@ -169,6 +169,7 @@ export function initLocalPersistence() {
       store.campaign.combatState.currentTurn,
       JSON.stringify(store.campaign.inventory),
       store.campaign.chapters.length,
+      Object.keys(store.campaign.activeBundles).length,
     ],
     () => { if (!hydrating && store.campaign.id) scheduleSave(); },
     { defer: true }
@@ -269,22 +270,27 @@ export function mergeCampaign(localC, cloudC) {
   const merged = healArrays({ ...localC, ...cloudC });
   merged.narrative = unionById(localC.narrative, cloudC.narrative);
   merged.ooc = unionById(localC.ooc, cloudC.ooc);
-  merged.presence = mergePresence(localC.presence, cloudC.presence);
+  merged.presence = mergeByTimestamp(localC.presence, cloudC.presence);
+  merged.activeBundles = mergeByTimestamp(localC.activeBundles, cloudC.activeBundles);
   return merged;
 }
 
-// presence is the fastest-changing, most racy field in the campaign payload —
-// a device can flip its own entry locally and have a *different* device's
-// in-flight full-snapshot write (built before it learned of that change) land
-// moments later and wholesale-overwrite it back to stale, causing the toggle to
-// visibly flicker. Merge per-uid by ts so a locally newer entry always wins over
-// an older cloud one, while still picking up genuinely newer entries from others.
-function mergePresence(local = {}, cloud = {}) {
+// Generic per-key merge for any object keyed by id where each entry carries
+// its own `ts` — a locally newer entry always wins over an older cloud one,
+// while genuinely newer entries from another device still come through.
+// Originally written for `presence` (a device can flip its own entry locally
+// and have a *different* device's in-flight full-snapshot write, built before
+// it learned of that change, land moments later and wholesale-overwrite it
+// back to stale, causing a visible flicker) — `activeBundles` has the exact
+// same shape of problem (two players toggling different bundles near-
+// simultaneously) and reuses the same fix rather than a plain array union,
+// which could never let a deactivated bundle actually stay deactivated.
+function mergeByTimestamp(local = {}, cloud = {}) {
   const merged = {};
-  for (const uid of new Set([...Object.keys(local || {}), ...Object.keys(cloud || {})])) {
-    const a = local?.[uid];
-    const b = cloud?.[uid];
-    merged[uid] = (a?.ts || 0) >= (b?.ts || 0) ? (a || b) : (b || a);
+  for (const key of new Set([...Object.keys(local || {}), ...Object.keys(cloud || {})])) {
+    const a = local?.[key];
+    const b = cloud?.[key];
+    merged[key] = (a?.ts || 0) >= (b?.ts || 0) ? (a || b) : (b || a);
   }
   return merged;
 }

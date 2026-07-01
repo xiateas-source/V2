@@ -9,6 +9,8 @@ import { forgeCharacter } from '../src/data/forge.js';
 import { classifyAction } from '../src/ai/classifier.js';
 import { parseDCResponse } from '../src/ai/engine.js';
 import { stableStringify } from '../src/data/firebase.js';
+import { validateBundle } from '../src/content/bundleNormalizer.js';
+import { mergeCampaign } from '../src/data/persist.js';
 
 function loadTestCharacters() {
   setStore('campaign', 'characters', [
@@ -1022,5 +1024,103 @@ describe('stableStringify — order-independent echo detection', () => {
     const a = { npcs: [{ id: '1', name: 'Bob' }] };
     const b = { npcs: [{ name: 'Bob', id: '1' }] };
     expect(stableStringify(a)).toBe(stableStringify(b));
+  });
+});
+
+describe('validateBundle — bundle JSON import', () => {
+  it('accepts a well-formed bundle with all content types', () => {
+    const { valid, warnings, normalized } = validateBundle({
+      meta: { id: 'ashford', name: 'Ashford Pack', version: '1.2.0', author: 'Jess' },
+      content: {
+        npcs: [{ name: 'Old Mireth', description: 'A hermit.' }],
+        locations: [{ name: 'The Ashford Bridge', description: 'Half-collapsed.' }],
+        aiGuidance: [{ scope: 'general', text: 'Ashford is perpetually foggy.' }],
+      },
+    });
+    expect(valid).toBe(true);
+    expect(warnings).toEqual([]);
+    expect(normalized.id).toBe('ashford');
+    expect(normalized.version).toBe('1.2.0');
+    expect(normalized.content.npcs).toHaveLength(1);
+    expect(normalized.content.locations).toHaveLength(1);
+    expect(normalized.content.aiGuidance[0].scope).toBe('general');
+  });
+
+  it('rejects a bundle missing meta.id or meta.name', () => {
+    expect(validateBundle({ meta: { name: 'No ID' }, content: {} }).valid).toBe(false);
+    expect(validateBundle({ meta: { id: 'no-name' }, content: {} }).valid).toBe(false);
+    expect(validateBundle(null).valid).toBe(false);
+    expect(validateBundle('not an object').valid).toBe(false);
+  });
+
+  it('drops a malformed array entry with a warning but keeps the rest of the bundle valid', () => {
+    const { valid, warnings, normalized } = validateBundle({
+      meta: { id: 'x', name: 'X' },
+      content: {
+        npcs: [
+          { name: 'Good NPC', description: 'Fine.' },
+          { description: 'Missing a name.' },
+          'not an object',
+        ],
+      },
+    });
+    expect(valid).toBe(true);
+    expect(normalized.content.npcs).toHaveLength(1);
+    expect(normalized.content.npcs[0].name).toBe('Good NPC');
+    expect(warnings.length).toBe(2);
+  });
+
+  it('defaults aiGuidance scope to "general" when omitted', () => {
+    const { normalized } = validateBundle({
+      meta: { id: 'x', name: 'X' },
+      content: { aiGuidance: [{ text: 'Some guidance with no scope.' }] },
+    });
+    expect(normalized.content.aiGuidance[0].scope).toBe('general');
+  });
+
+  it('flattens a top-level "bundle" wrapper before validating', () => {
+    const { valid, normalized } = validateBundle({
+      bundle: { meta: { id: 'wrapped', name: 'Wrapped' }, content: { npcs: [{ name: 'Wrapped NPC' }] } },
+    });
+    expect(valid).toBe(true);
+    expect(normalized.id).toBe('wrapped');
+  });
+
+  it('defaults every content array to empty when the bundle has no content section', () => {
+    const { valid, normalized } = validateBundle({ meta: { id: 'bare', name: 'Bare' } });
+    expect(valid).toBe(true);
+    expect(normalized.content.npcs).toEqual([]);
+    expect(normalized.content.encounters).toEqual([]);
+  });
+});
+
+describe('mergeCampaign — activeBundles per-key timestamp merge', () => {
+  // activeBundles is keyed like presence (by id, with a per-entry ts), not a
+  // plain array — a plain-array union could never let a deactivated bundle
+  // actually stay deactivated once any stale cloud copy still listed it.
+  function baseCampaign(activeBundles) {
+    return { characters: [], activeBundles };
+  }
+
+  it('keeps a locally-newer deactivation instead of letting a stale cloud copy revive it', () => {
+    const local = baseCampaign({ ashford: { id: 'ashford', name: 'Ashford', version: '1.0.0', active: false, ts: 200 } });
+    const cloud = baseCampaign({ ashford: { id: 'ashford', name: 'Ashford', version: '1.0.0', active: true, ts: 100 } });
+    const merged = mergeCampaign(local, cloud);
+    expect(merged.activeBundles.ashford.active).toBe(false);
+  });
+
+  it('picks up a genuinely newer activation from the cloud', () => {
+    const local = baseCampaign({ ashford: { id: 'ashford', name: 'Ashford', version: '1.0.0', active: false, ts: 100 } });
+    const cloud = baseCampaign({ ashford: { id: 'ashford', name: 'Ashford', version: '1.0.0', active: true, ts: 200 } });
+    const merged = mergeCampaign(local, cloud);
+    expect(merged.activeBundles.ashford.active).toBe(true);
+  });
+
+  it('unions distinct bundle ids toggled independently on each device', () => {
+    const local = baseCampaign({ a: { id: 'a', name: 'A', version: '1.0.0', active: true, ts: 100 } });
+    const cloud = baseCampaign({ b: { id: 'b', name: 'B', version: '1.0.0', active: true, ts: 100 } });
+    const merged = mergeCampaign(local, cloud);
+    expect(merged.activeBundles.a.active).toBe(true);
+    expect(merged.activeBundles.b.active).toBe(true);
   });
 });
