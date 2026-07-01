@@ -302,6 +302,29 @@ describe('Gate Firing', () => {
   });
 });
 
+describe('xp mechanic', () => {
+  beforeEach(loadTestCharacters);
+
+  it('adds XP to a named PC using the Name+amount format', () => {
+    const { valid } = validateMechanics([{ key: 'xp', value: 'Ivy+75', target: '', applied: false }]);
+    applyMechanics(valid);
+    expect(store.campaign.characters[0].xp).toBe(2775);
+  });
+
+  it('adds XP to the whole party using party+amount', () => {
+    const { valid } = validateMechanics([{ key: 'xp', value: 'party+50', target: '', applied: false }]);
+    applyMechanics(valid);
+    expect(store.campaign.characters[0].xp).toBe(2750);
+    expect(store.campaign.characters[1].xp).toBe(2750);
+  });
+
+  it('is a silent no-op for a bare amount with no target (regression guard for the MechTest button bug)', () => {
+    const { valid } = validateMechanics([{ key: 'xp', value: '75', target: '', applied: false }]);
+    applyMechanics(valid);
+    expect(store.campaign.characters[0].xp).toBe(2700);
+  });
+});
+
 describe('cover mechanic — PCs and enemies', () => {
   beforeEach(() => {
     loadTestCharacters();
