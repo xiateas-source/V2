@@ -2250,6 +2250,19 @@ body {
   color: var(--color-bg);
 }
 
+.gate-flag.gate-tap {
+  border: none;
+  cursor: pointer;
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+}
+.gate-flag.gate-tap:active { opacity: 0.7; }
+
 /* --- CHARACTER SHEET (6-tab overlay) --- */
 
 .cs-overlay {

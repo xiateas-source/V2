@@ -1,8 +1,9 @@
-import { createSignal, createMemo, For, Show, lazy } from 'solid-js';
+import { createSignal, createMemo, createEffect, For, Show, lazy } from 'solid-js';
 import { store, setStore } from '../../state/index.js';
 import { extractMechanics, validateMechanics, applyMechanics } from '../../ai/mechanics.js';
 import { callProvider } from '../../ai/providers.js';
 import { DEEP_SEED_SYSTEM } from '../../ai/setupPrompts.js';
+import { pendingNpcFocus, setPendingNpcFocus } from '../shared/sourceBus.js';
 
 const Compendium = lazy(() => import('./Compendium.jsx'));
 
@@ -214,7 +215,7 @@ export default function Journal() {
             <Section icon="ph-warning" label="Pressures" count={c().pressures} open={urgent()} tone="danger"><Pressures /></Section>
           </Show>
           <Show when={c().people > 0}>
-            <Section icon="ph-users" label="People" count={c().people}><People /></Section>
+            <Section icon="ph-users" label="People" count={c().people} open={!!pendingNpcFocus()}><People /></Section>
           </Show>
           <Show when={c().places + c().rep > 0}>
             <Section icon="ph-compass" label="World" count={c().places}><World /></Section>
@@ -294,6 +295,8 @@ function JournalNow(props) {
 // Collapsible accordion section with a live count badge.
 function Section(props) {
   const [open, setOpen] = createSignal(!!props.open);
+  // Allow parent to imperatively open (e.g. NPC deep-link) without blocking user toggle.
+  createEffect(() => { if (props.open) setOpen(true); });
   return (
     <div class={`jsection ${open() ? 'jsection-open' : ''} ${props.tone ? `jsection-${props.tone}` : ''}`}>
       <button class="jsection-head" onClick={() => setOpen(!open())}>
@@ -441,9 +444,20 @@ function NPCCard(props) {
   const [editing, setEditing] = createSignal(false);
   const [editName, setEditName] = createSignal('');
   const [editDisp, setEditDisp] = createSignal('');
+  let cardRef;
   // "who they are" one-liner for the collapsed row — role, else first clause of details.
   const who = () => n().role || (n().details || '').split(/[.,—]/)[0];
   const dossier = createMemo(() => open() ? buildDossier(n()) : null);
+
+  // Deep-link: auto-open and scroll to this card when navigateToNPC targets us.
+  createEffect(() => {
+    const target = pendingNpcFocus();
+    if (target && n().name.toLowerCase() === target.toLowerCase()) {
+      setPendingNpcFocus(null);
+      setOpen(true);
+      setTimeout(() => cardRef?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+    }
+  });
 
   function startEdit() {
     setEditName(n().name);
@@ -462,7 +476,7 @@ function NPCCard(props) {
   const DISPS = ['Friendly', 'Neutral', 'Hostile', 'Unknown', 'Ally', 'Enemy'];
 
   return (
-    <div class={`npc-card ${open() ? 'npc-open' : ''}`} onClick={() => !editing() && setOpen(!open())}>
+    <div ref={cardRef} class={`npc-card ${open() ? 'npc-open' : ''}`} onClick={() => !editing() && setOpen(!open())}>
       <div class="npc-top">
         <span class="npc-name">{n().name}</span>
         <span class={`disp-badge ${dispClass(n().disposition)}`}>{n().disposition || 'Unknown'}</span>

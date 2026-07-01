@@ -168,7 +168,8 @@ export function runGate3(narrative, mechanics, playerMessage) {
   if (ITEM_GIVE_PATTERNS.test(narrative) && !mechanicKeys.has('item_add') && !mechanicKeys.has('item_remove')) {
     flags.push({ gate: 3, type: 'drift_item', text: 'Item exchange narrated without mechanic' });
   }
-  if (HP_NARRATION.test(narrative) && !mechanicKeys.has('hp')) {
+  // `damage:` is the mechanic for PC damage (resistance/vuln/immunity routing) — treat it as equivalent to hp:
+  if (HP_NARRATION.test(narrative) && !mechanicKeys.has('hp') && !mechanicKeys.has('damage') && !mechanicKeys.has('temp_hp')) {
     flags.push({ gate: 3, type: 'drift_hp', text: 'HP change narrated without hp mechanic' });
   }
 

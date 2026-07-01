@@ -16,7 +16,7 @@ import CharDrawer from './CharDrawer.jsx';
 import ActionsDrawer from './ActionsDrawer.jsx';
 import { autoRead, speak } from '../../audio/browserTTS.js';
 import MechPill from '../shared/MechPill.jsx';
-import { navigateTo } from '../shared/sourceBus.js';
+import { navigateTo, navigateToNPC } from '../shared/sourceBus.js';
 import { validateMechanics, applyMechanics } from '../../ai/mechanics.js';
 
 const [glossaryTerms, setGlossaryTerms] = createSignal([]);
@@ -104,7 +104,7 @@ export default function Chat() {
     if (target.classList.contains('npc-link')) {
       const name = target.dataset.npc;
       const npc = store.campaign.npcs.find(n => n.name === name);
-      if (npc) setTooltip({ title: npc.name, body: `${npc.disposition}${npc.details ? ' — ' + npc.details : ''}${npc.lastSeen ? '\nLast seen: ' + npc.lastSeen : ''}`, action: { label: 'View in Journal', mode: 'journal' } });
+      if (npc) setTooltip({ title: npc.name, body: `${npc.disposition}${npc.details ? ' — ' + npc.details : ''}${npc.lastSeen ? '\nLast seen: ' + npc.lastSeen : ''}`, action: { label: 'View in Journal', npc: npc.name } });
     } else if (target.classList.contains('term-link')) {
       const term = target.dataset.term;
       const entry = glossaryTerms().find(g => g.term.toLowerCase() === term.toLowerCase());
@@ -225,7 +225,12 @@ export default function Chat() {
             <div class="tooltip-title">{tooltip().title}</div>
             <div class="tooltip-body">{tooltip().body}</div>
             <Show when={tooltip().action}>
-              <button class="tooltip-action" onClick={() => { navigateTo(tooltip().action.mode); setTooltip(null); }}>
+              <button class="tooltip-action" onClick={() => {
+                const a = tooltip().action;
+                if (a.npc) navigateToNPC(a.npc);
+                else navigateTo(a.mode);
+                setTooltip(null);
+              }}>
                 {tooltip().action.label} <i class="ph ph-arrow-up-right" />
               </button>
             </Show>
@@ -254,7 +259,15 @@ export default function Chat() {
               <Show when={msg.gateFlags?.length > 0}>
                 <div class="gate-flags">
                   <For each={msg.gateFlags}>
-                    {(f) => <span class={`gate-flag gate-${f.gate}`}>{f.text}</span>}
+                    {(f) => f.type === 'missing_xp'
+                      ? <button
+                          class={`gate-flag gate-${f.gate} gate-tap`}
+                          onClick={() => window.dispatchEvent(new CustomEvent('prefill-input', {
+                            detail: { text: `Please award XP for the ${f.text.includes('quest') ? 'quest' : f.text.includes('chapter') ? 'chapter milestone' : 'combat encounter'} just completed. Include: xp: party+[amount]` }
+                          }))}
+                        >{f.text} — tap to request</button>
+                      : <span class={`gate-flag gate-${f.gate}`}>{f.text}</span>
+                    }
                   </For>
                 </div>
               </Show>
