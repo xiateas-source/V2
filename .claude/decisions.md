@@ -569,6 +569,30 @@ Also settled: one combined AI call per classified message (not one parallel call
 
 5 new tests (`parseDCResponse`: aligned response, misaligned/short response falling back wholesale, empty/unparseable input, per-index out-of-range clamping, blank-line filtering), 112/112 passing, build clean. **Not live-verified** — needs a real phone check: an unusual action should get a plausibly-different DC than the flat tier default after a brief pause; tapping Stop during that pause should prevent the roll bar from appearing at all; a network hiccup should still produce a working roll bar at the tier-default DC rather than hanging.
 
+## Broken echo detection + missing reconcile() — NPC info closing on open (S79)
+
+User reported: "i currently cant open npc info without it closing on me immediately." What started as a single-component UI bug turned into finding a foundational sync-correctness gap, root-caused through three sequential, independently-verified agent passes (an initial Explore, a Plan-agent red-team that overturned the first pass's confidence level, and a connection-check pass tying it to project history) — this got unusually heavy scrutiny specifically because the user asked pointed questions about whether it connected to two *other* past bugs, and because any sync-path change risks the multiplayer presence system they'd spent real effort getting right.
+
+**Two real, distinct bugs, not one:**
+
+1. **`isEcho()` (`src/data/firebase.js`) has been silently non-functional since it shipped (S60).** It was built to stop a device's own write from being reprocessed as if it were a remote change, by comparing `JSON.stringify(incoming)` against a string captured from what was written. But Firebase RTDB always returns object children back in its own canonical order (alphabetical for non-integer-like keys), while `getSyncPayload()` (`sync.js`) builds its payload as an object literal in a fixed, unrelated source order — and `JSON.stringify` is key-order-sensitive. The comparison mismatches on essentially every write, not occasionally, meaning self-echoes have likely never been reliably suppressed for this payload shape.
+2. **No `setStore('campaign', ...)` call site anywhere in the codebase used Solid's `reconcile()`** — confirmed by grep, zero usages project-wide. Every cloud-merge landing as a whole-object replace tears down and rebuilds any keyed `<For>` over campaign data whose array references changed, even when the actual content per item didn't. `Journal.jsx`'s NPC list is one such `<For>` — its `NPCCard`s reset their local `open` signal on remount. Bug #1 made this fire far more often than intended (nearly every action-driven sync round-trip, not just genuine external changes), which is why it was reproducible even in solo play.
+
+**User asked directly whether this was the same root cause as two older, already-"fixed" bugs — verified rather than assumed:**
+
+| Past bug | Verdict | Evidence |
+|---|---|---|
+| Combat tracker auto-closing (S66) | **Unrelated. Different mechanism, and today's code is structurally immune regardless.** | Root cause was a plain `createEffect` re-firing on any reactive read inside it (not scoped to only real turn changes) — fixed by deleting the auto-minimize behavior entirely. Today `minimized` (`Combat.jsx`) and `turnPromptMinimized` (`TurnPrompt.jsx`) are plain signals rendered as singletons in `Chat.jsx`, never inside a keyed `<For>`/`<Show>` over campaign data — there's no remount vector here at all. |
+| Presence "I'm here"/"I've left" flicker (S60) | **Related family, already fixed at an earlier point in the pipeline — confirmed `reconcile()` cannot regress it.** | `mergeCampaign()`'s per-uid, timestamp-based presence merge (`mergePresence()`, `persist.js`) runs and fully resolves `merged.presence` *before* `reconcile()` would ever wrap the result at the `setStore` call site. `reconcile()` only changes *how* an already-decided value gets applied to the store (patch vs. replace) — it has no visibility into `localC`/`cloudC` separately and no path to bypass or re-run the per-uid merge. Bug #1 does mean presence toggles trigger the merge/remount cycle more often than necessary (a frequency amplifier for bug #2's NPC-card symptom), but `mergePresence`'s comparison is idempotent regardless of how many times it runs, so it can't produce wrong presence data. |
+
+**Fix:**
+- `firebase.js`: added `stableStringify()` — recursively sorts object keys before stringifying, arrays keep their order (they're ordered data, not reordered RTDB object keys). `markWritten`/`isEcho` now use it instead of plain `JSON.stringify`, restoring the S60 fix's actual intent.
+- `sync.js`: `setStore('campaign', reconcile(merged))` in `startLiveSync()`'s `dbListen` callback (the main fix — this is the call site that runs repeatedly during live play), and the same wrap in `joinCampaign()`'s initial load (lower-impact since nothing's mounted yet to lose identity from, but consistent and harmless).
+- `persist.js`: same wrap in `restoreSession()`'s cloud-merge branch (app boot — same lower-impact reasoning as `joinCampaign()`).
+- Confirmed via the existing two-device mocked test suite (`tests/sync.test.js` — `joinCampaign`, presence-round-trip tests) that all pass unchanged, directly exercising the exact functions touched.
+
+4 new tests for `stableStringify()` (order-independence for objects/nested objects, order-preservation for arrays, genuine-difference detection survives key reordering), 116/116 passing, build clean. **Not live-verified** — needs real-device confirmation: open an NPC card mid-play and confirm it stays open through a normal sync cycle; if a second device/multiplayer partner is available, confirm presence still displays correctly on both sides.
+
 ## Open Questions (not yet answered)
 
 - **Child-friendly view target age** — 7-16 is wide. What's the actual simplification scope?
