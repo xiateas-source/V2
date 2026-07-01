@@ -302,6 +302,53 @@ describe('Gate Firing', () => {
   });
 });
 
+describe('hit_dice_use — Short Rest healing', () => {
+  beforeEach(loadTestCharacters);
+
+  // Ivy: hitDice d8, CON 12 (mod +1), hpMax 31
+
+  it('heals HP and decrements hitDice.used within the expected roll bounds', () => {
+    setStore('campaign', 'characters', 0, 'hp', 10);
+    const { valid } = validateMechanics([{ key: 'hit_dice_use', value: 'Ivy=1', target: '', applied: false }]);
+    applyMechanics(valid);
+    const pc = store.campaign.characters[0];
+    expect(pc.hitDice.used).toBe(1);
+    const healed = pc.hp - 10;
+    expect(healed).toBeGreaterThanOrEqual(2); // min d8 roll (1) + CON mod (1)
+    expect(healed).toBeLessThanOrEqual(9); // max d8 roll (8) + CON mod (1)
+  });
+
+  it('caps healing at hpMax', () => {
+    setStore('campaign', 'characters', 0, 'hp', 30);
+    const { valid } = validateMechanics([{ key: 'hit_dice_use', value: 'Ivy=1', target: '', applied: false }]);
+    applyMechanics(valid);
+    const pc = store.campaign.characters[0];
+    expect(pc.hp).toBe(31);
+    expect(pc.hitDice.used).toBe(1);
+  });
+
+  it('is a no-op when no hit dice remain', () => {
+    setStore('campaign', 'characters', 0, 'hitDice', { die: 'd8', total: 4, used: 4 });
+    setStore('campaign', 'characters', 0, 'hp', 10);
+    const { valid } = validateMechanics([{ key: 'hit_dice_use', value: 'Ivy=1', target: '', applied: false }]);
+    applyMechanics(valid);
+    const pc = store.campaign.characters[0];
+    expect(pc.hp).toBe(10);
+    expect(pc.hitDice.used).toBe(4);
+  });
+
+  it('spends multiple dice in one call', () => {
+    setStore('campaign', 'characters', 0, 'hp', 5);
+    const { valid } = validateMechanics([{ key: 'hit_dice_use', value: 'Ivy=2', target: '', applied: false }]);
+    applyMechanics(valid);
+    const pc = store.campaign.characters[0];
+    expect(pc.hitDice.used).toBe(2);
+    const healed = pc.hp - 5;
+    expect(healed).toBeGreaterThanOrEqual(4); // 2 dice * (1 + 1 CON mod)
+    expect(healed).toBeLessThanOrEqual(18); // 2 dice * (8 + 1 CON mod)
+  });
+});
+
 describe('Gate 2 — Action Economy', () => {
   beforeEach(() => {
     loadTestCharacters();

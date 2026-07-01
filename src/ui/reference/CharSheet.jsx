@@ -243,6 +243,17 @@ export default function CharSheet(props) {
     if (!isNaN(delta)) adjustHP(delta);
   }
 
+  function spendHitDie() {
+    const idx = activePC();
+    const p = store.campaign.characters[idx];
+    if (!p) return;
+    const before = p.hp;
+    const { valid } = validateMechanics([{ key: 'hit_dice_use', value: `${p.name}=1`, target: '', applied: false }]);
+    applyMechanics(valid);
+    const healed = store.campaign.characters[idx].hp - before;
+    window.dispatchEvent(new CustomEvent('toast', { detail: { text: `${p.name} spends a Hit Die: +${healed} HP` } }));
+  }
+
   const [spellCache, setSpellCache] = createSignal({});
   async function fetchSpell(name) {
     if (spellCache()[name] !== undefined) return;
@@ -556,6 +567,9 @@ export default function CharSheet(props) {
             </For>
           </div>
           <span class="cs-hd-count">{hdAvail()}/{p.hitDice?.total || 0}</span>
+          <button class="cs-hd-spend-btn" disabled={hdAvail() <= 0 || p.hp >= p.hpMax} onClick={spendHitDie}>
+            Spend
+          </button>
         </div>
 
         <div class="cs-section-label">Death Saves</div>

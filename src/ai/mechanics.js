@@ -1,4 +1,5 @@
 import { store, aiSet } from '../state/index.js';
+import { abilityMod } from '../data/forge.js';
 
 let pendingConcentrationDrops = [];
 let pendingConcentrationSaves = [];
@@ -997,6 +998,10 @@ const DISPATCH = {
     // AI also advance the round double-counts it, so we ignore AI round_advance.
   },
 
+  // Rolls the hit dice and heals in one code step — no AI round-trip needed,
+  // same pattern as the code-enforced Attack Roll path (S57). Previously this
+  // fired a `roll_request: HitDice|...` that RollBar.jsx had no handler for,
+  // so the die spent but nothing ever healed.
   hit_dice_use(value) {
     const [name, countStr] = value.split('=').map(s => s.trim());
     const count = parseInt(countStr, 10) || 1;
@@ -1006,9 +1011,14 @@ const DISPATCH = {
     const available = pc.hitDice.total - pc.hitDice.used;
     if (available <= 0) return;
     const toUse = Math.min(count, available);
-    aiSet(`characters.${idx}.hitDice`, { ...pc.hitDice, used: pc.hitDice.used + toUse });
     const dieSize = parseInt(pc.hitDice.die.replace('d', ''), 10) || 8;
-    DISPATCH.roll_request(`HitDice|${dieSize}|${pc.name}`);
+    const conMod = abilityMod(pc.abilityScores?.con);
+    let healed = 0;
+    for (let i = 0; i < toUse; i++) {
+      healed += Math.max(0, Math.floor(Math.random() * dieSize) + 1 + conMod);
+    }
+    aiSet(`characters.${idx}.hitDice`, { ...pc.hitDice, used: pc.hitDice.used + toUse });
+    applyDamage(idx, -healed);
   },
 
   inspiration(value) {
