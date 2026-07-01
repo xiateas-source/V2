@@ -89,6 +89,45 @@ export default function MechTest(props) {
     setLast(result);
   }
 
+  function scenarioToast(text) {
+    window.dispatchEvent(new CustomEvent('toast', { detail: { text } }));
+  }
+
+  // Scenarios below are curated per-session, not auto-generated: each one
+  // drops you straight into a live situation built to test one specific
+  // recently-shipped mechanic (real combat/dice/UI, not just a data injection).
+  // Add one when something new ships that needs a live check; remove it once
+  // it's been confirmed working, so this list always reflects what's actually
+  // worth testing right now.
+
+  function scenarioCoveredEnemy() {
+    fire(`combat_start: Scenario test — Covered Enemy\nzone_add_enemy: Kobold|6|13|front|10\ncover: Kobold=half`, 'Scenario: Covered Enemy');
+    scenarioToast('Kobold has half cover (+2 AC). Roll initiative, then attack it to test Cover.');
+  }
+
+  function scenarioLowHP() {
+    const char = store.campaign.characters[0];
+    if (!char) return;
+    const target = Math.max(1, Math.floor(char.hpMax / 2));
+    fire(`hp: ${char.name}=${target}`, 'Scenario: Low HP');
+    scenarioToast(`${char.name} set to ${target}/${char.hpMax} HP — open their sheet's Vitals tab and try Spend Hit Die.`);
+  }
+
+  function scenarioActionEconomy() {
+    const chars = store.campaign.characters;
+    if (!chars.length) return;
+    const initiative = chars.map((c, i) => ({
+      name: c.name, roll: 15 - i, type: 'pc', rollPending: false,
+      hp: c.hp, hpMax: c.hpMax, ac: c.ac, zone: 'front',
+    }));
+    aiSet('combatState', {
+      active: true, round: 1, initiative, currentTurn: 0,
+      actionsUsed: { action: false, bonus: false, reaction: false, movement: false },
+      zones: { front: { label: 'Frontline' }, back: { label: 'Backline' }, left: { label: 'Left Flank' }, right: { label: 'Right Flank' }, air: { label: 'Air' }, rear: { label: 'Rear Guard' } },
+    });
+    scenarioToast(`${chars[0].name}'s turn is active — tap two Action-type quick actions in the turn card; the second should be disabled.`);
+  }
+
   async function runMassTest() {
     if (running()) return;
     setRunning(true);
@@ -167,6 +206,11 @@ export default function MechTest(props) {
   }
 
   const pc = firstPC;
+  const SCENARIOS = [
+    { label: 'Covered Enemy', hint: 'Tests Cover (S69)', run: scenarioCoveredEnemy },
+    { label: 'Low HP + Rest', hint: 'Tests Hit Dice healing (S68)', run: scenarioLowHP },
+    { label: 'Mid-Combat Turn', hint: 'Tests Action Economy (S67)', run: scenarioActionEconomy },
+  ];
   const QUICK = [
     { label: 'Damage 5',     line: () => `hp: ${pc()}, -5` },
     { label: 'Heal 8',       line: () => `hp: ${pc()}, +8` },
@@ -236,6 +280,16 @@ export default function MechTest(props) {
           <button class="mechtest-chip" onClick={() => openCharSheet(pc())}>{pc()}'s sheet</button>
           <button class="mechtest-chip" onClick={() => navigateTo('manage')}>Settings</button>
           <button class="mechtest-chip" onClick={() => navigateToCompendium('spells')}>Compendium</button>
+        </div>
+      </div>
+
+      {/* Scenarios — curated per session, see comment above scenario functions */}
+      <div class="mt-section">
+        <div class="mt-label">Scenarios <span class="mt-label-hint">— jump straight into a live situation to test one thing</span></div>
+        <div class="mechtest-quick">
+          <For each={SCENARIOS}>
+            {(s) => <button class="mechtest-chip" title={s.hint} onClick={s.run}>{s.label}</button>}
+          </For>
         </div>
       </div>
 
