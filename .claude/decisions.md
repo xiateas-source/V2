@@ -376,6 +376,19 @@ Workboard gap: "Short Rest missing Hit Dice healing surfacing." User caught that
 | New "Spend" button in `CharSheet.jsx`'s `VitalsTab()` next to the Hit Dice pip row, spends exactly one die per tap (no quantity picker) | Matches how players actually decide mid-rest ("do I need another?"); avoids introducing a new stepper/quantity-input pattern the codebase doesn't otherwise have. Disabled when no dice remain or already at full HP. |
 | No combat-state gating on the new button | Existing Short Rest/Long Rest buttons aren't gated on combat state either — stays consistent rather than adding an asymmetric restriction. |
 
+## Cover — code-enforced for the PC-attacks-enemy path only (S69)
+
+Workboard claimed "Cover missing entirely." Investigation (Explore agent, verified by direct reads) found this wrong in a specific way: a `cover` mechanic already existed, already stored `coverBonus` on a PC, and the character drawer already showed a "+X (cover)" badge — but nothing anywhere read that value. Digging further surfaced a real architecture fork, not just a missing wire: the *only* code-enforced attack-roll path in this engine is PC-attacks-enemy (S57); NPC-attacks-PC is deliberately still AI-narrated (unchanged since S57). The existing `cover` mechanic stored its bonus on the PC — the wrong side for the one path that's actually enforced, since in that path the PC is the attacker, not the target. Surfaced this fork to the user explicitly rather than guessing which direction to build; user chose enemy-side.
+
+| Decision | Rationale |
+|----------|-----------|
+| Cover now applies to enemies tracked in `combatState.initiative` (populated by the existing, already-mandatory `zone_add_enemy` mechanic), in addition to the existing PC-side storage | This is the side that plugs into the one attack path that's code-enforced. The PC-side storage/badge is left exactly as it was — still inert for now, since enforcing it would mean reopening the NPC-attacks-PC scope, a bigger change deliberately deferred at S57, not decided here. |
+| `roll_request: Attack|<AC>|<PCName>|<modifier>|<TargetName>` — added a 5th field (`TargetName`) to the Attack variant only, general `Skill|DC|PCname|modifier` format for non-attack rolls is untouched | There was no way to look up "which specific enemy" from the existing 4-field format. `TargetName` is required for the code lookup — no other viable hook existed (zones are narrative grouping, not spatial/tactical, per the explore agent's report; not a valid basis for cover). |
+| Code adds the looked-up `coverBonus` on top of whatever AC the AI reports, rather than fully overriding AC from tracked state | Scoped narrowly to Cover specifically. Base AC accuracy is a separate, bigger question (the AI is still trusted for the base number) — not what was asked, and folding it in here would silently expand the change's blast radius. |
+| Single computation point: `coverBonus`/effective `dc` computed once at roll-parse time in `RollBar.jsx`, both the hit/miss check and the on-screen "AC" display read the same value | No duplicate cover-lookup logic between resolution and display. |
+| Added a `COVER +N` pill next to the existing ADV/DIS pills in the roll bar | Player should see why a good roll still missed — matches Law 3 (mobile clarity) and the existing pill pattern for other roll modifiers. |
+| No RollBar.jsx-level tests added; `cover` mechanic's data-write behavior (PC and enemy targeting, case-insensitivity, `none` reset, no-match no-op) is tested in `mechanics.js`-level tests instead | This codebase has no component-testing infrastructure for SolidJS UI (`tests/foundations.test.js` only exercises pure state/mechanics functions) — introducing one for this alone would be new-pattern scope creep beyond what was asked. |
+
 ## Open Questions (not yet answered)
 
 - **Child-friendly view target age** — 7-16 is wide. What's the actual simplification scope?
