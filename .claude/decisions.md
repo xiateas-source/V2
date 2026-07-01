@@ -389,6 +389,18 @@ Workboard claimed "Cover missing entirely." Investigation (Explore agent, verifi
 | Added a `COVER +N` pill next to the existing ADV/DIS pills in the roll bar | Player should see why a good roll still missed — matches Law 3 (mobile clarity) and the existing pill pattern for other roll modifiers. |
 | No RollBar.jsx-level tests added; `cover` mechanic's data-write behavior (PC and enemy targeting, case-insensitivity, `none` reset, no-match no-op) is tested in `mechanics.js`-level tests instead | This codebase has no component-testing infrastructure for SolidJS UI (`tests/foundations.test.js` only exercises pure state/mechanics functions) — introducing one for this alone would be new-pattern scope creep beyond what was asked. |
 
+## Testing tab scroll fix + Testing Notes (S70)
+
+User reported two problems with the testing tab (`MechTest.jsx`, opened via the flask/Test button in `InputBar.jsx`): couldn't scroll to the bottom, and wanted a way to leave a review that travels with a state export.
+
+| Decision | Rationale |
+|----------|-----------|
+| Scroll bug root cause: `.mechtest`'s `max-height: 80vh` (`style.css`) was too tall for its actual slot — it renders inside `.input-bar`, itself inside `.chat-container` (`height: 100%; overflow: hidden`), so the excess got clipped by the ancestor, not scrolled | Confirmed by comparing to the sibling drawer in the exact same slot (`QuickActions`' controlled drawer, `.qa-controlled .qa-drawer`), which uses `max-height: 46vh` and has no such bug — not a guess, a working precedent in the same file. |
+| Fix: changed `.mechtest`'s `max-height` from `80vh` to `46vh`, matching the sibling exactly | One-line change, no other layout touched. |
+| "Send json/my own review" implemented as a freeform Testing Notes textarea bundled into the *existing* export (`exportSnapshot()`), not a new structured form or a new export pipeline | User confirmed this directly (asked rather than guessed, since there was no existing feedback mechanism to copy from). Reuses `copyExport()`/`downloadExport()` already wired to Copy/Download buttons — one button, not two new systems. |
+| `exportSnapshot(notes = '')` only adds a `testerNotes` field when notes are non-empty | Keeps the other existing caller (`Settings.jsx`'s own export) and MechTest's own pre-existing calls unaffected when no notes are passed. |
+| No new CSS, reused `.mechtest-input` (already used for the Inject-a-block textarea) | Same visual language, no duplicate styling. |
+
 ## Open Questions (not yet answered)
 
 - **Child-friendly view target age** — 7-16 is wide. What's the actual simplification scope?

@@ -1,48 +1,47 @@
-# Session Log — S69 (2026-07-01)
+# Session Log — S70 (2026-07-01)
 
 ## Branch / Build
-Branch: `claude/workboard-sprint-deadline-ka8m7y` · S67 and S68 merged to main this session, S69 not yet merged · build clean, 77/77 tests passing
+Branch: `claude/workboard-sprint-deadline-ka8m7y` · S69 merged to main this session · S70 not yet merged · build clean, 77/77 tests passing
 
 ---
 
 ## What Shipped This Session
 
-### Cover — closes out Priority #1's SRD gap-analysis punch list
-Before writing any code, spawned an Explore agent to trace the existing AC/attack-roll/zone architecture — the user had explicitly flagged (this session) a past experience where an agent broke architecture and applied broad fixes without root-causing, so this one got extra diligence up front rather than moving straight to implementation.
+### Testing tab: scroll bug fix + Testing Notes
+User reported two problems while asking for the sprint to continue: couldn't scroll to the bottom of the testing tab (the flask/Test drawer, `MechTest.jsx`), and wanted an easy way to test new features and "send json/my own review."
 
-That research found the workboard's "Cover missing entirely" was wrong in a specific, informative way: a `cover` mechanic already existed (`mechanics.js`), already stored `coverBonus` on a PC, and `CharDrawer.jsx` already rendered a "+X (cover)" badge — but nothing anywhere read that value, so declaring cover had zero mechanical effect. Digging one level deeper surfaced a real architecture fork, not just a missing wire: the only attack-roll path that's actually code-enforced in this engine is PC-attacks-enemy (S57's Critical Hits work); NPC-attacks-PC is still fully AI-narrated, an explicit S57 decision, unchanged. The existing `cover` mechanic stored its bonus on the PC — the wrong side for the one path that's enforced, since the PC is the attacker there, not the target.
+**Scroll bug** — traced before touching anything: `.mechtest` (`src/style.css`) had `max-height: 80vh`. It renders inside `.input-bar`, which sits inside `.chat-container` (`height: 100%; overflow: hidden`). Since `.input-bar` doesn't shrink, content past what actually fits gets clipped by the ancestor's `overflow: hidden` — not scrolled, so the drawer's own internal scrollbar can't reach it. Confirmed this was simply the wrong number (not a structural problem) by finding the sibling drawer in the exact same slot (`QuickActions`' controlled drawer, same `.input-bar` parent) already uses `max-height: 46vh` with no such bug. Fixed by matching that value exactly — one line, `src/style.css`.
 
-This was surfaced to the user directly (via AskUserQuestion) rather than guessed at, since building the wrong direction would have been exactly the kind of "didn't fit the architecture" mistake being guarded against. User chose to build Cover for enemies (the side that plugs into real enforcement), explicitly leaving the original PC-side storage/badge inert — fixing that would mean reopening NPC-attacks-PC, out of scope here.
+**Testing Notes** — asked the user directly what "send json/my own review" should produce, since there's no existing feedback mechanism in this codebase to copy from (checked via an Explore agent first). Confirmed: a freeform notes box bundled into the export the player already has, not a new structured form. Shipped:
+- `src/data/persist.js`: `exportSnapshot()` now takes an optional `notes` param, adding a `testerNotes` field to the exported JSON only when notes are provided (the other existing caller in `Settings.jsx` is unaffected).
+- `src/ui/manage/MechTest.jsx`: new "Testing Notes" textarea in the Export section (reuses the existing `.mechtest-input` class, no new CSS), wired into both `copyExport()` and `downloadExport()`.
 
-Shipped:
-- **`src/ai/mechanics.js`**: `cover` mechanic now also resolves against `combatState.initiative` (enemies added via the already-mandatory `zone_add_enemy`) when the name doesn't match a PC — same `Name=half|three-quarters|none` format, unchanged for the PC path.
-- **`src/ui/play/RollBar.jsx`**: Attack `roll_request` gained a 5th field, `TargetName` (format: `Attack|<AC>|<PCName>|<modifier>|<TargetName>`). At roll-parse time, code looks up that target's `coverBonus` from initiative and adds it to the AC used for hit/miss — computed once, so the hit/miss check and the on-screen "AC" display can never disagree. New `getCoverBonus()` helper, new `COVER +N` pill next to the existing ADV/DIS pills.
-- **`src/ai/contracts.js`**: documents the new `TargetName` field and tells the AI it doesn't need to bake cover into the AC number itself — the app does that.
-- **`src/style.css`**: `.roll-cover` pill styling.
-- **5 new tests** in `tests/foundations.test.js` for the `cover` mechanic's data-write side (PC targeting unchanged, enemy targeting, case-insensitive name match, `none` reset, no-match no-op). No RollBar.jsx-level tests — this codebase has no component-testing infrastructure for SolidJS UI, and building one for this alone would have been scope creep beyond what was asked.
+No new automated tests — CSS-only fix plus a one-line data change to an object literal didn't warrant new test infrastructure (this project has no component-testing setup for SolidJS UI at all). 77/77 existing tests still pass, build clean.
 
-Files: `src/ai/mechanics.js`, `src/ui/play/RollBar.jsx`, `src/ai/contracts.js`, `src/style.css`, `tests/foundations.test.js`.
+Files: `src/style.css`, `src/data/persist.js`, `src/ui/manage/MechTest.jsx`.
 
-**Not live-verified in the browser** — same sandbox Firebase-boot limitation as S67/S68. Needs a real combat encounter: declare cover on an enemy, confirm the AI reliably includes `TargetName`, confirm the AC math and pill both read correctly.
+**Not live-verified in the browser** — same sandbox Firebase-boot limitation as recent sessions. Confidence in the scroll fix specifically is high because it matches an already-working sibling pattern in the same file, not a new guess.
+
+### Also this session: merged S69 (Cover) to main
+User said "go live" at the start of the session; that was queued behind a plan-mode gate for the new testing-tab work and executed as soon as planning was approved. S69's Cover fix (making the `cover` mechanic actually affect hit/miss for PC-attacks-enemy) is now on `main`.
 
 ---
 
 ## Decisions Made
-See `.claude/decisions.md` → "Cover — code-enforced for the PC-attacks-enemy path only (S69)" for the full architecture-fork writeup and why each design choice was made (enemy-side over PC-side, additive cover on top of AI-reported AC rather than full AC override, no new test infrastructure).
+See `.claude/decisions.md` → "Testing tab scroll fix + Testing Notes (S70)".
 
 ---
 
 ## Known Issues / Follow-ups
-- Cover only works in the PC-attacks-enemy direction. The original PC-side `coverBonus`/badge is unchanged but still has no mechanical effect — enforcing that direction would require code-enforcing NPC-attacks-PC combat generally, a much bigger change deliberately out of scope here (and at S57).
-- S69's live verification is open, same as S67/S68's items.
-- **Priority #1's SRD gap-analysis punch list (started S52) is now fully closed** — this was the longest-running item on the board.
+- S70's fixes need a real phone check: does the tab actually scroll to the bottom now, and does the notes field show up correctly in the exported JSON.
+- All previously-open live-verification items (S56–S69) are still open.
 
 ---
 
 ## Next Up (per workboard Priorities, deadline July 11)
-Priority #1 is done. Remaining: #4 AI DC determination (deliberately last, complex), #5 Scene transition gate, #8 Multiplayer bundles MVP.
+Priority #1 (SRD gap-analysis) is fully closed as of S69. Remaining: #4 AI DC determination (deliberately last, complex), #5 Scene transition gate, #8 Multiplayer bundles MVP.
 
 ---
 
 ## Branch State
-`claude/workboard-sprint-deadline-ka8m7y` has this session's commits (pending push as of writing). S67 and S68 were merged to `main` this session (user said "go live" / "merge to main" for each). S69 has not been merged to main — user has not said so this session.
+`claude/workboard-sprint-deadline-ka8m7y` has this session's commits (pending push as of writing). S69 was merged to `main` this session ("go live"). S70 has not been merged to main — user has not said so this session.
