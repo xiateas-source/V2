@@ -20,11 +20,19 @@ export function navigateToNPC(name) {
 }
 
 // Compendium deep-link: set this before navigating to 'journal' so that
-// the Journal switches to its lookup/compendium view and optionally
-// pre-selects a tab ('spells', 'rules', 'glossary', 'feats').
+// the Journal switches to its lookup/compendium view.
 export const [pendingCompendium, setPendingCompendium] = createSignal(null);
 
-export function navigateToCompendium(tab = 'spells') {
+// Class/level pre-filter for Compendium (Journal doesn't clear this, Compendium does).
+export const [compendiumFilter, setCompendiumFilter] = createSignal(null);
+
+export function navigateToCompendium(tab = 'spells', classFilter = null) {
+  if (classFilter) {
+    const cls = classFilter.charAt(0).toUpperCase() + classFilter.slice(1).toLowerCase();
+    setCompendiumFilter({ class: cls });
+  } else {
+    setCompendiumFilter(null);
+  }
   setPendingCompendium(tab);
   navigateTo('journal');
 }

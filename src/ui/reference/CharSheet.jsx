@@ -769,7 +769,7 @@ export default function CharSheet(props) {
           </div>
         </Show>
 
-        <button class="cs-browse-compendium" onClick={() => navigateToCompendium('spells')}>
+        <button class="cs-browse-compendium" onClick={() => navigateToCompendium('spells', p.class)}>
           <i class="ph ph-books" /> Browse Compendium
         </button>
 

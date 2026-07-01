@@ -3740,6 +3740,167 @@ body {
   padding: var(--spacing-sm);
 }
 
+/* --- COMPENDIUM SPELL FILTERS --- */
+
+.comp-filter-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+  scrollbar-width: none;
+}
+.comp-filter-row::-webkit-scrollbar { display: none; }
+
+.comp-chip {
+  flex-shrink: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.comp-chip.active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-bg);
+}
+
+/* --- COMPENDIUM SPELL LIST --- */
+
+.comp-spell-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.comp-spell-section {
+  margin-bottom: 4px;
+}
+
+.comp-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  padding: 10px 4px 4px;
+}
+
+.comp-section-count {
+  background: var(--color-surface);
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.comp-spell-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: var(--color-surface);
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.comp-spell-card:first-of-type { border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+.comp-spell-card:last-of-type { border-radius: 0 0 var(--radius-sm) var(--radius-sm); border-bottom: none; }
+.comp-spell-card:only-of-type { border-radius: var(--radius-sm); border-bottom: none; }
+.comp-spell-card.open {
+  background: color-mix(in srgb, var(--color-accent) 6%, var(--color-surface));
+}
+
+.comp-spell-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.comp-spell-name {
+  flex: 1;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.comp-spell-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.comp-spell-badge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.comp-spell-badge.ritual {
+  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+  color: var(--color-accent);
+}
+.comp-spell-badge.conc {
+  background: color-mix(in srgb, #a78bfa 15%, transparent);
+  color: #a78bfa;
+}
+
+.comp-spell-school {
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+}
+
+.comp-spell-caret {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.comp-spell-body {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border);
+}
+
+.comp-spell-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+  font-size: 0.72rem;
+  color: var(--color-text);
+  margin-bottom: 8px;
+}
+.comp-spell-stats b {
+  color: var(--color-text-muted);
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.comp-spell-classes {
+  font-size: 0.68rem;
+  color: var(--color-accent);
+  margin-bottom: 8px;
+}
+
+.comp-spell-desc {
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--color-text);
+  white-space: pre-wrap;
+  margin: 0;
+}
+
 /* --- QUICK ACTIONS --- */
 
 .qa-container {
