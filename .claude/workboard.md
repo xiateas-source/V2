@@ -60,6 +60,21 @@ Order matters — each step de-risks the next.
    exploration) are **planned, not scheduled** — let playtest pressure after stages 1-2
    decide when/whether.
 
+**UI Redesign arc (direction DECIDED S81, build not yet scheduled):** "Inked Folio,
+Day/Night/Lamplight" — see `ui-directions.html` (rendered mockup, repo root) for the
+approved look. Day Folio = paper/ink light theme; Night Folio = dark leather + gold
+ink (the Gilded Chronicle register as the dark theme); Lamplight = accessibility mode
+(~1.4× distance-tuned type, AAA contrast, NO handwriting fonts for content, ornament
+reduced, larger touch targets — designed for nursing-with-phone-far-away). Diagnosis
+that motivated it: every component is the same bordered box — no hierarchy, no
+personality layers; style.css is 8,858 lines with duplicate definitions.
+Build plan: 1-2 Fable/Opus sessions produce the design-system spec + two exemplar
+screens (Journal + Play), then 3-5 fast-model sessions propagate per the spec with
+phone review each step. Handwriting font (Caveat) is annotation-voice ONLY, never
+data. **Open question for the user: collapse 20 themes → 3 modes × player-chosen
+accent hue?** (Changes CLAUDE.md's "20 color themes" line — do not proceed on this
+without their answer.)
+
 **Parallel / anytime (independent of the sequence above):**
 - quickBuild content → `data/*.json` (races, backgrounds, equipment, skills; ~2
   sessions) and bundle system-content types (races/subclasses/spells via the S80
