@@ -60,7 +60,15 @@ Order matters — each step de-risks the next.
    exploration) are **planned, not scheduled** — let playtest pressure after stages 1-2
    decide when/whether.
 
-**UI Redesign arc (direction DECIDED S81, build not yet scheduled):** "Inked Folio,
+**UI Redesign arc (direction DECIDED S81 · phase 1 SHIPPED same session):** Phase 1
+is live in code: four new themes (`light-10` Day Folio, `dark-10` Night Folio,
+`light-11`/`dark-11` Lamplight) + the shared ink layer (grain, inked journal rule,
+print-shadow cards, gilded corner flourishes and glowing d20 at night, 19px-root
+distance scale in Lamplight), appended to style.css scoped to the new theme ids —
+legacy 20 themes untouched, so zero regression risk. Settings cycle extended to 11.
+**Needs phone check**: cycle to Night Folio and Lamplight in Settings, skim every
+tab. Remaining phases (exemplar-quality Journal/Play, handwriting annotation voice,
+stamps, drop caps, motion spec, style.css dedup) below — "Inked Folio,
 Day/Night/Lamplight" — see `ui-directions.html` (rendered mockup, repo root) for the
 approved look. Day Folio = paper/ink light theme; Night Folio = dark leather + gold
 ink (the Gilded Chronicle register as the dark theme); Lamplight = accessibility mode
