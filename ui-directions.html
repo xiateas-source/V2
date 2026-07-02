@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinklepebble — UI Direction Proposals (S81)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=Caveat:wght@500;600&display=swap">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0a0a0c; color:#d8d4ca; font-family:Inter,system-ui,sans-serif; padding:32px 20px 80px; }
+  h1 { font-family:Cinzel,serif; font-size:22px; letter-spacing:.14em; text-transform:uppercase; color:#c9a25a; text-align:center; }
+  .sub { text-align:center; color:#7a7568; font-size:13px; margin:8px auto 40px; max-width:640px; line-height:1.6; }
+  .dir { max-width:1120px; margin:0 auto 72px; }
+  .dir-head { display:flex; align-items:baseline; gap:14px; border-bottom:1px solid #26221a; padding-bottom:10px; margin-bottom:6px; }
+  .dir-num { font-family:Cinzel,serif; font-size:30px; color:#3d382c; }
+  .dir-name { font-family:Cinzel,serif; font-size:19px; letter-spacing:.1em; color:#e8e0cc; }
+  .dir-tag { font-size:12px; color:#9a8f76; font-style:italic; font-family:'EB Garamond',serif; font-size:15px; }
+  .dir-desc { font-size:13px; line-height:1.65; color:#a39b88; max-width:980px; margin:12px 0 24px; }
+  .dir-desc b { color:#d8d0ba; font-weight:600; }
+  .frames { display:flex; gap:28px; flex-wrap:wrap; }
+  .phone { width:344px; border-radius:30px; padding:10px; background:#1a1a1e; box-shadow:0 24px 60px rgba(0,0,0,.55), inset 0 0 0 1px #2c2c32; flex-shrink:0; }
+  .screen { border-radius:22px; overflow:hidden; height:600px; display:flex; flex-direction:column; position:relative; }
+  .flabel { text-align:center; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:#5c564a; margin-top:12px; }
+  .rec { max-width:1120px; margin:0 auto; border:1px solid #c9a25a44; border-radius:14px; padding:22px 26px; background:linear-gradient(180deg,#171410,#12100c); }
+  .rec h2 { font-family:Cinzel,serif; font-size:15px; letter-spacing:.12em; color:#c9a25a; margin-bottom:10px; }
+  .rec p { font-size:13.5px; line-height:1.7; color:#b5ac97; }
+  .rec b { color:#e8dfc8; }
+
+  /* ============ DIRECTION 1 — GILDED CHRONICLE ============ */
+  .d1 .screen { background:#15120d; color:#f4ecda;
+    background-image:radial-gradient(ellipse at 50% -10%, #241e12 0%, #15120d 55%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.85' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .8 0 0 0 0 .68 0 0 0 0 .42 0 0 0 .022 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  .d1 .jhead { padding:20px 18px 12px; text-align:center; position:relative; }
+  .d1 .jhead::after { content:""; display:block; margin:12px auto 0; width:150px; height:9px;
+    background:radial-gradient(circle at 50% 50%, #c9a25a 0 1.6px, transparent 2px) center/9px 9px no-repeat,
+      linear-gradient(90deg, transparent, #c9a25a88 18%, #c9a25a88 82%, transparent) center/100% 1px no-repeat; }
+  .d1 .jkicker { font-family:Cinzel,serif; font-size:9.5px; letter-spacing:.34em; color:#8a7e66; text-transform:uppercase; }
+  .d1 .jtitle { font-family:Cinzel,serif; font-size:21px; font-weight:600; letter-spacing:.06em; color:#ecd9a8;
+    text-shadow:0 1px 0 #000, 0 0 22px #c9a25a33; margin-top:4px; }
+  .d1 .jmeta { font-family:'EB Garamond',serif; font-style:italic; font-size:13.5px; color:#a89468; margin-top:3px; }
+  .d1 .card { margin:12px 14px 0; background:linear-gradient(180deg,#221d13,#1d1810); border:1px solid #3a3datehis220;
+    border:1px solid #3a3220; border-radius:4px; padding:13px 15px; position:relative;
+    box-shadow:0 2px 10px rgba(0,0,0,.4), inset 0 1px 0 #ffffff0a; }
+  .d1 .card::before, .d1 .card::after { content:""; position:absolute; width:14px; height:14px; border-color:#c9a25a66; border-style:solid; }
+  .d1 .card::before { top:4px; left:4px; border-width:1px 0 0 1px; }
+  .d1 .card::after { bottom:4px; right:4px; border-width:0 1px 1px 0; }
+  .d1 .npc-row { display:flex; gap:12px; align-items:center; }
+  .d1 .npc-seal { width:44px; height:44px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #33290f, #1c150a);
+    border:1px solid #c9a25a55; display:flex; align-items:center; justify-content:center;
+    font-family:Cinzel,serif; font-size:19px; color:#d8b96a; box-shadow:inset 0 0 8px #000; }
+  .d1 .npc-name { font-family:'EB Garamond',serif; font-size:17.5px; font-weight:600; color:#f0e4c4; }
+  .d1 .npc-sub { font-family:Cinzel,serif; font-size:9px; letter-spacing:.22em; color:#8a7e66; text-transform:uppercase; margin-top:2px; }
+  .d1 .npc-note { font-family:'EB Garamond',serif; font-style:italic; font-size:13.5px; color:#b8a682; margin-top:9px; line-height:1.5;
+    border-top:1px solid #c9a25a22; padding-top:8px; }
+  .d1 .quest-band { margin:12px 14px 0; padding:11px 15px 11px 12px; background:#1d180f; border-left:3px solid #c9a25a;
+    border-radius:0 4px 4px 0; box-shadow:0 2px 8px rgba(0,0,0,.35); }
+  .d1 .quest-k { font-family:Cinzel,serif; font-size:8.5px; letter-spacing:.3em; color:#c9a25a; }
+  .d1 .quest-t { font-family:'EB Garamond',serif; font-size:15px; color:#e8dcbc; margin-top:3px; }
+  .d1 .nav { margin-top:auto; display:flex; background:linear-gradient(180deg,#141008,#0e0b06); border-top:1px solid #c9a25a33; padding:9px 0 13px; }
+  .d1 .nav div { flex:1; text-align:center; font-family:Cinzel,serif; font-size:8.5px; letter-spacing:.16em; color:#6e6450; }
+  .d1 .nav .on { color:#e2c887; text-shadow:0 0 14px #c9a25a66; }
+  .d1 .nav i { display:block; font-size:19px; font-style:normal; margin-bottom:3px; }
+
+  /* ============ DIRECTION 2 — MODERN GRIMOIRE ============ */
+  .d2 .screen { background:linear-gradient(175deg,#131217 0%, #0e0d11 60%, #0b0a0e 100%); color:#e8e4da; }
+  .d2 .chat { flex:1; padding:16px 14px 8px; display:flex; flex-direction:column; gap:12px; overflow:hidden; }
+  .d2 .dm { font-family:'EB Garamond',serif; font-size:16.5px; line-height:1.62; color:#ddd6c6; padding:2px 6px 0 2px; }
+  .d2 .dm::first-letter { font-family:Cinzel,serif; font-size:200%; line-height:.9; color:#c9a25a; float:left; padding:4px 7px 0 0; }
+  .d2 .player { align-self:flex-end; max-width:82%; background:linear-gradient(180deg,#26232e,#201d28);
+    border-radius:18px 18px 5px 18px; padding:10px 15px; font-size:14px; line-height:1.5; color:#e6e1f2;
+    box-shadow:0 6px 18px rgba(0,0,0,.35), inset 0 1px 0 #ffffff10; }
+  .d2 .pname { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:#9d8fd8; font-weight:600; margin-bottom:3px; }
+  .d2 .rollbar { margin:0 12px 10px; border-radius:18px; padding:13px 15px;
+    background:linear-gradient(180deg,#1c1a22ee,#15131aee); backdrop-filter:blur(12px);
+    box-shadow:0 -8px 30px rgba(0,0,0,.45), inset 0 1px 0 #ffffff12, 0 0 0 1px #ffffff0d; }
+  .d2 .rb-top { display:flex; align-items:center; gap:9px; }
+  .d2 .rb-skill { font-family:Cinzel,serif; font-size:13.5px; letter-spacing:.08em; color:#f0e8d2; }
+  .d2 .rb-pc { font-size:11.5px; color:#8f887a; }
+  .d2 .pill { margin-left:auto; font-size:10px; font-weight:700; letter-spacing:.08em; padding:4px 9px; border-radius:99px; }
+  .d2 .pill.ac { background:#c9a25a1e; color:#dfc084; box-shadow:inset 0 0 0 1px #c9a25a4d; }
+  .d2 .pill.cov { background:#4aa3ff1a; color:#8ec4ff; box-shadow:inset 0 0 0 1px #4aa3ff40; }
+  .d2 .rb-act { display:flex; gap:10px; margin-top:12px; align-items:center; }
+  .d2 .d20btn { flex:1; text-align:center; font-family:Cinzel,serif; font-size:13px; letter-spacing:.14em; padding:13px 0;
+    border-radius:14px; color:#141210; font-weight:700;
+    background:linear-gradient(160deg,#e2c076,#c9a25a 55%,#a8813e);
+    box-shadow:0 8px 24px #c9a25a3d, inset 0 1px 0 #ffe9b8aa; }
+  .d2 .skip { font-size:11.5px; color:#8f887a; letter-spacing:.06em; padding:10px 6px; }
+  .d2 .nav { display:flex; background:#0c0b0fd9; backdrop-filter:blur(14px); border-top:1px solid #ffffff0c; padding:8px 0 13px; }
+  .d2 .nav div { flex:1; text-align:center; font-size:9px; letter-spacing:.1em; color:#5f5b52; font-weight:600; text-transform:uppercase; }
+  .d2 .nav .on { color:#e2c887; }
+  .d2 .nav .on i { filter:drop-shadow(0 0 9px #c9a25a88); }
+  .d2 .nav i { display:block; font-size:20px; font-style:normal; margin-bottom:3px; }
+  .d2 .jhead { padding:18px 16px 4px; }
+  .d2 .jkicker { font-size:9.5px; letter-spacing:.3em; color:#6d675b; text-transform:uppercase; font-weight:700; }
+  .d2 .jtitle { font-family:Cinzel,serif; font-size:20px; color:#f0e8d2; margin-top:4px; }
+  .d2 .jmeta { font-size:12px; color:#8f887a; margin-top:4px; }
+  .d2 .jmeta b { color:#dfc084; font-weight:500; }
+  .d2 .card { margin:12px 12px 0; background:linear-gradient(180deg,#1a181f,#16141b); border-radius:16px; padding:13px 14px;
+    box-shadow:0 8px 22px rgba(0,0,0,.32), inset 0 1px 0 #ffffff0e; }
+  .d2 .npc-row { display:flex; gap:12px; align-items:center; }
+  .d2 .npc-seal { width:42px; height:42px; border-radius:14px; background:linear-gradient(160deg,#2c2836,#1e1b26);
+    display:flex; align-items:center; justify-content:center; font-family:Cinzel,serif; font-size:17px; color:#c9b8ee;
+    box-shadow:inset 0 1px 0 #ffffff14; }
+  .d2 .npc-name { font-size:15.5px; font-weight:600; color:#efeae0; }
+  .d2 .npc-sub { font-size:11px; color:#8f887a; margin-top:2px; }
+  .d2 .mood { margin-left:auto; font-size:10px; font-weight:700; color:#68d391; background:#68d3911a; padding:4px 9px; border-radius:99px; box-shadow:inset 0 0 0 1px #68d39138; }
+  .d2 .npc-note { font-family:'EB Garamond',serif; font-style:italic; font-size:14px; color:#a89f8d; margin-top:10px; line-height:1.55; }
+
+  /* ============ DIRECTION 3 — INKED FOLIO ============ */
+  .d3 .screen { background:#f2ecdd;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='p'%3E%3CfeTurbulence baseFrequency='.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .25 0 0 0 0 .2 0 0 0 0 .12 0 0 0 .03 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23p)'/%3E%3C/svg%3E");
+    color:#2b2418; }
+  .d3 .jhead { padding:20px 18px 6px; }
+  .d3 .jkicker { font-family:Caveat,cursive; font-size:15px; color:#8a6d3a; transform:rotate(-1.2deg); display:inline-block; }
+  .d3 .jtitle { font-family:'EB Garamond',serif; font-weight:600; font-size:23px; color:#241d10; letter-spacing:.01em; }
+  .d3 .inkline { height:3px; margin:8px 0 2px; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='4'%3E%3Cpath d='M2 2 q30 -2.5 60 0 t60 .5 t60 -1 t60 .8 t56 -.4' stroke='%232b2418' stroke-width='1.6' fill='none' stroke-linecap='round' opacity='.75'/%3E%3C/svg%3E") repeat-x; }
+  .d3 .card { margin:14px 16px 0; background:#f7f2e4; border-radius:3px; padding:13px 15px; position:relative;
+    box-shadow:1.5px 2.5px 0 #2b241826, 0 0 0 1.4px #2b2418; transform:rotate(-.25deg); }
+  .d3 .card.alt { transform:rotate(.3deg); }
+  .d3 .npc-row { display:flex; gap:12px; align-items:center; }
+  .d3 .npc-seal { width:44px; height:44px; border-radius:50%; border:1.6px solid #2b2418; display:flex; align-items:center; justify-content:center;
+    font-family:'EB Garamond',serif; font-weight:600; font-size:19px; color:#2b2418; background:#efe6cf;
+    box-shadow:inset 1px 2px 0 #2b241822; transform:rotate(-3deg); }
+  .d3 .npc-name { font-family:'EB Garamond',serif; font-size:18px; font-weight:600; color:#241d10; }
+  .d3 .npc-sub { font-family:Caveat,cursive; font-size:14.5px; color:#7a6238; margin-top:0; }
+  .d3 .stamp { margin-left:auto; font-family:Cinzel,serif; font-size:8.5px; letter-spacing:.18em; color:#a33d2e;
+    border:1.5px solid #a33d2e; border-radius:3px; padding:4px 7px; transform:rotate(4deg); opacity:.85; }
+  .d3 .npc-note { font-family:Caveat,cursive; font-size:16.5px; color:#584a2e; margin-top:9px; line-height:1.35; }
+  .d3 .wash { position:absolute; inset:auto 8px 8px auto; width:56px; height:22px; border-radius:50%;
+    background:radial-gradient(ellipse, #7fa06522, transparent 70%); }
+  .d3 .quest-band { margin:14px 16px 0; padding:10px 14px; background:transparent; position:relative; }
+  .d3 .quest-k { font-family:Cinzel,serif; font-size:9px; letter-spacing:.26em; color:#8a6d3a; }
+  .d3 .quest-t { font-family:'EB Garamond',serif; font-size:16px; color:#2b2418; margin-top:2px; }
+  .d3 .nav { margin-top:auto; display:flex; border-top:1.6px solid #2b2418; background:#ede5d0; padding:9px 0 13px; }
+  .d3 .nav div { flex:1; text-align:center; font-family:'EB Garamond',serif; font-size:11px; color:#8a7c5c; }
+  .d3 .nav .on { color:#241d10; font-weight:600; }
+  .d3 .nav i { display:block; font-size:19px; font-style:normal; margin-bottom:2px; }
+</style>
+</head>
+<body>
+
+<h1>Tinklepebble — Three Visual Directions</h1>
+<p class="sub">Same app, same information architecture, same workflows — three different skins over your existing
+theme tokens. Each phone shows real screens: the Journal (your "feels off" signal) and the Play screen's roll bar.
+Colors shown on the Obsidian identity theme; every direction maps onto all 20 themes.</p>
+
+<!-- ==================== DIRECTION 1 ==================== -->
+<div class="dir d1">
+  <div class="dir-head"><span class="dir-num">I</span><span class="dir-name">Gilded Chronicle</span>
+    <span class="dir-tag">— the illuminated manuscript, restrained</span></div>
+  <p class="dir-desc"><b>What changes:</b> engraved gold hairlines with corner flourishes replace generic borders; Cinzel
+  kickers + Garamond italics carry hierarchy; seals/medallions for NPCs; quests become ribbon-marked bands; faint parchment
+  grain adds warmth without skeuomorphic kitsch. <b>Feels like:</b> a rulebook made by a fine press.
+  <b>Risk:</b> ornament discipline — one flourish per surface, or it tips into themed-restaurant.</p>
+  <div class="frames">
+    <div class="phone"><div class="screen">
+      <div class="jhead">
+        <div class="jkicker">Chapter III — The Fissure</div>
+        <div class="jtitle">The Journal</div>
+        <div class="jmeta">Thornbury Vale — late evening, drizzling</div>
+      </div>
+      <div class="card">
+        <div class="npc-row">
+          <div class="npc-seal">F</div>
+          <div><div class="npc-name">Fenwick the Peddler</div><div class="npc-sub">Friendly · Last seen: Market Row</div></div>
+        </div>
+        <div class="npc-note">"Claims the fissure opened the night the star fell — but his cart was already packed."</div>
+      </div>
+      <div class="quest-band">
+        <div class="quest-k">ACTIVE QUEST</div>
+        <div class="quest-t">Find what stirs beneath the fungal caverns</div>
+      </div>
+      <div class="card" style="opacity:.75">
+        <div class="npc-row">
+          <div class="npc-seal" style="color:#8a7e66">I</div>
+          <div><div class="npc-name">Ivy</div><div class="npc-sub">Companion · Traveling with party</div></div>
+        </div>
+      </div>
+      <div class="nav">
+        <div><i>◫</i>CARGO</div><div class="on"><i>⬟</i>PLAY</div><div><i>❧</i>JOURNAL</div><div><i>✦</i>MORE</div>
+      </div>
+    </div></div>
+  </div>
+  <div class="flabel">Journal — Gilded Chronicle</div>
+</div>
+
+<!-- ==================== DIRECTION 2 ==================== -->
+<div class="dir d2">
+  <div class="dir-head"><span class="dir-num">II</span><span class="dir-name">Modern Grimoire</span>
+    <span class="dir-tag">— premium game UI: depth instead of borders, light used as meaning</span></div>
+  <p class="dir-desc"><b>What changes:</b> borders die; <b>elevation and light take over</b> — surfaces float on layered
+  shadows, the accent becomes luminous and is spent ONLY on what's interactive or magical (the roll button glows, the nav's
+  active die glows, everything else stays quiet). Garamond prose gets an illuminated drop-cap; numbers and pills get
+  game-HUD confidence; the roll bar becomes a frosted-glass tray. Motion spec: 150–250ms ease-out, one springy exception —
+  dice. <b>Feels like:</b> Baldur's Gate 3 menus on a phone. <b>Risk:</b> lowest of the three — it's a systemization,
+  not a costume.</p>
+  <div class="frames">
+    <div class="phone"><div class="screen">
+      <div class="chat">
+        <div class="dm">The kobold shrieks as your blade bites through the wicker barricade. Behind it, something larger
+        shifts in the dark — two ember eyes, blinking awake.</div>
+        <div class="player"><div class="pname">Thorn</div>I duck behind the crates and line up a shot on the eyes.</div>
+      </div>
+      <div class="rollbar">
+        <div class="rb-top">
+          <span class="rb-skill">Attack Roll</span><span class="rb-pc">Thorn · Shortbow +5</span>
+          <span class="pill cov">COVER +2</span><span class="pill ac">AC 15</span>
+        </div>
+        <div class="rb-act"><div class="d20btn">ROLL D20</div><div class="skip">note…</div></div>
+      </div>
+      <div class="nav">
+        <div><i>◫</i>Cargo</div><div class="on"><i>⬟</i>Play</div><div><i>❧</i>Journal</div><div><i>✦</i>More</div>
+      </div>
+    </div></div>
+    <div class="phone"><div class="screen">
+      <div class="jhead">
+        <div class="jkicker">Chapter III — The Fissure</div>
+        <div class="jtitle">Journal</div>
+        <div class="jmeta"><b>Thornbury Vale</b> · late evening · drizzling</div>
+      </div>
+      <div class="card">
+        <div class="npc-row">
+          <div class="npc-seal">F</div>
+          <div><div class="npc-name">Fenwick the Peddler</div><div class="npc-sub">Last seen: Market Row</div></div>
+          <div class="mood">FRIENDLY</div>
+        </div>
+        <div class="npc-note">"Claims the fissure opened the night the star fell — but his cart was already packed."</div>
+      </div>
+      <div class="card" style="opacity:.82">
+        <div class="npc-row">
+          <div class="npc-seal" style="color:#9ad3a8">I</div>
+          <div><div class="npc-name">Ivy</div><div class="npc-sub">Companion · with party</div></div>
+        </div>
+      </div>
+      <div class="nav">
+        <div><i>◫</i>Cargo</div><div><i>⬟</i>Play</div><div class="on"><i>❧</i>Journal</div><div><i>✦</i>More</div>
+      </div>
+    </div></div>
+  </div>
+  <div class="flabel">Play + Journal — Modern Grimoire</div>
+</div>
+
+<!-- ==================== DIRECTION 3 ==================== -->
+<div class="dir d3" style="color:#d8d4ca">
+  <div class="dir-head"><span class="dir-num">III</span><span class="dir-name">Inked Folio</span>
+    <span class="dir-tag">— your hand-drawn dice, promoted to the whole identity</span></div>
+  <p class="dir-desc" ><b>What changes:</b> the app becomes a real player's notebook — paper field, honest ink lines
+  (every rule slightly imperfect), Caveat handwriting for the DM-margin voice, red stamps for status, watercolor washes as
+  accents. The hand-drawn dice stop being a delightful outlier and become the native citizens. <b>Feels like:</b> the
+  physical journal a player would keep. <b>Risks:</b> the biggest departure; dark themes need an "inverted ink" variant
+  (chalk-on-slate) to keep all 20 themes; charm can read as unserious if body type isn't kept disciplined (handwriting is
+  for annotations ONLY, never data).</p>
+  <div class="frames">
+    <div class="phone"><div class="screen">
+      <div class="jhead">
+        <span class="jkicker">Chapter III — the fissure ✎</span>
+        <div class="jtitle">Journal</div>
+        <div class="inkline"></div>
+      </div>
+      <div class="card">
+        <div class="npc-row">
+          <div class="npc-seal">F</div>
+          <div><div class="npc-name">Fenwick the Peddler</div><div class="npc-sub">friendly… probably</div></div>
+          <div class="stamp">MET</div>
+        </div>
+        <div class="npc-note">"his cart was already packed the night the star fell —"</div>
+        <div class="wash"></div>
+      </div>
+      <div class="card alt">
+        <div class="npc-row">
+          <div class="npc-seal" style="transform:rotate(2deg)">I</div>
+          <div><div class="npc-name">Ivy</div><div class="npc-sub">traveling with us</div></div>
+        </div>
+      </div>
+      <div class="quest-band">
+        <div class="quest-k">ACTIVE QUEST</div>
+        <div class="quest-t">Find what stirs beneath the fungal caverns</div>
+        <div class="inkline" style="opacity:.5"></div>
+      </div>
+      <div class="nav">
+        <div><i>◫</i>Cargo</div><div><i>⬟</i>Play</div><div class="on"><i>❧</i>Journal</div><div><i>✦</i>More</div>
+      </div>
+    </div></div>
+  </div>
+  <div class="flabel">Journal — Inked Folio (light theme shown; dark = chalk-on-slate variant)</div>
+</div>
+
+<!-- ==================== RECOMMENDATION ==================== -->
+<div class="rec">
+  <h2>Recommendation — Direction II, with Direction III as its "artifact layer"</h2>
+  <p><b>Build Modern Grimoire as the system</b>: it fixes the actual diagnosis (everything currently has identical
+  visual weight — bordered boxes all the way down) with the highest-leverage tools: elevation instead of borders,
+  luminous accent spent only on meaning, typographic hierarchy that already exists in your tokens but was never pushed,
+  and a motion spec. It's the lowest-risk to apply across 30+ components and all 20 themes, because it's a
+  <b>systemization of what exists</b>, not a costume over it.
+  <br><br>
+  <b>Then keep the ink</b>: your hand-drawn dice — and a small family of inked artifacts (stamps on quest completion,
+  an inked divider in the Journal, a scrawled margin-note style for player annotations) — live INSIDE the Grimoire as
+  its personality layer. Game moments feel handmade; the chrome feels engineered. That contrast is what premium mobile
+  games actually do. Direction I's gold flourishes survive as the level-up / critical-hit ceremony treatment only.</p>
+</div>
+
+</body>
+</html>
