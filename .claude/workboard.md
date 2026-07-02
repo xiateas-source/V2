@@ -80,7 +80,39 @@ Order matters — each step de-risks the next.
 
 ---
 
-## Audit Findings — open items (2026-07-02)
+## Proposed arc (discussed S81, not yet scheduled): Rules Depth
+
+User's observation: play "sometimes feels like a pick-your-own-story game" — the rules
+don't bite outside the code-enforced moments. Root causes identified (S81): **no
+bestiary exists** — every enemy's HP/AC/attacks/initiative are numbers the AI invents
+per `zone_add_enemy`; **NPC-attacks-PC is pure narration** (scoped out deliberately in
+S57); **spell effects are AI-adjudicated** (only slot spending is enforced — the S77
+spell-resolution-table gap is the same gap); no pacing pressure (rest frequency,
+encounter budgets, treasure economy are all AI mood). When the opposition's numbers are
+improvised, every fight is secretly a story beat.
+
+Principle: **stop implementing rules one bespoke handler at a time** (linear cost per
+rule — why rules work "took over" the sprint) — build the few generic mechanisms that
+let rule coverage arrive as *data*, per `ruleset-coupling-analysis.md`:
+1. **Bestiary as data** (~2 sessions) — SRD stat blocks (AC/HP/attacks/saves/XP) as
+   `data/bestiary.json` + a bundle content type; `zone_add_enemy` becomes
+   `zone_add_enemy: Goblin` with stats looked up, AI-typed numbers only as fallback.
+2. **NPC→PC attacks through the enforced roll path** (~2 sessions) — reopens the S57
+   scope deliberately: enemy attacks use the same RollBar math as PC attacks (code rolls
+   for the enemy), killing the "the goblin misses because the story wants it" pattern.
+   Also finally makes the inert PC-side coverBonus real.
+3. **Spell resolution table** (~2-3 sessions, start cantrips–L2 to match SPELL_DB) —
+   add resolution fields to spells.json (attack/save/auto, save ability, damage,
+   condition); casting resolves through one generic code step. Closes the S77
+   Animal Friendship gap as a side effect.
+4. **Pacing pressure** (1-2 sessions, optional, playtest-driven) — encounter XP budgets
+   from xp-thresholds, rest-frequency guard, treasure guidance.
+
+Play-feel guardrail: mechanics must surface as *pressure, not paperwork* — the cover
+pill / disabled-button pattern (ambient, glanceable), never modal interruptions to the
+story. Sequencing: after (or interleaved with) inversion stages 1-2, which make the
+structured resolution these mechanisms plug into reliable. Order within the arc should
+be playtest-driven — fix the moment that most recently felt gamey.
 
 Full detail with file:line and fixes in `audit-2026-07-02.md`. Status here.
 
