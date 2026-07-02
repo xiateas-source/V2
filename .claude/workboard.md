@@ -161,6 +161,56 @@ forward or advancing time" (no NLP, no regex — pure counter).
 Related open bugs folded in here: `npc_add` details-overwrite (memory loss);
 secrets write path missing.
 
+---
+
+## Proposed (S81, can start anytime — data/docs only, no engine risk): SRD Rules Ingestion + Coverage Matrix
+
+The user's core constraint, stated directly: **"I need the game to know the rules
+because I am so ignorant of them — half the time I don't even know to ask."**
+Playtest-driven rule addition can't work when nobody at the table knows a rule is
+missing. The strategy flips: **the machine reads the book.**
+
+The user supplied SRD 5.2 source (CC-BY-4.0 — legal to ship with attribution), now in
+the repo: `scripts/srd/playing-the-game.md` (core procedures: travel pace, vision/
+light, hiding, object interaction, social attitudes, combat structure, death, rests)
+and `scripts/srd/rules-glossary.md` — **154 discrete `#### Term` rule definitions**
+(every action/condition/hazard, cleanly tagged), which is exactly the retrieval-unit
+shape `ai/rules.js`'s scene-scoped injection already consumes. Current `data/rules.json`
+has only 34 hand-written summaries; the glossary replaces guessed summaries with the
+actual book. The `scripts/build-spells.js` → `data/spells.json` pipeline is the
+established precedent for SRD-markdown → data.
+
+Plan (1-2 sessions ingestion + 1 session triage):
+1. **Ingest**: build script parses the glossary's 154 entries (+ the chapter's
+   procedure sections) → expanded `data/rules.json` with context tags
+   (combat/exploration/social/rolling/downtime/any) and family tags
+   ([Action]/[Condition]/[Hazard]).
+2. **Triage every entry into buckets** (done by Claude reading the book, not by the
+   user knowing to ask): **Enforce** (code says no — feeds the Rules Depth / World
+   Integrity punch lists), **Inject** (rules.js shows the AI the rule when relevant),
+   **Reference** (Compendium + Ask DM, tap-to-source per Law 4). Most entries are
+   Inject+Reference; a minority earn Enforce.
+3. **Coverage matrix** (`.claude/rules-coverage.md`): rule → bucket(s) → status.
+   Makes "what does the game know?" a checkable inventory instead of vibes; every
+   future player call-out becomes a row lookup (bug or upgrade), not a surprise.
+
+Enforcement gaps already found just by reading these two files against the code
+(proof the method finds what nobody would know to ask): **Surprise** (disadvantage on
+initiative — untracked); **ranged attacks within 5 ft** (disadvantage — zones could
+approximate); **travel pace** (fast/normal/slow distances + Perception/Stealth
+effects — feeds World Integrity's clock); **light/vision** (dim = disadvantage on
+sight-Perception, darkness = Blinded — this SRD text IS the "which checks require
+sight" data the S52 known-issue said didn't exist); **Knocking Out a Creature**
+(reduce to 1 HP unconscious instead of 0 — unmodeled); **Stable** condition
+(unmodeled; 1d4h → 1 HP); **damage at 0 HP from a crit = TWO death-save failures**
+(`applyDamage` adds one regardless); **jump distances**; **Influence/attitude
+alignment** (NPC disposition → Friendly/Indifferent/Hostile per the book);
+**Bloodied** (half HP — trivial to surface). Exhaustion (-2/level) and massive damage
+already match the 2024 rules ✅.
+
+Later chapters (spells past L2, equipment, monsters → the Rules Depth bestiary) ride
+the same pipeline.
+
 Full detail with file:line and fixes in `audit-2026-07-02.md`. Status here.
 
 | # | Sev | Finding | Status |
