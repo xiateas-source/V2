@@ -472,7 +472,11 @@ export default function RollBar() {
     } else {
       const note = rollNote().trim();
       const msg = note ? `${note}\n\n${lines.join('\n')}` : lines.join('\n');
-      sendMsg(msg, { tab: 'narrative' });
+      // skipClassifier: this message IS a roll result — without the skip, an
+      // out-of-combat AI-requested roll's submission text ("rolled 15 for
+      // Stealth" + the player's note) can re-match an action pattern and
+      // demand a second roll before the first ever reaches the DM.
+      sendMsg(msg, { tab: 'narrative', skipClassifier: true });
       setRollNote('');
     }
   }

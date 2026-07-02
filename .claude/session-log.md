@@ -75,7 +75,29 @@ See decisions.md → "Foundation plan adopted — audits, no V3, inversion arc (
 
 ---
 
+## Post-merge addendum (same session)
+User merged PR #8 to main ("go live") — everything above is deployed. The branch was
+then restarted from main for a final pass:
+- **Audit #3 fixed**: `recordFailure()` now writes through setStore (was a silent
+  no-op — provider cooldowns never engaged). 5 new tests, incl. a discovered Solid
+  gotcha: `setStore(path, {})` MERGES (no-op) — resets need `reconcile({})`.
+- **Audit #7 fixed**: `skipClassifier: true` on RollBar's roll-result send (marked ✅
+  in ai-failures.md).
+- **`impl-spec-sync-fixes.md` written**: settled design + test lists for the two
+  remaining high findings (#1 echo normalization, #2 character union merge) so the
+  implementing session executes instead of re-deriving. 138/138 tests, build clean.
+
+**Handoff guidance (user asked what suits which model):** well-specified execution
+(the sync fixes from the spec, class-table unification, quickBuild→JSON extraction,
+playtest bugs with clear repro) suits a fast model with the docs as rails — start
+from workboard Priorities, check decisions.md before re-deciding anything. Save the
+heavyweight-reasoning model for: inversion stage designs (classifier→AI call,
+structured mechanics channel), any change to merge/echo *semantics* beyond the spec,
+Firebase rules/sharing-model design, and future "read the book" triage passes
+(bestiary, spell-resolution table).
+
 ## Branch State
-`claude/app-code-audit-e2e7hj` has: the three analysis docs (committed earlier this
-session) + this planning-doc restructure. Pushed. Merge to main whenever the user says
-go — docs-only, so it can't break the app.
+`claude/app-code-audit-e2e7hj`: PR #8 (audits + planning + SRD ingestion) MERGED to
+main and deployed. The post-merge fixes above are on the restarted branch, pushed,
+awaiting merge — small, tested, no live-check needed for #3; #7 is contract-visible
+only out of combat.

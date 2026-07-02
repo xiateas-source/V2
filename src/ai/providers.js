@@ -1,4 +1,4 @@
-import { store } from '../state/index.js';
+import { store, setStore } from '../state/index.js';
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
@@ -25,13 +25,20 @@ function getProviderConfig() {
   };
 }
 
-function recordFailure(provider) {
-  const health = store.system.providers.health[provider] || { failures: 0, lastFail: null };
-  health.failures++;
-  health.lastFail = Date.now();
+// Exported for tests. Must write through setStore — mutating the store proxy
+// directly is a silent no-op in Solid (verified live: failures stayed 0
+// forever, so isHealthy() was always true and the cooldown below never
+// engaged — every message walked the full primary-provider retry chain even
+// when it was known-failing).
+export function recordFailure(provider) {
+  const prev = store.system.providers.health[provider];
+  setStore('system', 'providers', 'health', provider, {
+    failures: (prev?.failures || 0) + 1,
+    lastFail: Date.now(),
+  });
 }
 
-function isHealthy(provider) {
+export function isHealthy(provider) {
   const health = store.system.providers.health[provider];
   if (!health || health.failures === 0) return true;
   const cooldown = Math.min(60000 * Math.pow(2, health.failures - 1), 300000);

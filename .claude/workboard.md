@@ -33,16 +33,14 @@ came out of it (see `audit-2026-07-02.md`, `ruleset-coupling-analysis.md`,
 Goal: a base worth building years of features on, with the app playable the whole time.
 Order matters — each step de-risks the next.
 
-1. **Fix the audit's high findings** (~2-3 sessions) — sync correctness and provider
-   failover sit under everything else. From `audit-2026-07-02.md`:
-   - #3 provider health tracking is a silent no-op (`providers.js` — tiny fix, immediate
-     latency win on flaky networks)
-   - #7 roll-result messages can be re-classified into a second roll
-     (`RollBar.jsx` — one-word fix: `skipClassifier: true`)
-   - #1 echo detection still broken vs RTDB empty-collection pruning (`firebase.js`)
-   - #2 implement the character union-by-id merge in `mergeCampaign()` — **the S62
-     doc entry describes this as shipped; it never landed in source** (verified via
-     git history). Local-only characters can still be dropped by a cloud merge.
+1. **Fix the audit's high findings** — sync correctness and provider failover sit
+   under everything else. From `audit-2026-07-02.md`:
+   - ~~#3 provider health no-op~~ — **fixed S81** (write-through-setStore + 5 tests)
+   - ~~#7 roll-result re-classification~~ — **fixed S81** (`skipClassifier: true`)
+   - #1 echo detection vs RTDB empty-collection pruning and #2 character
+     union-by-id merge — **remaining, ~1-2 sessions: implement from
+     `impl-spec-sync-fixes.md`** (settled design + test list; don't re-derive).
+     The S62 doc entry describes #2 as shipped; it never landed in source.
 2. **Unify the duplicated class tables** (1 session) — spell-slot/hit-die tables exist
    in BOTH `quickBuild.js`'s `CLASS_DATA` and `data/level-up-*.json`. One source of
    truth (the JSONs) before they drift. This is the live data-integrity hazard from
@@ -206,11 +204,11 @@ Full detail with file:line and fixes in `audit-2026-07-02.md`. Status here.
 |---|-----|---------|--------|
 | 1 | High | Echo detection broken vs RTDB empty-collection pruning (`firebase.js`) | Open — Priority 1 |
 | 2 | High | S62 character union-merge never landed; cloud merge can drop local chars (`persist.js`) | Open — Priority 1 |
-| 3 | High | Provider health tracking silent no-op (`providers.js`) | Open — Priority 1 |
+| 3 | High | Provider health tracking silent no-op (`providers.js`) | ✅ Fixed S81 (needs no live check — unit-tested) |
 | 4 | High | DB rules: any anonymous user can read/write all campaigns + player pointers | Open — needs user decision |
 | 5 | Med | Mid-stream provider failover duplicates narration (`providers.js`) | Open |
 | 6 | Med | `zone_add_enemy` mid-combat re-sort invalidates `currentTurn` (`mechanics.js`) | Open |
-| 7 | Med | Roll-result submissions re-classified out of combat (`RollBar.jsx`) | Open — Priority 1 |
+| 7 | Med | Roll-result submissions re-classified out of combat (`RollBar.jsx`) | ✅ Fixed S81 (`skipClassifier: true`) |
 | 8 | Med | `combat_end` HP write-back can revert mid-combat rest healing (`mechanics.js`) | Open |
 | — | Low | 5 cleanup items (tautology, dead `roll-request` event, localStorage cache growth, `findPC` enemy/PC cross-match, save-effect gaps) | Open |
 
@@ -349,6 +347,8 @@ arc generalizes to the rest of the game (`verb-chasing-assessment.md`).
 | File | When to Read |
 |------|-------------|
 | `audit-2026-07-02.md` | Fixing any Priority-1/audit item — findings with file:line + suggested fixes |
+| `impl-spec-sync-fixes.md` | Implementing audit #1/#2 — settled design + test list, execute don't re-derive |
+| `rules-coverage.md` | Any rules question — what the game knows and at what enforcement level (generated; edit the STATUS map in `scripts/build-rules.js`) |
 | `ruleset-coupling-analysis.md` | Content-as-data work (class tables, quickBuild extraction, bundle content types) |
 | `verb-chasing-assessment.md` | Inversion stages (classifier, structured mechanics, two-phase turns) |
 | `ui-specs-v2.md` | Building/modifying CharSheet, Cargo, Treasury, Journal, Combat UI |
