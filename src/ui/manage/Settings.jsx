@@ -212,10 +212,12 @@ export default function Settings() {
   const THEME_NAMES = [
     'Obsidian', 'Abyss', 'Arcane', 'Embers', 'Void',
     'Crimson', 'Grove', 'Dusk', 'Steel', 'Lantern',
+    'Night Folio', 'Lamplight',
   ];
   const LIGHT_NAMES = [
     'Parchment', 'Daybreak', 'Fern', 'Terracotta', 'Sky',
     'Rose', 'Honey', 'Lavender', 'Stone', 'Seafoam',
+    'Day Folio', 'Lamplight Day',
   ];
 
   function themeName() {
@@ -229,7 +231,7 @@ export default function Settings() {
     const current = store.system.settings.theme;
     const [mode, numStr] = current.split('-');
     const num = parseInt(numStr, 10);
-    const next = num >= 9 ? `${mode}-0` : `${mode}-${num + 1}`;
+    const next = num >= 11 ? `${mode}-0` : `${mode}-${num + 1}`;
     setStore('system', 'settings', 'theme', next);
     document.documentElement.setAttribute('data-theme', next);
   }

@@ -8856,3 +8856,207 @@ body {
   outline: none;
   border-color: var(--color-accent);
 }
+
+/* ============================================================
+   INKED FOLIO — S81 redesign, phase 1 (additive; legacy themes
+   dark-0..9 / light-0..9 untouched). One identity, three modes:
+   light-10 Day Folio (paper & ink) · dark-10 Night Folio (dark
+   leather & gold ink — the Gilded Chronicle register) · *-11
+   Lamplight (accessibility: distance-tuned scale, AAA-leaning
+   contrast, ornament reduced). The hand-drawn d20 nav icon is
+   the identity's anchor — never replace it.
+   ============================================================ */
+
+[data-theme="light-10"] {
+  /* Day Folio — paper & ink */
+  --color-bg: #f2ecdd;
+  --color-surface: #f7f2e4;
+  --color-surface-alt: #ece3cc;
+  --color-text: #2b2418;
+  --color-text-muted: #7a6a4c;
+  --color-accent: #8a6d3a;
+  --color-accent-dim: #6b5228;
+  --color-success: #4a7a34;
+  --color-warning: #a3702a;
+  --color-danger: #a33d2e;
+  --color-border: rgba(43,36,24,.42);
+  --color-input-bg: #faf5e8;
+  --color-dm-bubble: #f6f0df;
+  --color-player-bubble: #ebe0c4;
+  --color-nav-bg: #ede5d0;
+  --ink-line: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='4'%3E%3Cpath d='M2 2 q30 -2.5 60 0 t60 .5 t60 -1 t60 .8 t56 -.4' stroke='%232b2418' stroke-width='1.6' fill='none' stroke-linecap='round' opacity='.7'/%3E%3C/svg%3E");
+  --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='p'%3E%3CfeTurbulence baseFrequency='.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .25 0 0 0 0 .2 0 0 0 0 .12 0 0 0 .028 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23p)'/%3E%3C/svg%3E");
+}
+
+[data-theme="dark-10"] {
+  /* Night Folio — the same journal by candlelight: leather & gold ink */
+  --color-bg: #171208;
+  --color-surface: #211a0e;
+  --color-surface-alt: #2b2213;
+  --color-text: #e8ddc0;
+  --color-text-muted: #a8905c;
+  --color-accent: #c9a25a;
+  --color-accent-dim: #8a6d35;
+  --color-success: #6aa83c;
+  --color-warning: #d49030;
+  --color-danger: #d86a50;
+  --color-border: rgba(201,162,90,.42);
+  --color-input-bg: #120d05;
+  --color-dm-bubble: #1d160a;
+  --color-player-bubble: #28200f;
+  --color-nav-bg: #120d05;
+  --ink-line: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='4'%3E%3Cpath d='M2 2 q30 -2.5 60 0 t60 .5 t60 -1 t60 .8 t56 -.4' stroke='%23c9a25a' stroke-width='1.6' fill='none' stroke-linecap='round' opacity='.75'/%3E%3C/svg%3E");
+  --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='130'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.85' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .8 0 0 0 0 .66 0 0 0 0 .38 0 0 0 .026 0'/%3E%3C/filter%3E%3Crect width='130' height='130' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+[data-theme="light-11"] {
+  /* Lamplight Day — paper, pushed to distance-reading contrast */
+  --color-bg: #f7f1de;
+  --color-surface: #fdf8ea;
+  --color-surface-alt: #efe6cc;
+  --color-text: #1c1608;
+  --color-text-muted: #4e4226;
+  --color-accent: #6b5222;
+  --color-accent-dim: #52401a;
+  --color-success: #2e5c20;
+  --color-warning: #7a5010;
+  --color-danger: #8a2a1c;
+  --color-border: rgba(28,22,8,.6);
+  --color-input-bg: #fffaee;
+  --color-dm-bubble: #fbf5e4;
+  --color-player-bubble: #eee2c2;
+  --color-nav-bg: #efe6cc;
+  --ink-line: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='4'%3E%3Cpath d='M2 2 q30 -2.5 60 0 t60 .5 t60 -1 t60 .8 t56 -.4' stroke='%231c1608' stroke-width='2' fill='none' stroke-linecap='round' opacity='.85'/%3E%3C/svg%3E");
+  --paper-grain: none;
+}
+
+[data-theme="dark-11"] {
+  /* Lamplight — night reading at arm's length while hands are full */
+  --color-bg: #12100b;
+  --color-surface: #201a10;
+  --color-surface-alt: #2a2214;
+  --color-text: #f5eeda;
+  --color-text-muted: #c8b88e;
+  --color-accent: #d8b46a;
+  --color-accent-dim: #a3852f;
+  --color-success: #8ac860;
+  --color-warning: #e8b040;
+  --color-danger: #ff8a70;
+  --color-border: rgba(216,180,106,.55);
+  --color-input-bg: #0d0b06;
+  --color-dm-bubble: #1c160c;
+  --color-player-bubble: #282012;
+  --color-nav-bg: #0d0b06;
+  --ink-line: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='4'%3E%3Cpath d='M2 2 q30 -2.5 60 0 t60 .5 t60 -1 t60 .8 t56 -.4' stroke='%23d8b46a' stroke-width='2' fill='none' stroke-linecap='round' opacity='.85'/%3E%3C/svg%3E");
+  --paper-grain: none;
+}
+
+/* ---- Shared Folio structure (all four modes) ---- */
+
+:is([data-theme="light-10"],[data-theme="dark-10"],[data-theme="light-11"],[data-theme="dark-11"]) body {
+  background-image: var(--paper-grain);
+}
+
+/* Cards become inked pages: no soft web-app borders — one honest outline
+   plus an offset "print" shadow. */
+:is([data-theme="light-10"],[data-theme="dark-10"],[data-theme="light-11"],[data-theme="dark-11"])
+  :is(.quest-card, .npc-card, .place-card, .chapter-card, .consequence-card) {
+  border: none;
+  border-radius: 3px;
+  box-shadow:
+    0 0 0 1.4px var(--color-border),
+    1.5px 2.5px 0 color-mix(in srgb, var(--color-text) 12%, transparent);
+}
+
+/* Night modes: gilded corner flourishes on cards (the Chronicle register). */
+:is([data-theme="dark-10"],[data-theme="dark-11"])
+  :is(.quest-card, .npc-card, .place-card, .chapter-card, .consequence-card) {
+  position: relative;
+}
+:is([data-theme="dark-10"],[data-theme="dark-11"])
+  :is(.quest-card, .npc-card, .place-card, .chapter-card, .consequence-card)::before {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 12px; height: 12px;
+  border-style: solid; border-color: color-mix(in srgb, var(--color-accent) 60%, transparent);
+  border-width: 1.4px 0 0 1.4px; pointer-events: none;
+}
+:is([data-theme="dark-10"],[data-theme="dark-11"])
+  :is(.quest-card, .npc-card, .place-card, .chapter-card, .consequence-card)::after {
+  content: ""; position: absolute; bottom: 3px; right: 3px; width: 12px; height: 12px;
+  border-style: solid; border-color: color-mix(in srgb, var(--color-accent) 60%, transparent);
+  border-width: 0 1.4px 1.4px 0; pointer-events: none;
+}
+
+/* Section labels speak in the display voice. */
+:is([data-theme="light-10"],[data-theme="dark-10"],[data-theme="light-11"],[data-theme="dark-11"]) .section-label {
+  font-family: var(--disp);
+  letter-spacing: .24em;
+  color: var(--color-accent);
+}
+
+/* Journal head closes with a hand-inked rule instead of a hairline. */
+:is([data-theme="light-10"],[data-theme="dark-10"],[data-theme="light-11"],[data-theme="dark-11"]) .journal-head {
+  background-image: var(--ink-line);
+  background-repeat: repeat-x;
+  background-position: left bottom 2px;
+  padding-bottom: 12px;
+}
+
+/* Bottom nav: an inked book edge; the beloved d20 earns its glow at night. */
+:is([data-theme="light-10"],[data-theme="dark-10"],[data-theme="light-11"],[data-theme="dark-11"]) .bottom-nav {
+  border-top: 1.6px solid var(--color-border);
+}
+:is([data-theme="dark-10"],[data-theme="dark-11"]) .bottom-nav .nav-item.active {
+  color: #eed9a0;
+  text-shadow: 0 0 12px color-mix(in srgb, var(--color-accent) 55%, transparent);
+}
+:is([data-theme="dark-10"],[data-theme="dark-11"]) .bottom-nav .nav-item.active .nav-icon {
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--color-accent) 60%, transparent));
+}
+:is([data-theme="light-10"],[data-theme="light-11"]) .bottom-nav .nav-item.active {
+  font-weight: 600;
+}
+
+/* Roll bar: a tray at the table's edge, rimmed in the mode's ink. */
+:is([data-theme="light-10"],[data-theme="dark-10"],[data-theme="light-11"],[data-theme="dark-11"]) .roll-bar {
+  border-top: 1.6px solid var(--color-accent);
+  box-shadow: 0 -8px 24px color-mix(in srgb, var(--color-bg) 60%, transparent);
+}
+:is([data-theme="dark-10"],[data-theme="dark-11"]) .btn-roll {
+  background: linear-gradient(160deg, #e2c076, #c9a25a 55%, #a8813e);
+  color: #181206;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-accent) 28%, transparent),
+    inset 0 1px 0 rgba(255,233,184,.55);
+}
+:is([data-theme="light-10"],[data-theme="light-11"]) .btn-roll {
+  background: #2b2418;
+  color: #f2ecdd;
+  box-shadow: 1.5px 2.5px 0 rgba(43,36,24,.25);
+}
+:is([data-theme="light-10"],[data-theme="dark-10"],[data-theme="light-11"],[data-theme="dark-11"]) .btn-roll-submit {
+  background: var(--color-success);
+  color: #fff;
+}
+
+/* ---- Lamplight (-11) accessibility layer: distance reading ---- */
+
+html[data-theme="light-11"], html[data-theme="dark-11"] {
+  font-size: 19px; /* rem-based sizes scale app-wide; stacks with Large Text */
+}
+:is([data-theme="light-11"],[data-theme="dark-11"])
+  :is(.quest-card, .npc-card, .place-card, .chapter-card, .consequence-card) {
+  box-shadow:
+    0 0 0 2px var(--color-border),
+    1.5px 2.5px 0 color-mix(in srgb, var(--color-text) 12%, transparent);
+}
+:is([data-theme="light-11"],[data-theme="dark-11"]) .btn-roll {
+  min-height: 56px;
+  font-size: 1.1rem;
+  letter-spacing: .06em;
+}
+:is([data-theme="light-11"],[data-theme="dark-11"]) .bottom-nav .nav-label {
+  font-size: .82rem;
+  font-weight: 600;
+}
+:is([data-theme="light-11"],[data-theme="dark-11"]) .bottom-nav .nav-icon i {
+  font-size: 26px;
+}
