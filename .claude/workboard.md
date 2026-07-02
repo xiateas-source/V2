@@ -114,6 +114,53 @@ story. Sequencing: after (or interleaved with) inversion stages 1-2, which make 
 structured resolution these mechanisms plug into reliable. Order within the arc should
 be playtest-driven — fix the moment that most recently felt gamey.
 
+---
+
+## Proposed arc (discussed S81, not yet scheduled): World Integrity — time, memory, procedures
+
+User's observation, second half: time/travel/NPC continuity are "half tracked, but only
+if the player feels like noticing — no enforcement, nothing to say no, we hope the AI
+doesn't forget." Real examples: a 2-hour breakfast scene costing nothing; a magic item
+"identified" with a glance when the DMG requires a short rest in contact; an NPC lie
+that should pay off 5 sessions later has nowhere to live.
+
+**Hard facts (verified S81):** chat memory prunes at 12k tokens (`memory.js`) — the
+ledger is the ONLY durable memory; **the secrets system is a read-only shell** —
+`campaign.secrets` + Journal "Lore & Leads" + the contract clause all exist, but no
+mechanic can write a secret (no `secret_add` in KNOWN_KEYS); **`npc_add` on an existing
+NPC overwrites `details`** (`mechanics.js` ~line 650) — re-meeting an NPC erases what
+was known; the per-turn prompt injects only "NPCs present: Name (disposition)" — never
+details/history, so even recorded facts never reach the AI. Time is a freeform caption;
+consequence `deadline`s are freeform strings nothing ever compares against.
+
+Principle: **whatever matters must (a) be written to the ledger, (b) be injected when
+relevant, (c) be consulted before narration.** Three mechanisms:
+1. **Time as a currency** (~2 sessions) — structured clock (day + time-of-day) behind
+   the freeform display string; procedures/rests/travel cost time via mechanics; code
+   compares deadlines to the clock and flags expiry (today `rules.js` just reminds the
+   AI a deadline exists). Visible day clock in ContextBanner → a sprawling breakfast
+   scene visibly burns daylight; S75's pendingTime hold already gives the confirm UX.
+2. **A real memory ledger** (~2-3 sessions) — build the missing `secret_add` write path
+   (dmOnly flag; Journal Lore section already renders playerKnown ones); make NPC
+   records append-history instead of overwrite; **scene-scoped injection** of full NPC
+   records + their secrets when the NPC is present or named — third instance of the
+   existing `rules.js`/`bundleContext.js` budget-disciplined pattern. The 5-session lie
+   works because the ledger, not the model, carries it.
+3. **Procedures as data** (~2 sessions + ongoing rows) — a table of SRD procedures:
+   intent → requirements (time cost, contact, components) → effect. Identify-magic-item
+   = short rest + physical contact. Inversion stage 1's classify call tags the intent;
+   the app checks the table and says no ("that takes a short rest — spend it?"). Each
+   playtest correction ("I had to fix it from the rulebook myself") becomes a data row,
+   not a code session. The user owns a rulebook for curating rows; they should never
+   need to enumerate mechanics from memory.
+   
+Cheap add-on: a deterministic pacing nudge — count exchanges since the last applied
+mechanic/state change; past a threshold, inject a one-line "consider moving the scene
+forward or advancing time" (no NLP, no regex — pure counter).
+
+Related open bugs folded in here: `npc_add` details-overwrite (memory loss);
+secrets write path missing.
+
 Full detail with file:line and fixes in `audit-2026-07-02.md`. Status here.
 
 | # | Sev | Finding | Status |
