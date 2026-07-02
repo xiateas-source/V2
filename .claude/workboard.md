@@ -1,69 +1,276 @@
 # Workboard
 
-*What to build next. Updated S80 · 2026-07-01.*
+*What to build next. Updated S81 · 2026-07-02.*
+
+*Format note (S81 cleanup): the old per-session "Latest (Sxx)" paragraphs duplicated
+decisions.md entry-for-entry and were compressed into the Session History table below.
+Full detail for any session lives in decisions.md under the same heading. The old
+"Known Issues" ✅-ledger of fixed items also lives on in decisions.md; this file now
+tracks only what's open.*
 
 ---
 
 ## Current State
 
-The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → validate → apply) is tested. Persistence works. Combat has turn enforcement, Action Economy enforced at the quick-action UI level (S67), Short Rest Hit Dice healing that actually works (S68), and Cover that actually affects hit/miss for PC-vs-enemy attacks (S69, **confirmed live-working S73** — see below). Character creation works (3 paths + guided wizard, plus mid-campaign via Settings). Level-up wizard handles all 12 classes. Multiplayer (invite links, live Firebase sync, shared identity) shipped S50, **live two-device retested and confirmed working S57**, plus a manual presence toggle shipped S58, three sync-bug fixes shipped S60, a root-caused live join-failure fix shipped S61 — **S60/S61 merged to main and confirmed live in production S62** — and a Play-screen presence indicator shipped S62. Three-phase skill-check resolution (classify → roll bar → narrate) shipped S48, live-verified S49. 84 unit tests passing.
+The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → validate →
+apply) is tested: 125/125 unit tests, build clean. Combat has turn enforcement, action
+economy, hit-dice healing, code-enforced PC attack rolls with cover (cover confirmed
+live S73). Character creation works (3 paths + guided wizard); level-up handles all 12
+classes from data. Multiplayer (invite links, live sync, presence) confirmed live
+through S62. Three-phase skill resolution (classify → roll → narrate) live since S49.
+Contextual AI DCs (S78), scene-transition gate (S75), and the bundles MVP + AI bundle
+builder (S80) are shipped but **not yet live-verified** — see the checklist below.
 
-**Latest (S80)** — Priority #8, the last scheduled item: Multiplayer Pass 2's bundles MVP. `data/bundles.js`/`ContentImport.jsx` had been one-line stubs since S58 with no real design (`decisions.md` had one line: "Bundles = content packs"). The user recalled scoping this during the V1→V2 migration and supplied an old pre-archive zip; a since-consolidated `.claude/architecture.md` inside it confirmed bundles were always meant to be reusable "on import" with Firebase carrying a "has pack X" flag only (never content) — independently validating the ref-list design below before it was built. Fresh MVP scope came from the user directly: enrich existing 5e campaigns with adventures, encounters, NPC libraries, maps (text/metadata only this pass), AI guidance, and DM tools; export/import file distribution, transport-agnostic format for a later link/registry mechanism. Given two-pass agent scrutiny (design + independent red-team, explicitly checking for confirmation bias per the user's request), the red-team caught two real issues before implementation: the plan's justification for skipping conflict-safe merging on a new `activeBundles` field ("DM-only-mutated") was false since this game has no human DM, and there was no token-budget cap in the AI-injection design (Law 5 risk). A further real correction happened during implementation itself: the approved plan's cited `mergeCharacters()` union-by-id precedent doesn't actually exist in current source, and a pure array union can't support deactivation surviving a multiplayer race anyway (it can only grow) — fixed by modeling `activeBundles` as an id-keyed map with a per-entry timestamp (like `presence`), reusing `presence`'s exact merge logic via a new shared `mergeByTimestamp()` helper. Shipped: `content/bundleNormalizer.js` (tolerant bundle-JSON validation, drops malformed array entries with a warning rather than failing the whole bundle — genuinely new logic, not reused from `normalizer.js`), a `bundles` IndexedDB store (`local.js`, `DB_VERSION` 1→2, additive), full `data/bundles.js` (list/get/import/replace/delete/export), `activeBundles` campaign-state field + sync + merge, `ai/bundleContext.js` (scene-scoped AI-context injection mirroring `rules.js`'s exact budget-discipline pattern — only location/NPC-scoped `aiGuidance` auto-injects, encounters/adventures/dmTools stay DM-browsable only), a real `ContentImport.jsx` import flow, a new "Content Bundles" section in `Settings.jsx` (list/toggle-active/export/delete/missing-bundle warning), and a new "Bundles" tab in `Compendium.jsx` for Law 4 tap-to-source browsing. Confirmed via direct source check that this app has no LLM tool-calling anywhere, and the design deliberately keeps scene-relevance computation in code rather than asking the AI to track/manage bundle content, given this project's real history of AI tracking gaps. A self-review pass over the full diff caught one more real bug pre-commit: a bundles-list-loading-race false-positive in the "missing bundle" warning. 9 new tests, 125/125 passing, build clean. **Not live-verified** — needs a real device check: import a bundle JSON, confirm content counts/toggle/export/delete all work, confirm scene-relevant AI guidance shows up in narration, two-device check for the missing-bundle prompt if possible. See decisions.md "Multiplayer Pass 2: Bundles MVP (S80)".
-
-**Latest (S79)** — User reported "i currently cant open npc info without it closing on me immediately." What looked like one UI bug turned out to be a foundational sync-correctness gap, found through three sequential, independently-verified agent passes — heavy scrutiny specifically because the user asked pointed questions about whether it connected to two older bugs, and any sync-path change risks the multiplayer presence system already working. Two real, distinct bugs: (1) `firebase.js`'s `isEcho()` — built in S60 to stop a device's own write from being reprocessed as a remote change — has likely been silently non-functional since it shipped, because it compares `JSON.stringify` output between what was written and what Firebase RTDB hands back, and RTDB always returns object keys in its own canonical (alphabetical) order while the app writes them in an unrelated fixed order; `JSON.stringify` is key-order-sensitive, so the comparison mismatches on nearly every write. (2) No `setStore('campaign', ...)` call site anywhere in the codebase ever used Solid's `reconcile()` (confirmed by grep — zero usages project-wide), so every cloud-merge tears down and rebuilds any keyed list over campaign data whose array references changed, even when nothing in it actually changed — `Journal.jsx`'s NPC cards reset their local expanded state on remount. Bug #1 made bug #2 fire on nearly every action-driven sync round-trip instead of only genuine external changes, which is why it reproduced even solo. User directly asked whether this connected to the S66 combat-tracker-closing bug (verified: unrelated, different mechanism, today's code structurally immune) and the S60 presence-flicker bug (verified: related family, but already fixed at an earlier point in the pipeline — traced the exact call site to confirm `reconcile()` only changes how an already-correctly-merged value gets applied to the store, with no path to bypass or regress the existing per-uid presence merge). Fixed: a new `stableStringify()` helper (sorts object keys recursively, keeps array order) replaces plain `JSON.stringify` in the echo check; `reconcile()` added at all three whole-campaign `setStore` call sites (`sync.js`'s live listener and `joinCampaign`, `persist.js`'s `restoreSession`). Confirmed via the existing two-device mocked test suite (exercises `joinCampaign`/presence round-trip directly) that nothing regressed. 4 new tests, 116/116 passing, build clean. **Not live-verified** — needs a real phone check: open an NPC card mid-play and confirm it survives a normal sync cycle; confirm presence still displays correctly on both sides if a second device is available. See decisions.md "Broken echo detection + missing reconcile() — NPC info closing on open (S79)".
-
-**Latest (S78)** — Priority #4 (AI DC determination), the last of the deliberately-ordered SRD-adjacent priorities. Replaced the classifier's flat DC-tier lookup with a small AI call that determines a contextual DC before the roll bar appears — confirmed with the user this should be a real extra AI call (accepting latency) rather than just better guidance for the DM's own free-form roll_request DCs. Because this inserts a new async step into the sacred core loop, gave it the heaviest review of the sprint: an Explore agent traced the exact classify→RollBar wiring first, then two independent, sequential Plan-agent passes red-teamed the design — the second explicitly hunting for whatever the first missed. Between them they caught four real bugs before any code shipped: the Stop button didn't actually cancel the wait (fixed by giving the DC lookup its own `AbortController`, wired into the same field `stopGeneration()` already aborts); reusing the main provider call's full retry chain would blow the latency budget and poison shared provider-health state for the next real DM turn (fixed with a new lean `callProviderOnce()` that never retries and never records failures); a bare `Promise.race` against a timeout doesn't actually cancel the losing fetch (fixed by explicitly aborting on timeout); and per-line DC parsing had no defense against a misaligned response silently handing the wrong DC to the wrong roll (fixed by rejecting the whole response wholesale on any count mismatch, falling back to every roll's own tier default). One combined AI call per message, not one per roll — cheaper, avoids hammering a free-tier key with parallel requests on a multi-PC action. 5 new tests, 112/112 passing, build clean. **Not live-verified** — needs a real phone check: an unusual action should get a plausibly different DC after a brief pause, Stop tapped during that pause should prevent the roll bar entirely, and a network hiccup should still produce a working roll bar at the tier default rather than hanging. See decisions.md "Contextual AI-determined DCs (S78) — Priority #4".
-
-**Latest (S77)** — User sent a real playtest export and asked to review "roll request types." Found two real issues: (1) casting Animal Friendship produced a `roll_request` for **Animal Handling** from the caster, when the spell's own mechanic text (correctly, in the same message) says the *target* makes a WIS save — nothing validates that a roll_request matches how the spell it's attached to actually resolves (Gate 6 only checks known-spell/slots). Flagged as a real gap, genuinely separate scope (needs a spell-resolution-type lookup table), not built this session. (2) — the one fixed — a single classified skill roll for one clause of a compound message ("set some traps... then look around to spruce up") ended up governing the *whole* message; the DM narrated both the trap-setting and the decorating as failed from one Perception roll, even though "set traps" was never itself rolled. The player's own follow-up question, answered correctly by the game's built-in rules-advisory, proved the game already knows the rule — the code path that ran the scene just didn't apply it. Root cause, confirmed against source and cross-checked with a second agent's independent handoff (verified rather than trusted at face value — found one imprecision: it conflated this with the *intentional* combat/saves classifier boundary, a different thing). Real fix: "set a trap"/"lay a snare" had zero pattern anywhere in `classifier.js`'s Survival matcher (only "disarm trap," the opposite action, existed) — added it, so this compound message now correctly produces two rolls instead of one wrongly covering both. Considered and rejected clause-splitting-plus-flag-anything-unmatched (would be noisy — most of what players type is dialogue/flavor that correctly needs no roll). Instead clarified the SCOPE of a classified roll in `contracts.js`'s `MECHANICS_FORMAT` (unconditional, reaches every campaign immediately) and `DEFAULT_CONTRACTS.never` (`campaign.js`, for new campaigns) plus a `STALE_CONTRACTS` migration so existing campaigns whose contract text is still the unedited default get it refreshed automatically. Explicitly did not lean on "more AI judgment" as the fix — user's own correction, having lived through V1's contract-only approach failing — the fix keeps outcomes exactly as code-enforced as before, it just stops over-restricting a roll_request capability the AI already reliably uses (it self-requested Animal Handling with zero classifier involvement). 3 new tests, 107/107 passing, build clean. **Not live-verified** — needs a real compound-action message in play to confirm the Survival match and that the AI respects the scope boundary. See decisions.md "One roll silently governing a whole compound message (S77)".
-
-**Latest (S76)** — Two character-creation reports from live play. (1) A JSON the user built with an outside AI (they'd tried the in-app AI Builder first and found it too shallow) failed to import cleanly — appearance/personality/backstory came through blank and "there's also no space for the other data." Traced the actual pipeline directly rather than trusting a first pass that called it working-as-intended: the JSON nested everything one level deep (`attributes`/`combatStats`/`magic`/object-shaped bio fields), and the importer's fuzzy-match only ever scanned top-level keys. Worse than the bio symptom the user noticed: ability scores came back as an empty object, and `forge.js` treated that truthy-but-empty object as "provided," **silently locking in all-10 ability scores** with zero indication anything broke — discarding the user's real rolls. Fixed by teaching the normalizer to flatten known nested wrappers before matching (reusing the existing alias lists, no duplicated logic), flattening object-shaped bio fields into readable text, lifting trait/ideal/bond/flaw out of a nested `personality` object, tightening `forge.js`'s ability-score check to require at least one real value (not just a truthy object), and parsing the JSON's own `equipment` list directly into carried inventory instead of discarding it for a generic class default. This came from the user's own stated standard: every creation path (guided, Quick Pick, JSON import) should reach the same completeness — import shouldn't produce a worse character just because the input arrived in a different shape. (2) The equipment picker shown during character creation: confirmed by direct code read that each option only ever showed its bare label, never the actual pack contents (`opt.items`) — a real, 100%-confirmed bug. Also made the "selected" state unmistakable (checkmark + thicker border, not just a background-color swap) since the exact mechanism behind "can't tap the buttons" couldn't be fully confirmed from static code alone. (3) Separately, the user pointed out the in-app AI Builder itself "feels too Simple" — its system prompt already asked for rich *output* but explicitly told the model to rush to finalize once it had bare mechanical facts (class/race/level). Rewrote `CHAR_BUILDER_SYSTEM` to require at least one genuine creative detail from the player before finalizing (asking one sharp, specific question if they haven't volunteered one), and sharpened the bio-writing guidance to explicitly target generic/interchangeable output. 10 new tests, 104/104 passing, build clean. **Not live-verified** — needs a real phone check on all three: re-import the JSON from this conversation, try the equipment picker, and have a real conversation with the AI Builder to judge whether it actually reads richer now. See decisions.md "Character JSON import: nested fields, silent ability-score loss, equipment (S76)" and "AI Builder conversation depth (S76)".
-
-**Latest (S75)** — A real playtest export's testerNotes flagged a stale-data bug: "Thorns hp on his character sheet, under vitals show 31/31 if i swipe from ivy" — 31/31 is Ivy's HP, not Thorn's (23/27). Traced to `CharSheet.jsx`: all six tab functions (Stats/Vitals/Spells/Features/Equipment/Bio) capture the active PC once at mount, wrapped in unkeyed `<Show>`s that only re-render on a tab switch — so swiping to a different PC without also changing tabs leaves the sheet showing the previous PC's data. Fixed with an outer *keyed* `<Show when={pc()} keyed>` around the tab-content block, so the whole block remounts whenever the swipe changes which PC's data `pc()` resolves to; ordinary HP/stat changes don't trigger it since they don't change the character's proxy identity. Design pressure-tested by a Plan agent first (confirmed the Show/keyed semantics, confirmed no other component state gets wiped, flagged one accepted side effect: an unsaved Bio-field edit is discarded on swipe, which is correct behavior). One-block fix, no changes needed to any of the six tab functions themselves. 88/88 tests passing (no new tests — Solid JSX/reactivity fix, no new testable pure logic), build clean. **Not live-verified** — needs a phone check: swipe between PCs on each of the six tabs and confirm the data updates immediately. See decisions.md "CharSheet swipe shows stale PC data (S75)".
-
-**Also S75** — Scene Transition gate (Priority #5), the first scheduled priority-list item tackled this session rather than a playtest-found bug. Turned out to be half-built already: `location` changes already hold via `pendingLocation` and a working "Move to X? Go/Stay" banner (`ContextBanner.jsx`) — nobody had connected that to the gate/priority list before. What was missing: `time` and `chapter_add` applied instantly with no hold, and the old `runGate4` only produced an inert, after-the-fact pill (scene had already changed in state by the time the player saw it). Extended the same hold pattern to `time`/`chapter_add` (two new campaign-store fields, `pendingTime`/`pendingChapter`), widened the existing Go/Stay banner into one combined prompt covering whichever of location/time/chapter are pending, and repurposed `runGate4` as the sole "player already stated it" check (skips the hold silently when the player's own message already named the destination). Deliberately did not build time-delta parsing (spec wants "&gt;30 minutes" but `time` is freeform narrative text, not structured data — used "changed at all" as the heuristic instead) or narrative prose-scanning for transition markers (mechanics-block diffing is sufficient and deterministic; regex-scanning phrasing is the fuzzy-NLP category Law 5 warns against). Added a "Scene Transition" scenario button to the testing tab. 10 new tests, 94/94 passing, build clean. **Not live-verified** — needs a phone check: trigger a scene change (or the new Scenario button), confirm the banner shows the combined prompt, Go/Stay commit or discard everything together, and a player-stated move ("we head to the Keep") skips the banner. See decisions.md "Scene Transition gate built (S75) — Priority #5".
-
-**Latest (S74)** — A real playtest transcript surfaced a genuine bug in the "sacred" core combat loop itself, not a UI issue: the player reported "Because thorn rolled for his vicious mockery after the DM narration my turn got skipped. Current card is showing it's thorns turn." Traced with an Explore agent and design-reviewed by a Plan agent before touching code, since this is the highest-stakes fix of the sprint. Two bugs, both in the same transcript. **Bug A**: `sendNarrative()` (`engine.js`) advanced the turn pointer unconditionally at the end of every response when combat was active — guarded only against initiative rolls, not mid-combat `roll_request`s. So when the AI asked for an attack roll, the turn pointer advanced immediately, *before* the player rolled; then when the roll came back through the same pipeline, it advanced again — double-advancing the pointer on any turn involving a roll. Fixed by tracking whether the *current actor's* roll is still pending (computed after the concentration-save injection, scoped to the current actor specifically so an unrelated forced roll on someone else doesn't hold the turn open) and skipping the advance only when it is — except at combat kickoff, which establishes whose turn it is for the first time rather than confirming a resolution. The Plan agent caught both the actor-scoping gap and the injection-ordering gap in the first draft before either shipped. **Bug B**: the same transcript showed the AI emitting `roll_request: Attack|13|Thorn|normal|Kobold` and `hp: Kobold=4` in the same batch — resolving the kobold's HP before the roll that was supposed to determine it came back, with no correction path if the roll missed. Fixed with a batch-level rule in `validateMechanics()` (`mechanics.js`), mirroring the existing same-PC damage+hp rule: reject any `hp:`/`damage:` for the exact target a `roll_request` in the same batch names. 4 new tests, 88/88 passing, build clean. **Not live-verified** — this is the highest-stakes unverified fix of the sprint; needs a real multi-round combat encounter with at least one attack roll to confirm the turn indicator advances exactly once per turn and a missed attack no longer leaves stale pre-resolved damage on the target. See decisions.md "Combat turn desync + pre-resolved roll outcome (S74) — core loop fix".
-
-**Latest (S73)** — Four fixes from a real deployed-app playtest export, all traced to exact code before touching anything (research agents plus direct verification — the "spell compendium" bug turned out to be in a different drawer than the first research pass suggested, corrected by reading the actual code myself before writing the fix). (1) Testing Notes didn't survive closing the testing tab — it was a local component signal, destroyed on unmount; moved to `store.system.testerNotes`, persisted the same way `largeText`/`theme` already are (`persist.js`'s `snapshot()`/`restoreSession()`), confirmed it stays local-only (no Firebase sync) and survives New Campaign resets. (2) The right-side spell drawer's "Open Compendium" link landed on the Journal tab instead of the Compendium's Spells sub-tab — it was calling the generic `navigateTo('journal')` instead of the already-existing, already-correct `navigateToCompendium('spells')` (used properly elsewhere in `CharSheet.jsx`); fixed both call sites in `Chat.jsx`. (3) The left character-vitals drawer stayed on whichever PC it opened to and never followed whose turn it actually was during combat — added the same actor-derivation `TurnPrompt.jsx` already uses correctly, both for the drawer's initial PC and a `createEffect` that re-syncs on every turn change (manual tab-switching still works in between turns). (4) Added an optional note field to the roll bar for AI-initiated `roll_request` rolls specifically — the classifier pre-send path already carries the player's typed action forward as their "message," but mid-combat rolls the AI asks for had no room for the player's own words at all; filling it in now prepends the note to the roll result before sending. Also confirmed from the same export: **S69's Cover fix is live and working** — a Kobold with `cover: Kobold=half` showed an attack resolving against AC 15 (13 base + 2 cover), not the AI's raw reported 13, exactly as designed. 84/84 tests passing (no new tests — all four are UI/persistence-plumbing changes with no new testable pure logic), build clean. See decisions.md "Four fixes from a live playtest export (S73)".
-
-**Latest (S72)** — Added a "Scenarios" section to the testing tab, following directly from the S71 audit conversation. User's feedback: playing solo is fine for freeform testing, but hard for *deliberately* exercising one specific mechanic — normally a second person prompts "now try X," and solo that pressure has to be self-generated. Confirmed the shape with the user first (one-tap buttons into a live situation, not a written checklist; curated per session by me, not an auto-generated tracking system). Shipped 3 scenario buttons in `MechTest.jsx`: "Covered Enemy" (starts combat with a Kobold already behind half cover — tests S69 Cover), "Low HP + Rest" (sets the first PC to half HP — tests S68's Hit Dice Spend button), "Mid-Combat Turn" (starts combat with the PC's turn already active, bypassing the initiative-roll step via direct `combatState` construction — tests S67's Action Economy button-disable). Each drops the player straight into a real, playable moment (actual combat state, dice, UI) rather than just injecting data like the existing Quick Fire/Mass Test tools. Deliberately scoped to only these 3 — S70 (the testing tab itself) doesn't need a scenario, and S71's damage/hp fix + companion contract nudge both depend on the AI's own behavior rather than a state you can force into, so no deterministic scenario fits them. Convention documented in a code comment: add a scenario when something new ships that needs a live check, remove it once confirmed, next session. Build clean, no new tests (UI-only, no new testable logic — matches the "no component-testing infra" precedent from prior sessions). **Not live-verified** — same sandbox limitation. See decisions.md "Scenario buttons in the testing tab (S72)".
-
-**Latest (S71)** — Audited a real solo playtest transcript the user sent (a Druid befriending a "star-fox" companion, falling into a fissure, fighting a fungal guardian) and found two confirmed, real gaps by tracing the source against the transcript rather than eyeballing the export. (1) A genuine HP math bug: the AI emitted `damage: foot, 4, slashing` then `hp: foot=4` in the same batch with foot at 1 HP going in — `damage:` correctly clamped HP to 0, but the co-emitted `hp:` then ran as an independent absolute-target write, silently reviving the character to 4 HP with zero narrative mention of healing. Fixed with a batch-level rule in `validateMechanics()` (`mechanics.js`) that rejects a co-emitted `hp:` for any PC a `damage:` mechanic in the same batch also targets — mirrors the existing `combat_start` batch-rule pattern exactly. (2) A companion-tracking gap: an NPC traveled with the party across ~15 exchanges but was never added to the roster (`npc_add`), and the player noticed and asked why. Turns out `Cargo.jsx` already has a working "Traveling with" display for wagon items with `type: 'companion'` — the AI's contract never mentioned this exists, so it was invisible to it. Added contract documentation for the existing feature (`contracts.js`), no new UI code needed. Also confirmed, via the same audit, that Law 2 spell ownership, Gate 8's missing-XP flag, and the classifier's compound-action splitting all worked correctly — no action needed there. Deliberately NOT built this session (user's explicit call): automatic "AI forgot to log a new NPC" detection — spec'd in `enforcement-spec.md` but never implemented in the actual gate code, and building a real version means real false-positive risk in a name-detection heuristic, flagged for its own dedicated session rather than guessed at here. 4 new tests, 84/84 passing, build clean. **Not live-verified in the browser** — same sandbox limitation as recent sessions; high confidence from the test suite since this is a pure data-layer change. See decisions.md "Playtest audit: HP override bug + companion tracking (S71)".
-
-**Latest (S70)** — Testing tab fixes (scroll bug + Testing Notes), then a real bug caught on the very first use of the new export/review workflow. User reported not being able to scroll to the bottom of the testing tab (`MechTest.jsx`, the flask/Test button drawer). Root cause: `.mechtest`'s `max-height: 80vh` was too tall for its actual slot — it renders inside `.input-bar`, itself inside `.chat-container` (`height: 100%; overflow: hidden`), so content past the fold was clipped by the ancestor, not scrollable. Confirmed by comparing to the sibling drawer in the exact same slot (`QuickActions`' controlled drawer), which uses `46vh` and has no such bug — matched that value exactly rather than guessing a new one. Also added a "Testing Notes" freeform textarea to the Export section, bundled into the existing `exportSnapshot()`/Copy/Download flow (confirmed this shape with the user first — a plain notes box, not a new structured form or export pipeline). User then ran "Run All" on a blank campaign and sent the export — reviewing it against the source (not just eyeballing) caught a real, pre-existing bug: the XP mass-test/quick-fire buttons sent `xp: 75` instead of the mechanic's actual required format (`xp: PCName+75` or `xp: party+75`, matching the AI's real contract), so XP silently never applied despite the log claiming success (`applied: true` only means the dispatch call didn't throw). Fixed both button templates and added 3 regression tests, including one that explicitly asserts the old buggy format is a no-op. 80/80 tests passing, build clean. **Not live-verified in the browser** — same sandbox Firebase-boot limitation as recent sessions; confidence in the scroll fix is high specifically because it matches an already-working sibling pattern, not a guess. See decisions.md "Testing tab scroll fix + Testing Notes (S70)" and "XP test-button bug found via the new export review (S70 follow-up)".
-
-**Latest (S69)** — Cover, the last item on Priority #1's SRD gap-analysis punch list. Workboard said "missing entirely" — investigation (an Explore agent, verified with direct reads before writing any code) found that wrong in an important way: a `cover` mechanic already existed, already stored a `coverBonus` on the PC, and `CharDrawer.jsx` already showed a "+X (cover)" badge — but nothing anywhere read that value, so declaring cover had zero effect on hit/miss. Deeper still: the only attack-roll path that's actually code-enforced in this engine is PC-attacks-enemy (S57); NPC-attacks-PC stays AI-narrated (an S57 decision, unchanged). The existing cover mechanic stored its bonus on the PC — the wrong side for the one enforced path, since the PC is the attacker there, not the target. This was a real architecture fork, not a simple wiring gap, so it was surfaced to the user before writing code rather than guessed at; user chose to build Cover for enemies (the side that plugs into real enforcement), leaving the existing PC-side storage/badge as-is (still inert — enforcing it would mean reopening NPC-attacks-PC, out of scope here). Shipped: `cover` mechanic (`mechanics.js`) now also targets enemies tracked in `combatState.initiative` (populated by the already-mandatory `zone_add_enemy`); the Attack `roll_request` format gained a 5th field (`TargetName`) so `RollBar.jsx` can look up that enemy's cover and add it to the AC used for hit/miss — computed once at roll-parse time, so the hit/miss check and the on-screen "AC" display can't disagree. Added a `COVER +N` pill next to the existing ADV/DIS pills so the player can see why a good roll still missed. `contracts.js` updated so the AI knows to supply the target name. 5 new tests on the mechanic's data-write side (PC/enemy targeting, case-insensitivity, `none` reset, no-match no-op); no RollBar.jsx-level tests added since this codebase has no component-testing infrastructure and building one for this alone would be scope creep. 77/77 passing, build clean. See decisions.md "Cover — code-enforced for the PC-attacks-enemy path only (S69)". **Not live-verified in the browser** — same sandbox Firebase-boot limitation as S67/S68; needs a real combat encounter with a covered enemy to confirm the AC math and pill both look right.
-
-**Latest (S68)** — Hit Dice healing on Short Rest (Priority #1's last remaining SRD gap-analysis item). User flagged that the paired workboard item ("Rest buttons on CharSheet Vitals") looked wrong — verified it was already built (see S67 correction below), which led to tracing the *actual* gap one level deeper: `hit_dice_use` in `src/ai/mechanics.js` already existed and is in the AI's contract, but was silently broken — it decremented the hit dice pool then fired `roll_request: HitDice|...`, which `RollBar.jsx` has no handler for (falls through the generic skill-check path, result discarded). The die spent; nothing ever healed, whether the AI narrated it or (there was no player trigger at all). Fixed at the source: `hit_dice_use` now rolls the die + CON modifier and heals in one code step, reusing the existing `applyDamage()` clamp-to-hpMax helper — same code-enforced pattern as the S57 Attack Roll fix, no AI round-trip. Added a "Spend" button next to the Hit Dice pip display in `CharSheet.jsx`'s Vitals tab (disabled when no dice remain or already at full HP), spending one die per tap with a toast showing the result. 4 new tests (bounded-roll checks since `Math.random()` isn't mocked), 72/72 passing, build clean, verified stable across 5 repeated runs. See decisions.md "Hit Dice healing fixed at the source (S68)". **Not live-verified in the browser** — same sandbox Firebase-boot limitation as S67.
-
-**Latest (S67)** — Action Economy code-level enforcement (Priority #1 remainder, workboard-flagged gap). `combatState.actionsUsed` flags existed but nothing checked them. Root cause: the combat engine advances the turn pointer (and resets `actionsUsed`) after every single AI response, so a post-hoc cross-check inside Gate 2 would only ever see "the tap that produced this very message" — false-positive-prone, not a real reuse check. Fixed at the source instead: `TurnPrompt.jsx`'s quick-action buttons (Attack/Dash/Dodge/etc. for Action, Cunning Action/Second Wind/Inspire for Bonus) now get the native `disabled` attribute once that econ slot is already spent this turn — a player can no longer tap both an Attack and a Dash in the same turn. `take()` also now calls the existing (previously unused/dead) `markActionUsed()` helper instead of duplicating the store write. Separately, Gate 2's prose-scan (`multi_action`/`multi_bonus`/`multi_reaction`) was scoped to sentences mentioning the current actor (`actorSentences()` helper) instead of counting matches across the whole AI response — fixes a real false-positive risk where NPC/enemy turns narrated in the same response (legitimate, since enemies act before the next PC) were inflating the count and could misfire the hard re-prompt in `engine.js`. Added an Extra Attack allowance alongside the existing Action Surge bypass. 8 new tests added (68/68 passing), build clean. Free-typed narrative actions are unaffected — that path still relies on Gate 2's prose heuristic, same as before. **Not live-verified in the browser** — this sandbox can't reach Firebase so `main.jsx`'s boot sequence (`restoreGuestSession`/Firebase init) hangs before first render; confirmed via `npm test`/`npm run build` only, consistent with prior sessions' documented sandbox limitation. Needs a live combat session to confirm the button-disable feels right in practice.
-
-**Latest (S63)** — Three player-reported issues fixed plus combat side drawers shipped. (1) Pack contents (Burglar's Pack etc.) were invisible — `CharCreate.jsx` now preserves `note` field on items, `Cargo.jsx` shows it expandably on tap. (2) Bag of Holding now actually reduces carry weight — per-item `inContainer` toggle, weight excluded from total, name-based regex for AI-typed containers. (3) Side drawers: a left handle (shield icon) slides out character vitals + attacks, a right handle (sparkle icon) slides out spells/resources — always reachable even during combat. HP adjust, slot expend, and resource use all route through the mechanics pipeline. All changes committed, pushed to `claude/latest-test-analysis-v64a6i`. Build clean.
-
-**Latest (S62)** — Two bugs surfaced in real play, both fixed and pushed. (1) "Campaign not found" returned again after S61 — fixed with an auth guard (`getUid()` null → clearer error) and a 3s auto-retry in `joinCampaign()`, plus an offline-toast on `shareInvite()`'s `forceSyncNow()`. (2) Guest character Nyx disappeared on iOS tab-kill — fixed with `mergeCharacters()` union-merge by id in `persist.js`'s `mergeCampaign()` (local-only chars preserved; cloud wins per-id for HP/stats) and immediate `forceSyncNow()` after all `CharCreate.jsx` commit/remove paths to bypass the 3s debounce. Also shipped: Play-screen presence indicator in `ContextBanner` — compact circle badge in the icon row, counts other active players, taps to Settings roster. All changes committed + pushed (`75c693f`). 60/60 tests passing, build clean. Not yet deployed to main or live-verified — needs user sign-off to deploy, then a two-device session to verify badge + join retry + character survival on tab-kill.
-
-**Latest (S61)** — User hit a real "Campaign not found" join failure in play and shared a full RTDB export. Traced the actual mechanism through the code rather than guessing: `dbWrite()` silently swallows its own failures (queues to `fb_pending`, never rethrows), so `shareInvite()`'s `await forceSyncNow()` can resolve "successfully" even when the write never reached RTDB — the host shares a link believing state is pushed, the guest's `dbRead()` hits the real (empty) path and the join throws before ever recording the guest's `joined` pointer. The queued write's only retry path, `flushPending()`, was only ever called once at app boot — not on a mid-session reconnect — so a write queued after a connectivity blip sat inert until the device happened to reload. Fixed by wiring the existing `.info/connected` listener to call `flushPending()` on every reconnect, not just boot (`firebase.js`). Logic-only, no new Firebase path or schema change. 60/60 tests passing, build clean. See decisions.md "Live join failure root-caused (S61)".
-
-**Latest (S60)** — Agent audit of the S58 presence/sync path found and fixed three real bugs, all logic-only inside the existing sync model (no new Firebase paths): `dbListen()` was dropping *any* remote update within 3s of this device's own write (not just its own echo) — switched to content-based echo detection. `startLiveSync()` wasn't armed when a host creates a new campaign mid-session (only at boot/guest-join) — now armed in `PlayerOnboard.jsx`. `mergeCampaign()` let a cloud snapshot wholesale-overwrite local `presence`, causing the toggle-flicker bug already flagged in `persist.js`'s comments — now merges presence per-uid by timestamp. 60/60 tests passing, build clean. Still unverified live (no Firebase access in this sandboxed environment) — needs a real two-device session. See decisions.md "Multiplayer Sync Bug Audit (S60)".
-
-**Latest (S59)** — Time-boxed quick-wins review (no new features). Static review of `src/` for low-risk cleanup: no hover-only CSS (mobile Law 3 intact), no stray `console.log`/`debugger`, `Modal.jsx` confirmed a genuinely dead stub (zero imports). Found and fixed one real quick win: the 4 native `alert()` calls in `Settings.jsx`/`DevTools.jsx` (invite-link-not-ready, invalid-save, load-failed, devtools-copy) now dispatch the existing `toast` CustomEvent instead, matching the pattern already used elsewhere (CharSheet, LevelUp, Chat, engine.js). The 2 `confirm()` calls (new campaign, load save — both destructive) were deliberately left native, since a real yes/no modal needs `Modal.jsx` actually built out, which is a bigger lift than this pass's scope. 60/60 tests passing, build clean. Flagged but not started: inline NPC name linking (player-requests-v2.md — tap-to-source infra already exists via `sourceBus.js`, worth a real look next pass) and Gate 8's missing-XP click handler (already noted below as pending user confirmation).
-
-**Latest (S58)** — Pass 1 of a multiplayer-improvement push: CI now deploys `database.rules.json` automatically (Priority #7, closed — `deploy.yml` gained a `firebase deploy --only database` step, so rules can't drift from the Console silently again). Added a manual presence toggle ("I'm here"/"I've left" in Settings → Who Am I?) instead of automatic `onDisconnect()` detection — deliberately, per a V1 lesson (automatic AFK handling solved a problem players already solve socially) and because mobile backgrounding makes connection-based presence unreliable. New `campaign.presence` field, synced like any other campaign field. Also added the first Firebase-mocking test precedent (`tests/sync.test.js`, simulates two devices against an in-memory fake RTDB through the real `joinCampaign()`/`setPresence()`/`mergeCampaign()` code paths) and a DevTools "Multiplayer" tab for eyeballing the presence roster with a fake guest entry, without needing a second phone. Bundles (publish/import/delete/replace/edit) intentionally deferred to a later pass — not started this session. See decisions.md "Multiplayer Presence + CI Database Deploy (S58)".
-
-**Latest (S57)** — live two-device multiplayer retest confirmed the S56 `shareInvite()` fixes work: host/guest exports compared byte-for-byte identical (campaign state, all 24 narrative messages) except per-device `updatedAt`. The same test transcript surfaced a real bug (player messages weren't visually distinguishable in multiplayer chat — `playerName` was stored but never rendered), now fixed with a name label gated on party size > 1. Priority #2's audit continued: found and fixed one more instance of the recurring "healed at one ingestion point, not another" bug class, this time in the `system` store (`restoreQuickActions()` now heals against `DEFAULT_SYSTEM` instead of replacing wholesale); all other audit candidates traced safe. Priority #3 got a small, decision-compliant win: a contract-only "contested checks" instruction (NPC rolls itself, feeds result into a normal PC `roll_request` as the DC) — zero new code. Critical Hits / PC-attack-roll enforcement (Priority #1) then shipped same-session: `RollBar.jsx` already had unused attack-roll infrastructure, so the fix was a missing `contracts.js` instruction (route PC attacks through `roll_request: Attack|AC|PCName`) plus code-enforced HIT/MISS/CRITICAL HIT/CRITICAL MISS determination and damage rolling (doubled on crit) in `RollBar.jsx`/`engine.js` — closes the "told-not-enforced" gap per Law 2. NPC attacks against PCs remain AI-rolled/narrated, unchanged. See `decisions.md` and `session-log.md` for full session-by-session history (S48–S57).
+**All eight scheduled priorities from the July-11 sprint are done (S80 closed the list).**
+S81 was a full code + planning audit; the priorities below are the foundation plan that
+came out of it (see `audit-2026-07-02.md`, `ruleset-coupling-analysis.md`,
+`verb-chasing-assessment.md`).
 
 ---
 
-## Priorities (user-set, deadline July 11)
+## Priorities (foundation plan, adopted S81)
 
-1. **Continue SRD gap-analysis punch list (S52/S54/S56 follow-up)** — encumbrance/exhaustion, conditions+resistance, Death Saves, Concentration's 30 DC cap, CharSheet's manual HP override, **Critical Hits / PC attack rolls (done S57)**, **Action Economy (done S67)**, **Short Rest Hit Dice healing (done S68)**, and **Cover (done S69 — see decisions.md "Cover — code-enforced for the PC-attacks-enemy path only (S69)")** are done. This punch list is now fully closed. Known follow-up from the S57 attack-roll work: PCs with multiple distinct attacks always use `pc.attacks[0]` (no weapon/attack selection mechanism). Known follow-up from S69: Cover only affects PC-attacks-enemy (the one code-enforced attack direction); the PC-side `coverBonus`/badge from the original partial implementation is still inert, since enforcing it would mean reopening the NPC-attacks-PC scope deliberately deferred at S57.
-2. **Audit for more unguarded nested-field accesses** — done (S57): broad sweep across `src/ui/**/*.jsx`, one real gap found and fixed (`restoreQuickActions()` missing healing), all other candidates traced safe. See decisions.md "Priority #2 audit (S57)".
-3. **Expand classifier coverage** — contested checks got a contract-only win (S57, see decisions.md). Combat attacks and saving throws are already covered by the existing `roll_request`/`RollBar.jsx` path (saving throws) or remain the same unbuilt gap as Critical Hits above (combat attacks — needs the new attack-roll mechanic, not classifier work).
-4. **AI DC determination** — done (S78). See decisions.md "Contextual AI-determined DCs (S78) — Priority #4". Classifier's flat DC tiers replaced with a small AI call that determines a contextual DC before the roll bar appears, falling back to the tier default on any failure/timeout. Two independent Plan-agent review passes caught four real bugs before implementation (Stop button not cancelling the wait, shared provider-health poisoning, a non-cancelling timeout, and a DC-parsing misalignment risk) — all fixed in the shipped version.
-5. **Scene transition gate** — done (S75). See decisions.md "Scene Transition gate built (S75) — Priority #5". Location-change holding already existed (`pendingLocation` + `ContextBanner`'s Go/Stay); extended to time/chapter_add and widened the banner to cover all three in one prompt.
-6. ~~Rest buttons on CharSheet Vitals tab~~ — **already built**, not a gap. Verified S67 (user flagged this was mislisted): `CharSheet.jsx`'s `VitalsTab()` has working Short Rest / Long Rest buttons wired through a `rest-request` event (`Chat.jsx`) into the real `short_rest`/`long_rest` mechanics. What's still actually missing (folded into Priority #1's "Short Rest missing Hit Dice healing" line above): the Vitals tab shows a Hit Dice pip display but has no button to spend one — `short_rest` doesn't touch hit dice at all, and the `hit_dice_use` mechanic (which correctly fires a heal roll request) has no player-facing trigger, only AI/MechTest access.
-7. **CI: deploy database rules** — done (S58). `deploy.yml` now runs `firebase deploy --only database` alongside the hosting deploy.
-8. **Multiplayer Pass 2: bundles MVP** — done (S80). See decisions.md "Multiplayer Pass 2: Bundles MVP (S80) — Priority #8, last scheduled item". Publish(=re-export)/import/delete/replace(=re-import) shipped; in-app "edit" of an installed bundle explicitly deferred (no in-app authoring UI, matching the character-JSON-import precedent — edit externally, re-import). This closes the workboard's scheduled priority list — all of #1-8 are now done.
+Goal: a base worth building years of features on, with the app playable the whole time.
+Order matters — each step de-risks the next.
+
+1. **Fix the audit's high findings** (~2-3 sessions) — sync correctness and provider
+   failover sit under everything else. From `audit-2026-07-02.md`:
+   - #3 provider health tracking is a silent no-op (`providers.js` — tiny fix, immediate
+     latency win on flaky networks)
+   - #7 roll-result messages can be re-classified into a second roll
+     (`RollBar.jsx` — one-word fix: `skipClassifier: true`)
+   - #1 echo detection still broken vs RTDB empty-collection pruning (`firebase.js`)
+   - #2 implement the character union-by-id merge in `mergeCampaign()` — **the S62
+     doc entry describes this as shipped; it never landed in source** (verified via
+     git history). Local-only characters can still be dropped by a cloud merge.
+2. **Unify the duplicated class tables** (1 session) — spell-slot/hit-die tables exist
+   in BOTH `quickBuild.js`'s `CLASS_DATA` and `data/level-up-*.json`. One source of
+   truth (the JSONs) before they drift. This is the live data-integrity hazard from
+   `ruleset-coupling-analysis.md` step 2.
+3. **Live-verify the S74–S80 backlog through play** (play sessions, not dev sessions) —
+   see checklist below. Especially S74 (combat turn loop) before any inversion work
+   touches how turns resolve.
+4. **Inversion stage 1: classifier → merged AI classify+DC call** (1-2 sessions) —
+   replace `classifier.js`'s 18 regex patterns with one structured AI call merged into
+   the existing S78 DC call. Permanently retires the S77 bug class ("set a trap"
+   wasn't in the list). See `verb-chasing-assessment.md`.
+5. **Inversion stage 2: structured JSON mechanics channel** (2-3 sessions) — mechanics
+   arrive as schema-validated JSON instead of a regex-parsed text block.
+   `extractMechanics`' five fallback patterns and format drift go away; `contracts.js`
+   shrinks (Law 5 win). Gates stay on as a safety net throughout.
+6. **Reassess.** Inversion stages 3-4 (two-phase resolve-then-narrate for combat, then
+   exploration) are **planned, not scheduled** — let playtest pressure after stages 1-2
+   decide when/whether.
+
+**Parallel / anytime (independent of the sequence above):**
+- quickBuild content → `data/*.json` (races, backgrounds, equipment, skills; ~2
+  sessions) and bundle system-content types (races/subclasses/spells via the S80
+  import path; 1-2 sessions) — `ruleset-coupling-analysis.md` steps 3-4.
+- Audit medium findings #5 (mid-stream failover duplication), #6 (mid-combat initiative
+  re-sort breaks turn pointer), #8 (combat_end can revert mid-combat rest healing).
+- **Firebase rules hardening (audit #4) — direction chosen S81: Google login.** The
+  user confirmed a pre-existing (previously undocumented) plan to add Google sign-in.
+  Recommended shape: keep anonymous auth for frictionless first-run, offer "link your
+  Google account" via Firebase account-linking (preserves the same uid — no campaign
+  migration), require linked identity for multiplayer share/join, then scope campaign
+  rules to a member list written at share/join time. Minimum fix (`players/$uid` writes
+  restricted to own uid) is safe to do immediately regardless. Still open: whether
+  anyone-with-link auto-joins as a member vs. host approval, and whether membership is
+  revocable. ~1-2 sessions.
+
+---
+
+## Proposed arc (discussed S81, not yet scheduled): Rules Depth
+
+User's observation: play "sometimes feels like a pick-your-own-story game" — the rules
+don't bite outside the code-enforced moments. Root causes identified (S81): **no
+bestiary exists** — every enemy's HP/AC/attacks/initiative are numbers the AI invents
+per `zone_add_enemy`; **NPC-attacks-PC is pure narration** (scoped out deliberately in
+S57); **spell effects are AI-adjudicated** (only slot spending is enforced — the S77
+spell-resolution-table gap is the same gap); no pacing pressure (rest frequency,
+encounter budgets, treasure economy are all AI mood). When the opposition's numbers are
+improvised, every fight is secretly a story beat.
+
+Principle: **stop implementing rules one bespoke handler at a time** (linear cost per
+rule — why rules work "took over" the sprint) — build the few generic mechanisms that
+let rule coverage arrive as *data*, per `ruleset-coupling-analysis.md`:
+1. **Bestiary as data** (~2 sessions) — SRD stat blocks (AC/HP/attacks/saves/XP) as
+   `data/bestiary.json` + a bundle content type; `zone_add_enemy` becomes
+   `zone_add_enemy: Goblin` with stats looked up, AI-typed numbers only as fallback.
+2. **NPC→PC attacks through the enforced roll path** (~2 sessions) — reopens the S57
+   scope deliberately: enemy attacks use the same RollBar math as PC attacks (code rolls
+   for the enemy), killing the "the goblin misses because the story wants it" pattern.
+   Also finally makes the inert PC-side coverBonus real.
+3. **Spell resolution table** (~2-3 sessions, start cantrips–L2 to match SPELL_DB) —
+   add resolution fields to spells.json (attack/save/auto, save ability, damage,
+   condition); casting resolves through one generic code step. Closes the S77
+   Animal Friendship gap as a side effect.
+4. **Pacing pressure** (1-2 sessions, optional, playtest-driven) — encounter XP budgets
+   from xp-thresholds, rest-frequency guard, treasure guidance.
+
+Play-feel guardrail: mechanics must surface as *pressure, not paperwork* — the cover
+pill / disabled-button pattern (ambient, glanceable), never modal interruptions to the
+story. Sequencing: after (or interleaved with) inversion stages 1-2, which make the
+structured resolution these mechanisms plug into reliable. Order within the arc should
+be playtest-driven — fix the moment that most recently felt gamey.
+
+---
+
+## Proposed arc (discussed S81, not yet scheduled): World Integrity — time, memory, procedures
+
+User's observation, second half: time/travel/NPC continuity are "half tracked, but only
+if the player feels like noticing — no enforcement, nothing to say no, we hope the AI
+doesn't forget." Real examples: a 2-hour breakfast scene costing nothing; a magic item
+"identified" with a glance when the DMG requires a short rest in contact; an NPC lie
+that should pay off 5 sessions later has nowhere to live.
+
+**Hard facts (verified S81):** chat memory prunes at 12k tokens (`memory.js`) — the
+ledger is the ONLY durable memory; **the secrets system is a read-only shell** —
+`campaign.secrets` + Journal "Lore & Leads" + the contract clause all exist, but no
+mechanic can write a secret (no `secret_add` in KNOWN_KEYS); **`npc_add` on an existing
+NPC overwrites `details`** (`mechanics.js` ~line 650) — re-meeting an NPC erases what
+was known; the per-turn prompt injects only "NPCs present: Name (disposition)" — never
+details/history, so even recorded facts never reach the AI. Time is a freeform caption;
+consequence `deadline`s are freeform strings nothing ever compares against.
+
+Principle: **whatever matters must (a) be written to the ledger, (b) be injected when
+relevant, (c) be consulted before narration.** Three mechanisms:
+1. **Time as a currency** (~2 sessions) — structured clock (day + time-of-day) behind
+   the freeform display string; procedures/rests/travel cost time via mechanics; code
+   compares deadlines to the clock and flags expiry (today `rules.js` just reminds the
+   AI a deadline exists). Visible day clock in ContextBanner → a sprawling breakfast
+   scene visibly burns daylight; S75's pendingTime hold already gives the confirm UX.
+2. **A real memory ledger** (~2-3 sessions) — build the missing `secret_add` write path
+   (dmOnly flag; Journal Lore section already renders playerKnown ones); make NPC
+   records append-history instead of overwrite; **scene-scoped injection** of full NPC
+   records + their secrets when the NPC is present or named — third instance of the
+   existing `rules.js`/`bundleContext.js` budget-disciplined pattern. The 5-session lie
+   works because the ledger, not the model, carries it.
+3. **Procedures as data** (~2 sessions + ongoing rows) — a table of SRD procedures:
+   intent → requirements (time cost, contact, components) → effect. Identify-magic-item
+   = short rest + physical contact. Inversion stage 1's classify call tags the intent;
+   the app checks the table and says no ("that takes a short rest — spend it?"). Each
+   playtest correction ("I had to fix it from the rulebook myself") becomes a data row,
+   not a code session. The user owns a rulebook for curating rows; they should never
+   need to enumerate mechanics from memory.
+   
+Cheap add-on: a deterministic pacing nudge — count exchanges since the last applied
+mechanic/state change; past a threshold, inject a one-line "consider moving the scene
+forward or advancing time" (no NLP, no regex — pure counter).
+
+Related open bugs folded in here: `npc_add` details-overwrite (memory loss);
+secrets write path missing.
+
+---
+
+## ✅ DONE (S81): SRD Rules Ingestion + Coverage Matrix
+
+The user's core constraint, stated directly: **"I need the game to know the rules
+because I am so ignorant of them — half the time I don't even know to ask."**
+Playtest-driven rule addition can't work when nobody at the table knows a rule is
+missing. The strategy flipped: **the machine reads the book.** Built same-session:
+
+- **`scripts/build-rules.js`** parses the user-supplied SRD 5.2 sources
+  (`scripts/srd/rules-glossary.md` — 154 definitions; `playing-the-game.md` — 13
+  procedure sections) + the app-authored entries (`scripts/srd/curated-rules.json`,
+  moved from `data/rules.json`) → regenerates **`data/rules.json`: 186 entries**
+  (was 34 hand-written summaries) and **`.claude/rules-coverage.md`** (the matrix:
+  24 enforced · 5 partial · 14 gap · 117 inject · 26 reference-only). CC-BY-4.0
+  attribution added (`data/ATTRIBUTION.md`).
+- **16 curated entries dropped as superseded — several carried 2014-edition rules
+  contradicting what the code enforces** (old Exhaustion six-tier table vs. the
+  enforced 2024 -2/level; 2014 Surprise/Grappling/Shoving/Hide). The AI was being
+  taught rules the app doesn't play by; now the injected text matches the code.
+- Seed migration v4→v5 (`seed.js`: clear + reseed `compendium`) so existing devices
+  pick it up. 8 new tests (`tests/rules-data.test.js`) guard the generated output's
+  contract with `rules.js` and the Compendium, including an edition-drift guard.
+  133/133 passing, build clean.
+- Compendium's Rules tab reads the same store — all 186 entries are player-browsable
+  with zero UI changes.
+- **Not live-verified**: needs a play check that scene-relevant rules actually
+  surface (e.g. inspect a magic item → the Study/identification text appears in the
+  AI's ruling; travel → pace rules), that the fuller entries don't crowd the 1500-
+  token budget in practice, and that the Compendium Rules tab renders the longer
+  entries acceptably on a phone.
+
+The matrix's **14 ⚠ gap rows** are the enforce-candidate punch list feeding the Rules
+Depth / World Integrity arcs (Surprise → initiative disadvantage; Travel Pace;
+light/vision; Knocking Out; Stable; death-save-from-crit = 2 failures; Bloodied;
+jumping; Grappling escape; Charmed/Deafened; Influence attitudes; Carrying Capacity
+hard cap). Later chapters (spells past L2, equipment, **monsters → the Rules Depth
+bestiary**) ride the same pipeline.
+
+Full detail with file:line and fixes in `audit-2026-07-02.md`. Status here.
+
+| # | Sev | Finding | Status |
+|---|-----|---------|--------|
+| 1 | High | Echo detection broken vs RTDB empty-collection pruning (`firebase.js`) | Open — Priority 1 |
+| 2 | High | S62 character union-merge never landed; cloud merge can drop local chars (`persist.js`) | Open — Priority 1 |
+| 3 | High | Provider health tracking silent no-op (`providers.js`) | Open — Priority 1 |
+| 4 | High | DB rules: any anonymous user can read/write all campaigns + player pointers | Open — needs user decision |
+| 5 | Med | Mid-stream provider failover duplicates narration (`providers.js`) | Open |
+| 6 | Med | `zone_add_enemy` mid-combat re-sort invalidates `currentTurn` (`mechanics.js`) | Open |
+| 7 | Med | Roll-result submissions re-classified out of combat (`RollBar.jsx`) | Open — Priority 1 |
+| 8 | Med | `combat_end` HP write-back can revert mid-combat rest healing (`mechanics.js`) | Open |
+| — | Low | 5 cleanup items (tautology, dead `roll-request` event, localStorage cache growth, `findPC` enemy/PC cross-match, save-effect gaps) | Open |
+
+---
+
+## Live-Verification Checklist
+
+This sandbox can't reach Firebase, so code fixes verify via tests/build only; anything
+touching live AI behavior or a real device needs a play check. Confirmed-working items
+drop off this list (with a note in decisions.md).
+
+**Confirmed live:** S60/S61 sync fixes (S62 retest) · S69 Cover AC math (S73 transcript)
+· S70 scroll + XP format (S73 usage, reasonably confirmed).
+
+| Session | What to check in play |
+|---|---|
+| S56-S57 | Partial-message healing; `restoreQuickActions()`; chat name label; attack-roll/crit enforcement (AI reliably emits `roll_request: Attack\|...`, HIT/MISS text reads well) |
+| S62 | Presence badge two-device count; join auto-retry. ~~Character survival on tab-kill~~ → **moved to Audit #2: the merge half of that fix doesn't exist; expect this test to FAIL until Priority 1 lands** |
+| S67 | Action-economy button disable feels right in live combat |
+| S68 | Spend Hit Die button: toast/heal feel, disabled states |
+| S71 | AI stops co-emitting damage:/hp:; companion item type gets used (contract-only) |
+| S72 | 3 scenario buttons land in the intended live situation ("Mid-Combat Turn" writes combatState directly) |
+| S73 | Testing-notes persistence; spell-compendium nav; CharDrawer turn-sync; roll notes |
+| **S74** | **Highest stakes:** multi-round combat with attack rolls — turn indicator advances exactly once per turn; missed attack leaves no stale damage |
+| S75 | CharSheet swipe across all six tabs; scene-transition banner (Go/Stay bundles location/time/chapter; player-stated move skips) |
+| S76 | Re-import the outside-AI character JSON (scores/bio/equipment); equipment picker contents + selection; AI Builder depth |
+| S77 | Compound action ("set traps... then look around") produces two rolls; AI respects roll scope |
+| S78 | Unusual action gets non-default DC after brief pause; Stop during pause prevents roll bar; network hiccup falls back to tier default |
+| S79 | NPC card survives a sync cycle mid-play; presence still correct two-device. *(Audit note: echo detection is still partially broken — reconcile() is what's protecting the UI here, so "looks fine" doesn't prove the echo fix; Audit #1 finishes it)* |
+| S80 | Bundles MVP end-to-end: import (counts, no false warnings), toggle, Compendium Bundles tab, scene-scoped aiGuidance appears in narration, export/delete, two-device missing-bundle prompt. Bundle AI Builder: vague opener gets real brainstorming (not one question then JSON), specific opener still finalizes fast, BUNDLE_JSON extraction reliable |
+
+---
+
+## Session History (detail in decisions.md under the same heading)
+
+| S | One-liner |
+|---|---|
+| S81 | Code audit (13 findings) + coupling/verb-chasing analyses; foundation plan adopted; planning docs restructured; Google-login direction + Rules Depth / World Integrity arcs recorded; **SRD rules ingestion shipped** (34 → 186 rule entries, coverage matrix, seed v5, 8 tests) |
+| S80 | Bundles MVP (Priority #8, closed the sprint list) + AI bundle builder + brainstorming/creative-bar prompt upgrade |
+| S79 | Echo-detection stableStringify + reconcile() at all campaign setStore sites (NPC card closing bug) |
+| S78 | Contextual AI-determined DCs (Priority #4) |
+| S77 | Compound-message roll scope: Survival trap pattern + contract scope clarification + STALE_CONTRACTS migration |
+| S76 | Character JSON import fixes (nested wrappers, silent ability-score loss, equipment); equipment picker contents; AI Builder depth prompt |
+| S75 | CharSheet swipe keyed remount; Scene Transition gate (Priority #5) |
+| S74 | Core loop: combat turn double-advance fix + same-batch roll/hp fabrication rejection |
+| S73 | Four playtest fixes (testing notes persist, compendium nav, CharDrawer turn-sync, roll notes); confirmed S69 Cover live |
+| S72 | Scenario buttons in testing tab |
+| S71 | damage:/hp: co-emission batch rule; companion contract documentation |
+| S70 | Testing tab scroll fix; Testing Notes export; XP test-button format bug |
+| S69 | Cover code-enforced (PC-attacks-enemy path) — closed Priority #1 punch list |
+| S68 | Hit Dice healing fixed at source + Spend button |
+| S67 | Action economy enforcement (button disable + actor-scoped Gate 2) |
+| S63 | Pack contents visible; Bag of Holding weight; combat side drawers |
+| S62 | Presence badge; join auto-retry; char forceSyncNow (union-merge half never landed — see Audit #2) |
+| S61 | Reconnect-triggered flushPending (join failure root cause) |
+| S60 | Three sync-bug fixes (echo v1, startLiveSync arming, presence merge) |
+| S59 | Quick wins: alert()→toast, dead-code sweep |
+| S58 | Presence toggle; CI database-rules deploy (Priority #7); first Firebase-mock tests |
+| S57 | Live 2-device retest; PC attack rolls/crits code-enforced; contested-check contract; nested-field audit (Priority #2) |
+| ≤S56 | See decisions.md (S48 three-phase rolls, S50 multiplayer, S51-S56 rules enforcement + healing) |
 
 ---
 
@@ -72,7 +279,7 @@ The app deploys, renders, navigates. Engine pipeline (sendMsg → extract → va
 ```
 Player declares action
        ↓
-  classifier.js detects skill check
+  classifier.js detects skill check   ← inversion stage 1 replaces regexes with AI call
        ↓
   RollBar shows (skill + DC) — player rolls
        ↓
@@ -81,7 +288,9 @@ Player declares action
   AI narrates the predetermined outcome
 ```
 
-Key files: `src/ai/classifier.js`, `src/ai/engine.js` (sendNarrative, resumeAfterRolls), `src/ui/play/RollBar.jsx`
+Key files: `src/ai/classifier.js`, `src/ai/engine.js` (sendNarrative, resumeAfterRolls),
+`src/ui/play/RollBar.jsx`. This resolve-then-narrate pattern is the model the inversion
+arc generalizes to the rest of the game (`verb-chasing-assessment.md`).
 
 ---
 
@@ -90,70 +299,48 @@ Key files: `src/ai/classifier.js`, `src/ai/engine.js` (sendNarrative, resumeAfte
 | Stub | File | Purpose |
 |------|------|---------|
 | SessionReview | `manage/SessionReview.jsx` | Session archive/review UI |
-| ContentImport | `setup/ContentImport.jsx` | Content import UI |
 | SessionZero | `setup/SessionZero.jsx` | Campaign setup wizard |
-| Modal | `shared/Modal.jsx` | Shared modal component |
-| AppSimple | `AppSimple.jsx` | Child-friendly view |
-| bundles.js | `data/bundles.js` | Shared content packs |
+| Modal | `shared/Modal.jsx` | Shared modal component (blocks replacing the 2 native confirm() calls — S59) |
+| AppSimple | `ui/AppSimple.jsx` | Child-friendly view |
 | migrate.js | `data/migrate.js` | State version migration |
 | elevenlabs.js | `audio/elevenlabs.js` | ElevenLabs TTS |
+
+*(Removed S81: `data/bundles.js` and `setup/ContentImport.jsx` — fully built in S80.)*
 
 ---
 
 ## Not Yet Built
 
-- Multiplayer identity system
 - Push notifications (Web Push + FCM)
-- Multi-device real-time sync verification
-- Shared content bundles
 - Visual tile map (combat phase 2)
-- Web/markdown/JSON content parsers
-- Episode/module tracking system
-- Pre-built class progression downloads
+- PDF/epub/web content parsers (JSON import + `adventureParser.js` exist; other formats don't)
+- Episode/module tracking system (mechanic + `moduleProgress` exist; no real spec — see decisions.md Open Questions)
+- SPELL_DB expansion past Level 2 (player request — pickers empty past ~level 5)
+- Inline NPC name linking (player request — `sourceBus.js` infra exists)
+- Quest log UX refresh (player request — needs design)
+
+*(Removed S81 as built: multiplayer identity (S50), multi-device sync verification
+(S57/S62), shared content bundles (S80). Pre-built class progressions now ship in
+`data/level-up-*.json`.)*
 
 ---
 
-## Known Issues
+## Known Issues (open bugs & gaps, non-verification)
 
-- ~~Classifier DCs are standard tiers (10/13/15) — not context-aware yet~~ — done (S78), see ✅ bullet below
-- Classifier doesn't handle combat attacks or saving throws (those go through existing flow)
-- Charmed, Deafened, and part of Grappled have no roll-time enforcement (cosmetic only) — no data exists to determine which checks "require hearing/sight" or who a PC's grappler is; see decisions.md "Rules Enforcement (S52)"
-- This sandboxed environment can't reach Firebase, so code fixes are normally verified via `npm test`/`npm run build` only. Still unverified live: S56's partial-message healing fixes, S56's mechanics-pipeline fixes, S57's `restoreQuickActions()`/chat-name-label fixes, S57's PC attack-roll/Critical Hits enforcement (needs a live combat session to confirm the AI reliably emits `roll_request: Attack|...` and the HIT/MISS/damage text reads well), S62's presence badge (two-device session — confirm count updates off the other player's toggle), S62's join auto-retry (confirm 3s retry fires when host write is still propagating), S62's character union merge (tab-kill test — add a character, tab out immediately, reload, confirm it survived), S67's action-economy button-disable (needs a live combat turn to confirm disabled quick-action buttons look/feel right, not just that the logic is correct), S68's Spend Hit Die button (needs a real short rest to confirm the toast/heal feels right and the button's disabled states make sense in practice), S71's damage/hp co-emission fix + companion contract nudge (confirm the AI actually stops co-emitting damage:/hp: in play, and that it starts using the companion item type for recurring NPCs — contract wording changes don't guarantee AI compliance, only code enforcement does, and this one is contract-only for the companion part), S72's three scenario buttons (confirm each actually lands you in the intended live situation and doesn't error — "Mid-Combat Turn" in particular writes combatState directly, bypassing the normal mechanics pipeline), and S73's four fixes (Testing Notes persistence, spell-compendium nav, CharDrawer turn-sync, roll notes — all UI/plumbing changes with no automated coverage). **S74's combat-turn-loop fix is the highest-stakes unverified item this sprint** — it touches the core combat loop directly; needs a real multi-round combat encounter with at least one attack roll to confirm the turn indicator advances exactly once per turn (not twice) and that a missed attack no longer leaves stale pre-resolved damage on the target. S75's CharSheet swipe fix needs a phone check across all six tabs (swipe between PCs on each tab and confirm the data updates without switching tabs). S75's Scene Transition gate needs a phone check too (trigger a scene change, confirm the widened Go/Stay banner and the player-stated-move auto-skip both behave as designed). S76's three fixes need real-device verification: re-import the exact JSON from that session and confirm ability scores/bio/equipment all come through correctly, tap through the equipment picker to confirm the contents display and selection feel right, and have an actual conversation with the AI Builder to judge whether the creative-depth prompt change reads richer in practice (a prompt change's effect can only really be judged by using it). S77's classifier/contract fix needs a real compound-action message ("set traps... then look around" or similar) to confirm both the Survival pattern match and that the AI actually respects the new scope wording instead of still treating the whole message as resolved by one roll. S78's contextual-DC feature needs a real phone check too: an unusual action should get a plausibly different DC after a brief pause (not the flat tier default), tapping Stop during that pause should prevent the roll bar from appearing at all, and a network hiccup should still produce a working roll bar rather than hanging. **S79's echo-detection/reconcile() fix touches the core sync path used by every session, solo and multiplayer** — needs real confirmation: open an NPC card mid-play and confirm it survives a normal sync cycle without closing itself, and if a second device is available, confirm presence still displays correctly on both sides after this change. S60's three sync-bug fixes and S61's reconnect-triggered `flushPending()` fix are confirmed live-working as of S62's production retest. **S80's bundles MVP is entirely unverified live** (first real use of this feature) — needs a real device check: import a hand-authored bundle JSON, confirm it appears in Settings' Content Bundles section with correct content counts and no false warnings/errors, toggle it active and confirm its NPC/location content is reachable via the Compendium's new Bundles tab, confirm scene-relevant `aiGuidance` actually shows up in AI narration when the party is in a matching location, confirm Export/Delete both work as expected, and — if a second device is available — confirm the "campaign uses a bundle you don't have" prompt correctly appears on a device that hasn't imported it and clears once it does. **S69's Cover enforcement is now confirmed live-working (S73)** — a real combat encounter showed the AC math (13 base + 2 cover = 15) correctly applied to an attack roll. **S70's scroll fix and XP-format fix are reasonably confirmed** — the user used the testing tab extensively (scenarios, notes, export) without a scroll complaint, and the mass-test XP mechanic showed the corrected `Name+amount` format applying successfully.
-- `dbWrite()` still never surfaces a write failure to its caller — `shareInvite()` and any other `await dbWrite(...)` site can't distinguish "synced" from "queued, will retry on reconnect." S61 fixed the retry timing gap but didn't add a failure signal; a host who shares a link while genuinely offline (not just a transient blip) still sees a normal-looking "Link copied!" with no indication the guest will hit "Campaign not found" until reconnect. Not pursued — flagged as a possible follow-up, not yet asked about.
-- NPC ally presence: no indicator in ContextBanner/presence roster to distinguish "Fenwick (NPC)" from "Nyx (PC)" — the `npcName` is stored but not yet surfaced in the play UI presence display
-- Automatic "AI introduced a new NPC but forgot npc_add" drift detection is spec'd (`enforcement-spec.md` Gate 5) but was never implemented in the actual `runGate3` — a narrower pattern exists in `drift.js` but only matches explicit self-introduction phrasing ("I'm Name"), missing purely descriptive introductions. Found via S71's playtest audit; user explicitly deferred building a real detector to its own session (real false-positive risk in any name-detection heuristic), so contracts.js was updated instead to at least tell the AI about the existing `companion` item type and reinforce `npc_add` — reduces how often this happens, doesn't catch it automatically when the AI still forgets.
-- ✅ Gate 8 (`missing_xp`) click handler — now tappable (S65)
-- ✅ `roll-request` CustomEvent orphaned in CharDrawer/CharSheet — now routes to `prefill-input` (S65)
-- ✅ Combat tracker auto-closing — removed auto-minimize entirely (S66)
-- ✅ Undo button overlap — moved into input row as icon button (S66)
-- ✅ Dice tab unreachable in combat — d20 always opens QuickActions now (S66)
-- ✅ Combat card no dismiss button — `−` added to TurnPrompt header (S66)
-- ✅ GuestCharPick NPC ally path — three-path flow shipped (S66)
-- ✅ Action economy code-level enforcement — `TurnPrompt` quick-action buttons now disable once their econ slot is spent; Gate 2 prose scan scoped to the current actor (S67)
-- ✅ Hit Dice healing on Short Rest — `hit_dice_use` now actually heals (was silently broken via a dead `roll_request`); "Spend" button added to CharSheet Vitals tab (S68)
-- ✅ Cover doing nothing mechanically — `cover` mechanic now also targets enemies in initiative, `RollBar.jsx`'s Attack AC check reads it (S69, PC-attacks-enemy direction only)
-- ✅ Testing tab couldn't scroll to the bottom — `.mechtest`'s `max-height` was too tall for its slot, clipped by an ancestor's `overflow: hidden`; matched the working sibling drawer's `46vh` (S70)
-- ✅ No way to send a review with test state — Testing Notes textarea added to the testing tab's Export section, bundled into the existing Copy/Download JSON (S70)
-- ✅ Testing tab's XP quick-fire/mass-test buttons silently did nothing — sent `xp: 75` instead of the required `xp: PCName+75` format, `applied: true` masked the no-op. Found via the very first real use of the S70 export/review workflow. Fixed both button templates, added regression tests (S70)
-- ✅ `damage:` + `hp:` co-emitted for the same PC could silently override damage's correctly-clamped HP with an unrelated number (found via a real playtest transcript audit — a fungal guardian's hit "healed" the PC from 0 to 4 with zero narrative mention) — `validateMechanics()` now rejects the redundant `hp:` (S71)
-- ✅ No way to deliberately test one specific mechanic solo — added a "Scenarios" section to the testing tab: 3 one-tap buttons that drop the player into a live situation built around one recently-shipped feature (Cover, Hit Dice, Action Economy), curated per session (S72)
-- ✅ Testing Notes didn't persist across closing the testing tab — moved from a local component signal to `store.system.testerNotes`, persisted like `largeText`/`theme` (S73)
-- ✅ Spell drawer's "Open Compendium" landed on Journal instead of the Spells sub-tab — now calls the already-correct `navigateToCompendium('spells')` (S73)
-- ✅ Character-vitals side drawer stayed on a stale PC during combat instead of following whose turn it was — now syncs to the current actor, same derivation `TurnPrompt.jsx` uses (S73)
-- ✅ No way to attach a message to an AI-initiated roll — optional note field added to the roll bar for that specific path (the classifier pre-send path already carries the player's typed action forward) (S73)
-- ✅ Combat turn pointer double-advanced whenever a mid-combat roll was requested, desyncing the turn indicator from actual play — `sendNarrative()` now holds the advance until the current actor's pending roll resolves (S74)
-- ✅ An NPC's HP could be resolved before the roll that was supposed to determine it came back, with no correction if the roll missed — `validateMechanics()` now rejects a co-emitted `hp:`/`damage:` for the exact target of a same-batch `roll_request` (S74)
-- ✅ Character sheet showed stale data after swiping between PCs unless you also switched tabs — all six tabs now remount on an actual PC swipe via a keyed `<Show>` (S75)
-- ✅ Scene transitions (location/time/new chapter) applied instantly with no confirmation, contrary to the enforcement spec — extended the existing location-only hold-and-confirm pattern to time and chapter_add, widened the "Move to X?" banner to cover all three (S75)
-- ✅ Character JSON import from an outside AI left bio fields blank/garbled and silently discarded the character's real ability scores — normalizer now flattens nested wrapper objects and bio fields, `forge.js` no longer treats an empty-but-truthy abilityScores object as "provided," imported equipment now populates inventory directly instead of being discarded (S76)
-- ✅ Equipment picker never showed what was actually in each option (bare labels only) and the selected state was easy to miss — now shows item contents per option and a clearer checkmark/border on selection (S76)
-- ✅ In-app AI Builder felt too shallow compared to an outside AI — system prompt now requires a genuine creative detail from the player before finalizing and explicitly targets non-generic bio writing (S76, prompt-only change)
-- ✅ One classified skill roll for one clause of a compound player message ("set traps... then look around") silently governed the whole message's outcome — added the missing Survival pattern for trap/snare-setting, and clarified in the DM's contract that a classified roll only resolves the specific action it covers (S77)
-- ✅ Classifier's skill checks always used a flat DC tier (10/13/15/18) regardless of fictional context — a small AI call now determines a contextual DC before the roll bar appears, falling back to the tier default on any failure/timeout/Stop tap (S78)
-- ✅ NPC info in the Journal closed immediately on open — traced to a foundational sync bug: echo detection (`isEcho`) was silently broken by RTDB's key-reordering vs. `JSON.stringify`'s key-order sensitivity, and no cloud-merge call site used Solid's `reconcile()`, so unnecessary re-merges tore down and remounted keyed lists over campaign data. Fixed both; verified against the existing two-device sync test suite that multiplayer presence merging is untouched (S79)
-- ✅ Bundles (`data/bundles.js`/`ContentImport.jsx`) were one-line stubs since S58 with no real design — shipped a full MVP: bundle JSON schema/validator, IndexedDB storage, import/export/delete/replace, a synced `activeBundles` ref-list (id-keyed, timestamp-merged like `presence` — a plain array union would have let a deactivated bundle never actually stay deactivated), scene-scoped AI-context injection mirroring `rules.js`'s budget discipline, and UI in Settings + a new Compendium Bundles tab (S80)
-- ✅ Bundles could only be authored externally (hand-written or via an outside AI) — added an in-app "Build with AI" conversational option (`BUNDLE_BUILDER_SYSTEM`, mirroring `CharCreate.jsx`'s AIBuilder), whose output runs through the exact same `validateBundle()` preview/confirm gate as file import — no new validation surface (S80)
-- ✅ The Bundle AI Builder's first version rushed to finalize instead of supporting brainstorming, and lacked the creative-depth bar `CHAR_BUILDER_SYSTEM` has — rewrote `BUNDLE_BUILDER_SYSTEM` to offer real brainstorming for a vague ask (options, back-and-forth, no early-finalize pressure) and added a per-content-type creative floor matching the character builder's CREATIVE FIELDS bar (S80)
+- Audit findings #1-#8 — see table above; highs are Priority 1.
+- Charmed, Deafened, part of Grappled: no roll-time enforcement (cosmetic) — no data for
+  "requires hearing/sight" or grappler identity (decisions.md "Rules Enforcement (S52)").
+- Classifier doesn't handle combat attacks or saving throws (by design — existing
+  roll_request flow covers them).
+- `dbWrite()` never surfaces write failure to callers — "Link copied!" can show while
+  genuinely offline (S61 follow-up, never pursued).
+- NPC ally presence: `npcName` stored but not surfaced in the presence roster.
+- Gate 5 "AI forgot npc_add" detection spec'd but unbuilt; `drift.js` only matches
+  self-introduction phrasing (S71 — user deferred; false-positive risk needs its own session).
+- Spell-resolution-type validation gap: `roll_request` type isn't checked against how the
+  cast spell actually resolves (S77 Animal Friendship; needs a lookup table).
+- Multi-attack PCs always use `pc.attacks[0]` (no weapon selection — S57 follow-up).
+- PC-side `coverBonus`/badge inert (S69 scoped cover to the enforced attack direction only).
 
 ---
 
@@ -161,6 +348,9 @@ Key files: `src/ai/classifier.js`, `src/ai/engine.js` (sendNarrative, resumeAfte
 
 | File | When to Read |
 |------|-------------|
+| `audit-2026-07-02.md` | Fixing any Priority-1/audit item — findings with file:line + suggested fixes |
+| `ruleset-coupling-analysis.md` | Content-as-data work (class tables, quickBuild extraction, bundle content types) |
+| `verb-chasing-assessment.md` | Inversion stages (classifier, structured mechanics, two-phase turns) |
 | `ui-specs-v2.md` | Building/modifying CharSheet, Cargo, Treasury, Journal, Combat UI |
 | `chat-system-spec-v2.md` | Working on chat, streaming, message types, overlays |
 | `enforcement-spec.md` | Working on mechanics gates (9 gates) |

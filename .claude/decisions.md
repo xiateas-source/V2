@@ -351,6 +351,16 @@ Guest character Nyx disappeared after user tabbed out on iOS. iOS kills JS befor
 | `forceSyncNow()` after all CharCreate commit/remove paths | Primary fix: get characters into Firebase before the user can tab out, bypassing the 3s debounce. Immediate sync here is correct — adding a character is a discrete intentional event, not a streaming field change like location or HP. |
 | No change to the general 3s sync debounce | The debounce exists for high-frequency fields (every narrative message, every HP tick in combat) — tuning it down globally would burn Firebase quota. Character changes are rare enough that immediate sync is the right exception. |
 
+> **Correction (S81 audit):** only half of this entry is in the codebase. The
+> `forceSyncNow()` calls in CharCreate exist (verified, 5 call sites). The union-merge
+> in `mergeCampaign()` **never landed** — `git log --all -S mergeCharacters` finds zero
+> commits ever, and the cited commit `75c693f` doesn't exist in history. Cloud
+> `characters` still wholesale-replaces local on merge, so the safety net described
+> above is absent and the original tab-kill data-loss window is still open (narrower,
+> thanks to the forceSyncNow half). Tracked as audit finding #2, workboard Priority 1.
+> S80's implementation notes independently noticed the citation drift without realizing
+> the fix itself was missing.
+
 ## Action Economy enforcement (S67)
 
 Workboard gap: `combatState.actionsUsed` flags existed but nothing checked them — Gate 2 was pure prose-regex counting over the *whole* AI response, with no persistence across the turn.
@@ -624,6 +634,48 @@ User resolved the remaining forks directly: keep maps text/metadata-only for thi
 **Follow-up, same session: AI-assisted bundle drafting.** User asked whether the AI could generate bundles, correctly flagging (then self-correcting) which Law was actually in tension — not Law 2 (the container-is-the-contract mechanics pipeline governs *live state* changes during play; bundles are setup-time *content*, the same category as character creation, which already has its own non-mechanics-pipeline validator) but Law 5 (zero cost to play — generating a bundle spends a real API call against the player's configured provider, same cost model as chat/character-building, not a new expense category but not free either). Found an even closer existing precedent than the character builder while scoping this: `ai/setupPrompts.js`'s `CONTENT_STRUCTURING_SYSTEM` (used in `CampaignConfig.jsx`) already turns raw text into structured `npcs`/`locations`/`encounters` JSON for campaign chapters — this makes a Bundle Builder the third instance of the same pattern, not a new one. Shipped: `BUNDLE_BUILDER_SYSTEM` (new prompt, scoped to one focused piece of content per conversation — depth over breadth, matching the deliberate MVP narrowing already established for bundles) and a `BundleAIBuilder` component in `ContentImport.jsx`, mirroring `CharCreate.jsx`'s `AIBuilder` exactly (streaming chat via `callProvider`, a fenced `BUNDLE_JSON` block extracted by regex). Critically, the AI path never gets a trusted write of its own — its output is handed to the same `handleGenerated()`/`validateBundle()` preview-and-confirm flow the file-import path already uses, so no new validation surface was added. No new tests (UI/prompt-only change, no new testable pure logic — matches this codebase's established precedent for AIBuilder-shaped components). **Not live-verified** — needs a real conversation to judge whether the drafted content reads well and the BUNDLE_JSON extraction is reliable in practice.
 
 **Second follow-up, same session: brainstorming support + creative-depth bar.** User asked directly whether this AI is as "smart"/creative as the character builder — honest answer: same underlying model, but the shipped prompt was thinner than `CHAR_BUILDER_SYSTEM`'s (which got a real upgrade in S76 after the user found it "too Simple"). User's follow-up sharpened the actual gap: "a user may want to brainstorm and flesh out an idea" — the original prompt read as eager to finalize after 1-2 narrow questions, not built for a player who wants to explore before committing. Rewrote `BUNDLE_BUILDER_SYSTEM` with two additions, both modeled directly on `CHAR_BUILDER_SYSTEM`'s existing bar rather than inventing a new standard: (1) explicit brainstorming support — a vague/exploratory ask gets 2-3 concrete directions and open-ended back-and-forth, not a single narrowing question, and finalizing only happens once the player has a real idea in hand and hasn't signaled they want to keep exploring (mirrors "players who just want the mechanics fast can say so... respect that," in the opposite direction — brainstormers get room, rushers get speed); (2) a per-content-type CREATIVE BAR paralleling `CHAR_BUILDER_SYSTEM`'s CREATIVE FIELDS section (NPCs need a memorable trait/secret, locations a distinct atmospheric detail, encounters a twist, hooks a concrete unresolved stake, guidance/tools something actually actionable), with the same explicit "never write bland or interchangeable filler" instruction. Prompt-only change, no UI change needed — `BundleAIBuilder`'s chat loop already supported unlimited back-and-forth; this was always a prompt problem. No new tests (matches the S76 `CHAR_BUILDER_SYSTEM` precedent — prompt rewrites don't get test coverage). **Not live-verified** — needs a real conversation: a vague opener should get real brainstorming options rather than one question then a JSON block, and a rich specific opener should still finalize quickly without forced back-and-forth.
+
+## Foundation plan adopted — audits, no V3, inversion arc (S81)
+
+S81 was a docs-only audit session on branch `claude/app-code-audit-e2e7hj` (no `src/`
+changes). Three analysis docs were produced and the user adopted the plan they converge
+on; the workboard's Priorities section is the operational version.
+
+| Decision | Rationale |
+|----------|-----------|
+| No V3 rewrite | A rewrite is justified when the foundation is wrong; V2's chassis (sync, persistence, ownership, pipeline, UI, 80 sessions of live testing) is sound. The problems found are localized: sync-layer bugs (fixable), content trapped in code (extractable), and the narrate-first prose-policing layer (~800 lines, convertible path-by-path). See `verb-chasing-assessment.md`. |
+| Rules engine stays 5e-specific **by design**; content becomes fully data | Option (b) of `ruleset-coupling-analysis.md`. Law 2 enforcement works *because* code knows the rules it enforces; a generic rules interpreter would re-earn every playtest-won behavior at interpreter level (25-40 sessions, no payoff this table wants). The actual prime-directive promise — portable *content* — is half-built already (level-up JSONs, spells, feats, bundles) and cheap to finish. prime-directive.md amended to say this plainly. |
+| Verb-chasing (regex prose-policing) is the symptom; narrate-first is the cause | ~40 regex families across drift.js/gates.js/classifier.js exist only because streamed prose is the source of truth and structure is extracted/audited after. The S48 roll flow (resolve-then-narrate) is the proven better pattern — no gate polices it. |
+| Inversion arc: stages 1-2 committed, stages 3-4 planned-not-scheduled | Stage 1 (classifier → merged AI classify+DC call) and stage 2 (structured JSON mechanics channel) are cheap (3-5 sessions), retire two recurring bug categories (S77-class pattern gaps; extraction/format drift), and don't destabilize combat. Stages 3-4 (two-phase turns) wait for playtest pressure. Gates stay on as safety net throughout and shrink only after live verification. |
+| Sequencing: audit fixes → class-table unification → live-verify S74-S80 → inversion 1-2 → reassess | Sync correctness first (it's under everything); verify current combat behavior in play *before* changing how turns are produced, or regressions can't be attributed. |
+| Firebase rules hardening: direction is **Google login + member scoping** (confirmed S81, same session) | Audit #4: `auth != null` grants every anonymous user read/write to all campaigns and other players' pointers. The user confirmed a pre-existing plan — never previously written into any doc — to add Google sign-in ("everyone has it"). Plan shape: anonymous auth stays for zero-friction first-run (Law 5 / just-open-and-play); linking to Google via Firebase account-linking preserves the same uid, so existing campaigns need no migration and identity survives browser-data loss (a latent risk today: a host losing their anonymous uid orphans every campaign under it). Multiplayer share/join requires linked identity; campaign rules scope to a member list. Open sub-questions: link-auto-join vs host approval; revocable membership. |
+
+Also this session: workboard restructured (per-session "Latest" paragraphs → one-line
+history table; verification backlog → checklist; audit findings table added), the S62
+character-merge entry above got a correction note (the union-merge half never landed —
+audit finding #2), and `ai-failures.md` gained the out-of-combat re-classification gap.
+Docs produced: `audit-2026-07-02.md` (4 high / 4 medium / 5 low findings),
+`ruleset-coupling-analysis.md`, `verb-chasing-assessment.md`.
+
+## SRD Rules Ingestion — "the machine reads the book" (S81, same session)
+
+User's constraint, verbatim: "I need the game to know the rules because I am so
+ignorant of them — half the time I don't even know to ask." Playtest-driven rule
+addition can't work at a table where nobody knows the rules; coverage must come from
+the book itself. User supplied SRD 5.2 markdown (CC-BY-4.0); shipped same-session.
+
+| Decision | Rationale |
+|----------|-----------|
+| `scripts/build-rules.js` regenerates `data/rules.json` (186 entries) + `.claude/rules-coverage.md` from `scripts/srd/` sources | Same pipeline shape as the existing `build-spells.js` precedent. The matrix is generated, not hand-maintained — status lives in one STATUS map in the script, so data and doc can't drift apart. |
+| Every entry triaged into enforce/partial/gap/inject/reference | "Inject" (117 entries) = scene-scoped prompt injection via the existing `rules.js` budget mechanism; "reference" (26 meta terms like Campaign/Alignment) never spends prompt tokens but stays Compendium-browsable; 14 "gap" rows are the enforce-candidate punch list for the Rules Depth / World Integrity arcs. |
+| SRD wins over curated entries on collision (16 dropped) | **Edition-drift discovery**: the curated file taught 2014 rules the code doesn't enforce — Exhaustion's six-tier table vs. the enforced 2024 -2/level, 2014 Surprise (lose first turn) vs. 2024 (initiative disadvantage), 2014 Grappling/Shoving contests vs. 2024 saves. The AI's reference text now matches the code's behavior. Curated entries with no SRD equivalent (When to Roll, DC Guidelines, contested-check flow, etc.) kept — they're app craft, not book rules. |
+| Curated source preserved at `scripts/srd/curated-rules.json` | The drop list lives in the build script (auditable, reversible), not applied destructively to the source. |
+| Grid-play sidebar deliberately excluded | This game is zone-based; injecting square-counting rules would mislead the narrator. Documented in the build script. |
+| Seed v4→v5 clears + reseeds `compendium` | The store auto-increments ids; bare putAll would duplicate entries (pullRules dedupes by name at read time, but the Compendium tab would show doubles). |
+
+8 new tests guard the generated file's contract with its consumers (contexts
+vocabulary, CORE_RULES pinning, no HTML remnants, per-entry token cap, edition-drift
+guard). 133/133 passing. **Not live-verified** — see workboard.
 
 ## Open Questions (not yet answered)
 

@@ -6,13 +6,27 @@ The AI runs the game. The app constrains the AI.
 
 ---
 
-## Content Is Portable
+## Content Is Portable — The Engine Is 5e
 
-The system ingests any game content — uploaded files (PDF, epub, mobi), web references, homebrew, or AI-generated imports. Four input paths:
-1. **Files** — PDF, epub, mobi → parse → structured data → game engine
+*(Amended S81 to match reality and intent — see `ruleset-coupling-analysis.md`.)*
+
+**The rules engine is D&D 5e SRD by design, not by accident.** Law 2 enforcement works
+*because* the code knows the rules it enforces — death saves, concentration DCs, action
+economy, cover math are code, and they stay code. A generic rules interpreter would trade
+away the enforcement guarantees this project exists to provide. "Hardcoded compendiums
+didn't scale" (V1) was about *content* in code, not rules in code.
+
+**Content, by contrast, is data — all of it.** The system ingests game content —
+uploaded files, web references, homebrew, or AI-generated imports. Four input paths:
+1. **Files** — parse → structured data → game engine
 2. **Web reference** — import from open reference sites
 3. **Homebrew** — author directly in-app or markdown
 4. **AI-generated** — design on any LLM, export JSON, import
+
+The bar: adding a race, background, subclass, spell, item, or adventure never requires a
+code change. (Partially met as of S81 — spells/feats/class progressions/bundles are data;
+races/backgrounds/equipment still live in `quickBuild.js`. Closing that gap is on the
+workboard.)
 
 System data (spells, classes, feats, settings) survives campaign swap. Campaign data (PCs, world, NPCs, quests, chat, combat) resets cleanly.
 
