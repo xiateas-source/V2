@@ -68,9 +68,15 @@ Order matters — each step de-risks the next.
   import path; 1-2 sessions) — `ruleset-coupling-analysis.md` steps 3-4.
 - Audit medium findings #5 (mid-stream failover duplication), #6 (mid-combat initiative
   re-sort breaks turn pointer), #8 (combat_end can revert mid-combat rest healing).
-- **Firebase rules hardening (audit #4) — needs a user decision on the sharing model
-  first.** Minimum change (`players/$uid` writes restricted to own uid) is safe to do
-  any time; full campaign-member scoping needs design.
+- **Firebase rules hardening (audit #4) — direction chosen S81: Google login.** The
+  user confirmed a pre-existing (previously undocumented) plan to add Google sign-in.
+  Recommended shape: keep anonymous auth for frictionless first-run, offer "link your
+  Google account" via Firebase account-linking (preserves the same uid — no campaign
+  migration), require linked identity for multiplayer share/join, then scope campaign
+  rules to a member list written at share/join time. Minimum fix (`players/$uid` writes
+  restricted to own uid) is safe to do immediately regardless. Still open: whether
+  anyone-with-link auto-joins as a member vs. host approval, and whether membership is
+  revocable. ~1-2 sessions.
 
 ---
 
