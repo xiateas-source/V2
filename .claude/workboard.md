@@ -163,53 +163,42 @@ secrets write path missing.
 
 ---
 
-## Proposed (S81, can start anytime — data/docs only, no engine risk): SRD Rules Ingestion + Coverage Matrix
+## ✅ DONE (S81): SRD Rules Ingestion + Coverage Matrix
 
 The user's core constraint, stated directly: **"I need the game to know the rules
 because I am so ignorant of them — half the time I don't even know to ask."**
 Playtest-driven rule addition can't work when nobody at the table knows a rule is
-missing. The strategy flips: **the machine reads the book.**
+missing. The strategy flipped: **the machine reads the book.** Built same-session:
 
-The user supplied SRD 5.2 source (CC-BY-4.0 — legal to ship with attribution), now in
-the repo: `scripts/srd/playing-the-game.md` (core procedures: travel pace, vision/
-light, hiding, object interaction, social attitudes, combat structure, death, rests)
-and `scripts/srd/rules-glossary.md` — **154 discrete `#### Term` rule definitions**
-(every action/condition/hazard, cleanly tagged), which is exactly the retrieval-unit
-shape `ai/rules.js`'s scene-scoped injection already consumes. Current `data/rules.json`
-has only 34 hand-written summaries; the glossary replaces guessed summaries with the
-actual book. The `scripts/build-spells.js` → `data/spells.json` pipeline is the
-established precedent for SRD-markdown → data.
+- **`scripts/build-rules.js`** parses the user-supplied SRD 5.2 sources
+  (`scripts/srd/rules-glossary.md` — 154 definitions; `playing-the-game.md` — 13
+  procedure sections) + the app-authored entries (`scripts/srd/curated-rules.json`,
+  moved from `data/rules.json`) → regenerates **`data/rules.json`: 186 entries**
+  (was 34 hand-written summaries) and **`.claude/rules-coverage.md`** (the matrix:
+  24 enforced · 5 partial · 14 gap · 117 inject · 26 reference-only). CC-BY-4.0
+  attribution added (`data/ATTRIBUTION.md`).
+- **16 curated entries dropped as superseded — several carried 2014-edition rules
+  contradicting what the code enforces** (old Exhaustion six-tier table vs. the
+  enforced 2024 -2/level; 2014 Surprise/Grappling/Shoving/Hide). The AI was being
+  taught rules the app doesn't play by; now the injected text matches the code.
+- Seed migration v4→v5 (`seed.js`: clear + reseed `compendium`) so existing devices
+  pick it up. 8 new tests (`tests/rules-data.test.js`) guard the generated output's
+  contract with `rules.js` and the Compendium, including an edition-drift guard.
+  133/133 passing, build clean.
+- Compendium's Rules tab reads the same store — all 186 entries are player-browsable
+  with zero UI changes.
+- **Not live-verified**: needs a play check that scene-relevant rules actually
+  surface (e.g. inspect a magic item → the Study/identification text appears in the
+  AI's ruling; travel → pace rules), that the fuller entries don't crowd the 1500-
+  token budget in practice, and that the Compendium Rules tab renders the longer
+  entries acceptably on a phone.
 
-Plan (1-2 sessions ingestion + 1 session triage):
-1. **Ingest**: build script parses the glossary's 154 entries (+ the chapter's
-   procedure sections) → expanded `data/rules.json` with context tags
-   (combat/exploration/social/rolling/downtime/any) and family tags
-   ([Action]/[Condition]/[Hazard]).
-2. **Triage every entry into buckets** (done by Claude reading the book, not by the
-   user knowing to ask): **Enforce** (code says no — feeds the Rules Depth / World
-   Integrity punch lists), **Inject** (rules.js shows the AI the rule when relevant),
-   **Reference** (Compendium + Ask DM, tap-to-source per Law 4). Most entries are
-   Inject+Reference; a minority earn Enforce.
-3. **Coverage matrix** (`.claude/rules-coverage.md`): rule → bucket(s) → status.
-   Makes "what does the game know?" a checkable inventory instead of vibes; every
-   future player call-out becomes a row lookup (bug or upgrade), not a surprise.
-
-Enforcement gaps already found just by reading these two files against the code
-(proof the method finds what nobody would know to ask): **Surprise** (disadvantage on
-initiative — untracked); **ranged attacks within 5 ft** (disadvantage — zones could
-approximate); **travel pace** (fast/normal/slow distances + Perception/Stealth
-effects — feeds World Integrity's clock); **light/vision** (dim = disadvantage on
-sight-Perception, darkness = Blinded — this SRD text IS the "which checks require
-sight" data the S52 known-issue said didn't exist); **Knocking Out a Creature**
-(reduce to 1 HP unconscious instead of 0 — unmodeled); **Stable** condition
-(unmodeled; 1d4h → 1 HP); **damage at 0 HP from a crit = TWO death-save failures**
-(`applyDamage` adds one regardless); **jump distances**; **Influence/attitude
-alignment** (NPC disposition → Friendly/Indifferent/Hostile per the book);
-**Bloodied** (half HP — trivial to surface). Exhaustion (-2/level) and massive damage
-already match the 2024 rules ✅.
-
-Later chapters (spells past L2, equipment, monsters → the Rules Depth bestiary) ride
-the same pipeline.
+The matrix's **14 ⚠ gap rows** are the enforce-candidate punch list feeding the Rules
+Depth / World Integrity arcs (Surprise → initiative disadvantage; Travel Pace;
+light/vision; Knocking Out; Stable; death-save-from-crit = 2 failures; Bloodied;
+jumping; Grappling escape; Charmed/Deafened; Influence attitudes; Carrying Capacity
+hard cap). Later chapters (spells past L2, equipment, **monsters → the Rules Depth
+bestiary**) ride the same pipeline.
 
 Full detail with file:line and fixes in `audit-2026-07-02.md`. Status here.
 
@@ -259,7 +248,7 @@ drop off this list (with a note in decisions.md).
 
 | S | One-liner |
 |---|---|
-| S81 | Code audit (13 findings) + ruleset-coupling analysis + verb-chasing assessment; foundation plan adopted; planning docs restructured. Docs-only — no src/ changes |
+| S81 | Code audit (13 findings) + coupling/verb-chasing analyses; foundation plan adopted; planning docs restructured; Google-login direction + Rules Depth / World Integrity arcs recorded; **SRD rules ingestion shipped** (34 → 186 rule entries, coverage matrix, seed v5, 8 tests) |
 | S80 | Bundles MVP (Priority #8, closed the sprint list) + AI bundle builder + brainstorming/creative-bar prompt upgrade |
 | S79 | Echo-detection stableStringify + reconcile() at all campaign setStore sites (NPC card closing bug) |
 | S78 | Contextual AI-determined DCs (Priority #4) |

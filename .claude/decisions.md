@@ -657,6 +657,26 @@ audit finding #2), and `ai-failures.md` gained the out-of-combat re-classificati
 Docs produced: `audit-2026-07-02.md` (4 high / 4 medium / 5 low findings),
 `ruleset-coupling-analysis.md`, `verb-chasing-assessment.md`.
 
+## SRD Rules Ingestion — "the machine reads the book" (S81, same session)
+
+User's constraint, verbatim: "I need the game to know the rules because I am so
+ignorant of them — half the time I don't even know to ask." Playtest-driven rule
+addition can't work at a table where nobody knows the rules; coverage must come from
+the book itself. User supplied SRD 5.2 markdown (CC-BY-4.0); shipped same-session.
+
+| Decision | Rationale |
+|----------|-----------|
+| `scripts/build-rules.js` regenerates `data/rules.json` (186 entries) + `.claude/rules-coverage.md` from `scripts/srd/` sources | Same pipeline shape as the existing `build-spells.js` precedent. The matrix is generated, not hand-maintained — status lives in one STATUS map in the script, so data and doc can't drift apart. |
+| Every entry triaged into enforce/partial/gap/inject/reference | "Inject" (117 entries) = scene-scoped prompt injection via the existing `rules.js` budget mechanism; "reference" (26 meta terms like Campaign/Alignment) never spends prompt tokens but stays Compendium-browsable; 14 "gap" rows are the enforce-candidate punch list for the Rules Depth / World Integrity arcs. |
+| SRD wins over curated entries on collision (16 dropped) | **Edition-drift discovery**: the curated file taught 2014 rules the code doesn't enforce — Exhaustion's six-tier table vs. the enforced 2024 -2/level, 2014 Surprise (lose first turn) vs. 2024 (initiative disadvantage), 2014 Grappling/Shoving contests vs. 2024 saves. The AI's reference text now matches the code's behavior. Curated entries with no SRD equivalent (When to Roll, DC Guidelines, contested-check flow, etc.) kept — they're app craft, not book rules. |
+| Curated source preserved at `scripts/srd/curated-rules.json` | The drop list lives in the build script (auditable, reversible), not applied destructively to the source. |
+| Grid-play sidebar deliberately excluded | This game is zone-based; injecting square-counting rules would mislead the narrator. Documented in the build script. |
+| Seed v4→v5 clears + reseeds `compendium` | The store auto-increments ids; bare putAll would duplicate entries (pullRules dedupes by name at read time, but the Compendium tab would show doubles). |
+
+8 new tests guard the generated file's contract with its consumers (contexts
+vocabulary, CORE_RULES pinning, no HTML remnants, per-entry token cap, edition-drift
+guard). 133/133 passing. **Not live-verified** — see workboard.
+
 ## Open Questions (not yet answered)
 
 - **Child-friendly view target age** — 7-16 is wide. What's the actual simplification scope?

@@ -2,9 +2,10 @@
 
 ## Branch / Build
 Branch: `claude/app-code-audit-e2e7hj` (includes a merge of main's S80 bundle-AI-builder
-follow-ups) · **docs-only session, zero `src/` changes** · 125/125 tests passing, build
-clean (verified this session as the audit baseline) · not merged to main — no "go live"
-given.
+follow-ups) · mostly analysis/docs, plus one shipped feature at session end: **SRD rules
+ingestion** (`scripts/build-rules.js`, `data/rules.json` 34→186 entries, seed v5,
+`.claude/rules-coverage.md`, `data/ATTRIBUTION.md`, 8 new tests) · 133/133 tests
+passing, build clean · not merged to main — no "go live" given.
 
 ---
 
@@ -36,6 +37,18 @@ was written or fixed — findings and plans only, at the user's direction.
    table; stale Stubs/Not-Yet-Built entries corrected); decisions.md got the S81 entry
    + a correction note under the S62 entry; prime-directive amended (engine is 5e by
    design / content is portable data); ai-failures.md gained the re-classification gap.
+6. **Google-login direction recorded** (previously undocumented plan the user
+   confirmed) and two future arcs proposed: **Rules Depth** (bestiary, NPC attacks
+   through the roll path, spell resolution table, pacing) and **World Integrity**
+   (time as currency, memory ledger + missing secrets write path, procedures as data).
+7. **SRD rules ingestion SHIPPED** (user asked to do it now): user-supplied SRD 5.2
+   markdown → `scripts/build-rules.js` → 186-entry `data/rules.json` + generated
+   `.claude/rules-coverage.md` (24 enforced / 5 partial / 14 gap / 117 inject / 26
+   reference). Found and fixed **edition drift**: 16 superseded curated entries were
+   teaching the AI 2014 rules the code doesn't enforce (Exhaustion, Surprise,
+   Grappling, Hide). Seed v4→v5 reseeds the compendium store. **Needs live check**:
+   scene-relevant rules appear in AI rulings, budget behavior with fuller entries,
+   Compendium Rules tab rendering on a phone.
 
 ---
 

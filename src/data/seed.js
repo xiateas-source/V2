@@ -1,6 +1,6 @@
 import { isSeeded, markSeeded, putAll, getSeedVersion, setSeedVersion, clearStore } from './local.js';
 
-const CURRENT_SEED_VERSION = 4;
+const CURRENT_SEED_VERSION = 5;
 
 export async function runSeed() {
   const seeded = await isSeeded();
@@ -80,5 +80,13 @@ async function runMigrations(fromVersion) {
     ]);
     await clearStore('classData');
     await putAll('classData', classFiles.flat());
+  }
+  // v5: rules.json regenerated from SRD 5.2 source (34 hand-written summaries →
+  // 186 authoritative entries via scripts/build-rules.js). Clear first — the
+  // compendium store auto-increments ids, so a bare putAll would duplicate.
+  if (fromVersion < 5) {
+    await clearStore('compendium');
+    const rules = await import('../../data/rules.json').then(m => m.default);
+    await putAll('compendium', rules);
   }
 }
